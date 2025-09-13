@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Systems - NetPulse</title>
+    <link rel="stylesheet" href="css/security-systems.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-container">
+                    <div class="logo-icon">✈</div>
+                    <h1>NetPulse</h1>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="nav-item">
+                        <a href="dashboard.html">
+                            <i class="fas fa-home"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="network-devices.html">
+                            <i class="fas fa-network-wired"></i>
+                            <span>Network Devices</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="environmental.html">
+                            <i class="fas fa-temperature-low"></i>
+                            <span>Environmental</span>
+                        </a>
+                    </li>
+                    <li class="nav-item active">
+                        <a href="security-systems.html">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>Security Systems</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="alerts-and-incidents.html">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>Alerts & Incidents</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="trends-and-forecasts.html">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Trends & Forecasts</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="reports.html">
+                            <i class="fas fa-file-alt"></i>
+                            <span>Reports</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="settings.html">
+                            <i class="fas fa-cog"></i>
+                            <span>Settings</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-details">
+                        <span class="user-name">User</span>
+                        <span class="user-role">Admin</span>
+                    </div>
+                </div>
+                <a href="login.html" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <div class="header-title">
+                    <h2>Security Systems Monitoring</h2>
+                    <p>Monitor security cameras, access control, and fire safety systems</p>
+                </div>
+                <div class="header-actions">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search devices...">
+                    </div>
+                    <div class="notifications">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">4</span>
+                    </div>
+                    <div class="date-display">
+                        <i class="fas fa-calendar"></i>
+                        <span>Sept 13, 2023</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Stats Overview -->
+            <section class="stats-overview">
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <i class="fas fa-video"></i>
+                    </div>
+                    <div class="stat-details">
+                        <span class="stat-value">128</span>
+                        <span class="stat-label">Cameras</span>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon access">
+                        <i class="fas fa-door-closed"></i>
+                    </div>
+                    <div class="stat-details">
+                        <span class="stat-value">56</span>
+                        <span class="stat-label">Access Points</span>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="stat-details">
+                        <span class="stat-value">7</span>
+                        <span class="stat-label">Offline Devices</span>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon fire">
+                        <i class="fas fa-fire-extinguisher"></i>
+                    </div>
+                    <div class="stat-details">
+                        <span class="stat-value">42</span>
+                        <span class="stat-label">Fire Sensors</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- AI Insight Box -->
+            <section class="ai-insight">
+                <div class="section-header">
+                    <h3><i class="fas fa-brain"></i> AI Insights</h3>
+                    <button class="refresh-btn">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+                <div class="insight-content">
+                    <div class="insight-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div class="insight-text">
+                        <p>Multiple cameras offline in Terminal 1 - Checkpoint B. Correlation suggests possible network switch issue. Fire sensors in Baggage Claim area showing normal readings.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Security Cameras Section -->
+            <section class="cameras-section">
+                <div class="section-header">
+                    <h3>Security Cameras</h3>
+                    <div class="table-controls">
+                        <div class="filter-group">
+                            <select id="camera-filter">
+                                <option value="all">All Cameras</option>
+                                <option value="terminal1">Terminal 1</option>
+                                <option value="terminal2">Terminal 2</option>
+                                <option value="public">Public Areas</option>
+                                <option value="secure">Secure Areas</option>
+                            </select>
+                            <select id="status-filter">
+                                <option value="all">All Status</option>
+                                <option value="online">Online</option>
+                                <option value="offline">Offline</option>
+                                <option value="recording">Recording</option>
+                            </select>
+                        </div>
+                        <button class="export-btn">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="cameras-table">
+                        <thead>
+                            <tr>
+                                <th>Camera ID</th>
+                                <th>Location</th>
+                                <th>Status</th>
+                                <th>Recording</th>
+                                <th>Uptime</th>
+                                <th>Last Motion</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>CAM-T1-001</td>
+                                <td>Terminal 1 - Check-in A</td>
+                                <td><span class="status-badge online">Online</span></td>
+                                <td><span class="status-badge active">Active</span></td>
+                                <td>12 days</td>
+                                <td>2 minutes ago</td>
+                                <td>
+                                    <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
+                                    <button class="action-btn config-btn"><i class="fas fa-cog"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>CAM-T1-015</td>
+                                <td>Terminal 1 - Security Check B</td>
+                                <td><span class="status-badge offline">Offline</span></td>
+                                <td><span class="status-badge inactive">Inactive</span></td>
+                                <td>0 days</td>
+                                <td>5 hours ago</td>
+                                <td>
+                                    <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
+                                    <button class="action-btn config-btn"><i class="fas fa-cog"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>CAM-T2-008</td>
+                                <td>Terminal 2 - Gate C5</td>
+                                <td><span class="status-badge online">Online</span></td>
+                                <td><span class="status-badge active">Active</span></td>
+                                <td>8 days</td>
+                                <td>15 minutes ago</td>
+                                <td>
+                                    <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
+                                    <button class="action-btn config-btn"><i class="fas fa-cog"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>CAM-PB-003</td>
+                                <td>Public Area - Baggage Claim</td>
+                                <td><span class="status-badge online">Online</span></td>
+                                <td><span class="status-badge active">Active</span></td>
+                                <td>21 days</td>
+                                <td>45 seconds ago</td>
+                                <td>
+                                    <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
+                                    <button class="action-btn config-btn"><i class="fas fa-cog"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>CAM-S-012</td>
+                                <td>Secure Area - Server Room A</td>
+                                <td><span class="status-badge online">Online</span></td>
+                                <td><span class="status-badge active">Active</span></td>
+                                <td>32 days</td>
+                                <td>No motion</td>
+                                <td>
+                                    <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
+                                    <button class="action-btn config-btn"><i class="fas fa-cog"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>CAM-T1-023</td>
+                                <td>Terminal 1 - Food Court</td>
+                                <td><span class="status-badge offline">Offline</span></td>
+                                <td><span class="status-badge inactive">Inactive</span></td>
+                                <td>0 days</td>
+                                <td>3 hours ago</td>
+                                <td>
+                                    <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
+                                    <button class="action-btn config-btn"><i class="fas fa-cog"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>CAM-T2-017</td>
+                                <td>Terminal 2 - Customs Area</td>
+                                <td><span class="status-badge online">Online</span></td>
+                                <td><span class="status-badge active">Active</span></td>
+                                <td>14 days</td>
+                                <td>8 minutes ago</td>
+                                <td>
+                                    <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
+                                    <button class="action-btn config-btn"><i class="fas fa-cog"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="table-footer">
+                    <div class="pagination">
+                        <button class="pagination-btn"><i class="fas fa-chevron-left"></i></button>
+                        <span class="page-number">Page 1 of 4</span>
+                        <button class="pagination-btn"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    <div class="rows-info">Showing 7 of 128 cameras</div>
+                </div>
+            </section>
+
+            <!-- Access Control Section -->
+            <section class="access-section">
+                <div class="section-header">
+                    <h3>Access Control Systems</h3>
+                    <div class="view-controls">
+                        <button class="view-btn active">Doors</button>
+                        <button class="view-btn">Gates</button>
+                        <button class="view-btn">Elevators</button>
+                    </div>
+                </div>
+
+                <div class="access-grid">
+                    <div class="access-card">
+                        <div class="access-header">
+                            <h4>Main Entrance</h4>
+                            <span class="status-indicator online"></span>
+                        </div>
+                        <div class="access-details">
+                            <div class="access-detail">
+                                <span class="detail-label">Access Type:</span>
+                                <span class="detail-value">Staff Only</span>
+                            </div>
+                            <div class="access-detail">
+                                <span class="detail-label">Last Access:</span>
+                                <span class="detail-value">2 minutes ago</span>
+                            </div>
+                            <div class="access-detail">
+                                <span class="detail-label">Today's Entries:</span>
+                                <span class="detail-value">142</span>
+                            </div>
+                        </div>
+                        <div class="access-actions">
+                            <button class="btn small">View Log</button>
+                            <button class="btn small primary">Lock/Unlock</button>
+                        </div>
+                    </div>
+
+                    <div class="access-card">
+                        <div class="access-header">
+                            <h4>Server Room A</h4>
+                            <span class="status-indicator online"></span>
+                        </div>
+                        <div class="access-details">
+                            <div class="access-detail">
+                                <span class="detail-label">Access Type:</span>
+                                <span class="detail-value">Admin Only</span>
+                            </div>
+                            <div class="access-detail">
+                                <span class="detail-label">Last Access:</span>
+                                <span class="detail-value">15 minutes ago</span>
+                            </div>
+                            <div class="access-detail">
+                                <span class="detail-label">Today's Entries:</span>
+                                <span class="detail-value">8</span>
+                            </div>
+                        </div>
+                        <div class="access-actions">
+                            <button class="btn small">View Log</button>
+                            <button class="btn small primary">Lock/Unlock</button>
+                        </div>
+                    </div>
+
+                    <div class="access-card">
+                        <div class="access-header">
+                            <h4>Baggage Handling</h4>
+                            <span class="status-indicator offline"></span>
+                        </div>
+                        <div class="access-details">
+                            <div class="access-detail">
+                                <span class="detail-label">Access Type:</span>
+                                <span class="detail-value">Authorized Personnel</span>
+                            </div>
+                            <div class="access-detail">
+                                <span class="detail-label">Last Access:</span>
+                                <span class="detail-value">4 hours ago</span>
+                            </div>
+                            <div class="access-detail">
+                                <span class="detail-label">Today's Entries:</span>
+                                <span class="detail-value">26</span>
+                            </div>
+                        </div>
+                        <div class="access-actions">
+                            <button class="btn small">View Log</button>
+                            <button class="btn small primary">Lock/Unlock</button>
+                        </div>
+                    </div>
+
+                    <div class="access-card">
+                        <div class="access-header">
+                            <h4>Control Tower</h4>
+                            <span class="status-indicator online"></span>
+                        </div>
+                        <div class="access-details">
+                            <div class="access-detail">
+                                <span class="detail-label">Access Type:</span>
+                                <span class="detail-value">Restricted</span>
+                            </div>
+                            <div class="access-detail">
+                                <span class="detail-label">Last Access:</span>
+                                <span class="detail-value">10 minutes ago</span>
+                            </div>
+                            <div class="access-detail">
+                                <span class="detail-label">Today's Entries:</span>
+                                <span class="detail-value">14</span>
+                            </div>
+                        </div>
+                        <div class="access-actions">
+                            <button class="btn small">View Log</button>
+                            <button class="btn small primary">Lock/Unlock</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Fire Safety Section -->
+            <section class="fire-section">
+                <div class="section-header">
+                    <h3>Fire Safety Systems</h3>
+                    <div class="view-controls">
+                        <button class="view-btn active">Sensors</button>
+                        <button class="view-btn">Alarms</button>
+                        <button class="view-btn">Extinguishers</button>
+                    </div>
+                </div>
+
+                <div class="fire-grid">
+                    <div class="fire-card">
+                        <div class="fire-header">
+                            <h4>Smoke Sensor T1-05</h4>
+                            <span class="status-indicator online"></span>
+                        </div>
+                        <div class="fire-details">
+                            <div class="fire-detail">
+                                <span class="detail-label">Location:</span>
+                                <span class="detail-value">Terminal 1 - Check-in B</span>
+                            </div>
+                            <div class="fire-detail">
+                                <span class="detail-label">Status:</span>
+                                <span class="detail-value normal">Normal</span>
+                            </div>
+                            <div class="fire-detail">
+                                <span class="detail-label">Last Test:</span>
+                                <span class="detail-value">Sept 10, 2023</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="fire-card">
+                        <div class="fire-header">
+                            <h4>Heat Sensor T2-12</h4>
+                            <span class="status-indicator warning"></span>
+                        </div>
+                        <div class="fire-details">
+                            <div class="fire-detail">
+                                <span class="detail-label">Location:</span>
+                                <span class="detail-value">Terminal 2 - Kitchen</span>
+                            </div>
+                            <div class="fire-detail">
+                                <span class="detail-label">Status:</span>
+                                <span class="detail-value warning">Elevated</span>
+                            </div>
+                            <div class="fire-detail">
+                                <span class="detail-label">Last Test:</span>
+                                <span class="detail-value">Sept 5, 2023</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="fire-card">
+                        <div class="fire-header">
+                            <h4>Fire Alarm Zone C</h4>
+                            <span class="status-indicator online"></span>
+                        </div>
+                        <div class="fire-details">
+                            <div class="fire-detail">
+                                <span class="detail-label">Location:</span>
+                                <span class="detail-value">Concourse C</span>
+                            </div>
+                            <div class="fire-detail">
+                                <span class="detail-label">Status:</span>
+                                <span class="detail-value normal">Ready</span>
+                            </div>
+                            <div class="fire-detail">
+                                <span class="detail-label">Last Test:</span>
+                                <span class="detail-value">Sept 1, 2023</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="fire-card">
+                        <div class="fire-header">
+                            <h4>Extinguisher BP-08</h4>
+                            <span class="status-indicator critical"></span>
+                        </div>
+                        <div class="fire-details">
+                            <div class="fire-detail">
+                                <span class="detail-label">Location:</span>
+                                <span class="detail-value">Baggage Claim</span>
+                            </div>
+                            <div class="fire-detail">
+                                <span class="detail-label">Status:</span>
+                                <span class="detail-value critical">Maintenance Due</span>
+                            </div>
+                            <div class="fire-detail">
+                                <span class="detail-label">Last Check:</span>
+                                <span class="detail-value">Jun 15, 2023</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Camera Preview Section -->
+            <section class="preview-section">
+                <div class="section-header">
+                    <h3>Live Camera Preview</h3>
+                    <div class="view-controls">
+                        <select id="camera-select">
+                            <option value="cam1">CAM-T1-001 - Check-in A</option>
+                            <option value="cam2">CAM-T2-008 - Gate C5</option>
+                            <option value="cam3">CAM-PB-003 - Baggage Claim</option>
+                            <option value="cam4">CAM-S-012 - Server Room A</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="camera-preview">
+                    <div class="preview-placeholder">
+                        <i class="fas fa-video"></i>
+                        <p>Live camera feed will appear here</p>
+                        <div class="preview-overlay">
+                            <div class="preview-timestamp">13:45:22 | Sept 13, 2023</div>
+                            <div class="preview-controls">
+                                <button class="control-btn"><i class="fas fa-expand"></i></button>
+                                <button class="control-btn"><i class="fas fa-camera"></i></button>
+                                <button class="control-btn"><i class="fas fa-record-vinyl"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="preview-details">
+                        <div class="preview-info">
+                            <h4>CAM-T1-001 - Terminal 1 Check-in A</h4>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <span class="info-label">Status:</span>
+                                    <span class="info-value online">Live</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Resolution:</span>
+                                    <span class="info-value">1080p</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">FPS:</span>
+                                    <span class="info-value">30</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Recording:</span>
+                                    <span class="info-value active">Yes</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Storage:</span>
+                                    <span class="info-value">14 days</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Last Motion:</span>
+                                    <span class="info-value">2 minutes ago</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Camera Detail Modal (Hidden by default) -->
+    <div class="modal-overlay" id="camera-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Camera Details: CAM-T1-001</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="camera-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Camera ID:</span>
+                        <span class="detail-value">CAM-T1-001</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Location:</span>
+                        <span class="detail-value">Terminal 1 - Check-in Area A</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Status:</span>
+                        <span class="detail-value"><span class="status-badge online">Online</span></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Recording:</span>
+                        <span class="detail-value"><span class="status-badge active">Active</span></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Model:</span>
+                        <span class="detail-value">AXIS P1448-LE</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Resolution:</span>
+                        <span class="detail-value">1920 × 1080 (1080p)</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">IP Address:</span>
+                        <span class="detail-value">192.168.10.15</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Last Maintenance:</span>
+                        <span class="detail-value">Aug 20, 2023</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Next Maintenance:</span>
+                        <span class="detail-value">Oct 20, 2023</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn secondary">Cancel</button>
+                <button class="btn primary">View Full Feed</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simple JavaScript to demonstrate modal functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const viewButtons = document.querySelectorAll('.view-btn');
+            const modal = document.getElementById('camera-modal');
+            const closeModal = document.querySelector('.modal-close');
+            
+            viewButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    modal.style.display = 'flex';
+                });
+            });
+            
+            closeModal.addEventListener('click', () => {
+                modal.style.display = 'none';
+            });
+            
+            // Close modal when clicking outside
+            window.addEventListener('click', (event) => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

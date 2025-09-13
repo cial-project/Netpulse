@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - NetPulse</title>
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-container">
+                    <div class="logo-icon">✈</div>
+                    <h1>NetPulse</h1>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="nav-item active">
+                        <a href="dashboard.html">
+                            <i class="fas fa-home"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="network-devices.html">
+                            <i class="fas fa-network-wired"></i>
+                            <span>Network Devices</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="environmental.html">
+                            <i class="fas fa-temperature-low"></i>
+                            <span>Environmental</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="security-systems.html">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>Security Systems</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="alerts-and-incidents.html">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>Alerts & Incidents</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="trends-and-forecasts.html">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Trends & Forecasts</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="reports.html">
+                            <i class="fas fa-file-alt"></i>
+                            <span>Reports</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="settings.html">
+                            <i class="fas fa-cog"></i>
+                            <span>Settings</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-details">
+                        <span class="user-name">User</span>
+                        <span class="user-role">Admin</span>
+                    </div>
+                </div>
+                <a href="login.html" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <div class="header-title">
+                    <h2>Dashboard</h2>
+                    <p>Welcome back, User. Here's the current system status.</p>
+                </div>
+                <div class="header-actions">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search...">
+                    </div>
+                    <div class="notifications">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">3</span>
+                    </div>
+                    <div class="date-display">
+                        <i class="fas fa-calendar"></i>
+                        <span>Sept 13, 2023</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- KPI Cards -->
+            <section class="kpi-section">
+                <div class="kpi-card">
+                    <div class="kpi-icon">
+                        <i class="fas fa-server"></i>
+                    </div>
+                    <div class="kpi-content">
+                        <h3>Devices Status</h3>
+                        <div class="kpi-value">42/45 <span class="kpi-subtext">Online</span></div>
+                        <div class="kpi-progress">
+                            <div class="progress-bar" style="width: 93%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-icon alert">
+                        <i class="fas fa-exclamation-circle"></i>
+                    </div>
+                    <div class="kpi-content">
+                        <h3>Active Alerts</h3>
+                        <div class="kpi-value">3 <span class="kpi-subtext">Critical</span></div>
+                        <div class="kpi-trend negative">
+                            <i class="fas fa-arrow-up"></i> 2 new
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-icon environment">
+                        <i class="fas fa-temperature-high"></i>
+                    </div>
+                    <div class="kpi-content">
+                        <h3>Avg Temperature</h3>
+                        <div class="kpi-value">22.5° <span class="kpi-subtext">Celsius</span></div>
+                        <div class="kpi-trend positive">
+                            <i class="fas fa-arrow-down"></i> 1.2°
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-icon ups">
+                        <i class="fas fa-battery-full"></i>
+                    </div>
+                    <div class="kpi-content">
+                        <h3>UPS Status</h3>
+                        <div class="kpi-value">95% <span class="kpi-subtext">Capacity</span></div>
+                        <div class="kpi-progress">
+                            <div class="progress-bar" style="width: 95%"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- AI Insight Box -->
+            <section class="ai-insight">
+                <div class="section-header">
+                    <h3><i class="fas fa-brain"></i> AI Insights</h3>
+                    <button class="refresh-btn">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+                <div class="insight-content">
+                    <div class="insight-icon">
+                        <i class="fas fa-lightbulb"></i>
+                    </div>
+                    <div class="insight-text">
+                        <p>Temperature rising in Server Room A. Predicted to exceed threshold in 2 hours. UPS battery at 95% - no issues detected.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Airport Map -->
+            <section class="map-section">
+                <div class="section-header">
+                    <h3><i class="fas fa-map-marked-alt"></i> Airport Overview</h3>
+                    <div class="view-controls">
+                        <button class="view-btn active">Terminal 1</button>
+                        <button class="view-btn">Terminal 2</button>
+                        <button class="view-btn">Terminal 3</button>
+                        <button class="view-btn">Control Tower</button>
+                    </div>
+                </div>
+                <div class="map-container">
+                    <div class="map-area">
+                        <div class="map-grid">
+                            <!-- This would be replaced with a real map or SVG in production -->
+                            <div class="map-zone" style="top: 20%; left: 25%;">
+                                <div class="zone-point online"></div>
+                                <span class="zone-label">Check-in</span>
+                            </div>
+                            <div class="map-zone" style="top: 45%; left: 60%;">
+                                <div class="zone-point warning"></div>
+                                <span class="zone-label">Security</span>
+                            </div>
+                            <div class="map-zone" style="top: 70%; left: 40%;">
+                                <div class="zone-point offline"></div>
+                                <span class="zone-label">Gate A</span>
+                            </div>
+                            <div class="map-zone" style="top: 35%; left: 75%;">
+                                <div class="zone-point online"></div>
+                                <span class="zone-label">Baggage</span>
+                            </div>
+                            <div class="map-zone" style="top: 60%; left: 20%;">
+                                <div class="zone-point critical"></div>
+                                <span class="zone-label">Server Room</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="map-legend">
+                        <div class="legend-item">
+                            <div class="legend-color online"></div>
+                            <span>Online (32)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color warning"></div>
+                            <span>Warning (6)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color critical"></div>
+                            <span>Critical (3)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color offline"></div>
+                            <span>Offline (4)</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Quick Stats -->
+            <section class="stats-section">
+                <div class="stat-card">
+                    <h4>Network Bandwidth</h4>
+                    <div class="stat-value">345 <span>Mbps</span></div>
+                    <div class="stat-progress">
+                        <div class="progress-bar" style="width: 65%"></div>
+                    </div>
+                    <div class="stat-comparison">
+                        <span class="positive"><i class="fas fa-arrow-up"></i> 12% from yesterday</span>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <h4>Humidity Level</h4>
+                    <div class="stat-value">45 <span>%</span></div>
+                    <div class="stat-progress">
+                        <div class="progress-bar" style="width: 45%"></div>
+                    </div>
+                    <div class="stat-comparison">
+                        <span class="neutral"><i class="fas fa-minus"></i> Stable</span>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <h4>Passenger Systems</h4>
+                    <div class="stat-value">100<span>%</span></div>
+                    <div class="stat-progress">
+                        <div class="progress-bar" style="width: 100%"></div>
+                    </div>
+                    <div class="stat-comparison">
+                        <span class="positive"><i class="fas fa-check"></i> All systems operational</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

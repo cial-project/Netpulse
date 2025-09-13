@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alerts & Incidents - NetPulse</title>
+    <link rel="stylesheet" href="css/alerts-and-incidents.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-container">
+                    <div class="logo-icon">✈</div>
+                    <h1>NetPulse</h1>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="nav-item">
+                        <a href="dashboard.html">
+                            <i class="fas fa-home"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="network-devices.html">
+                            <i class="fas fa-network-wired"></i>
+                            <span>Network Devices</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="environmental.html">
+                            <i class="fas fa-temperature-low"></i>
+                            <span>Environmental</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="security-systems.html">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>Security Systems</span>
+                        </a>
+                    </li>
+                    <li class="nav-item active">
+                        <a href="alerts-and-incidents.html">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>Alerts & Incidents</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="trends-and-forecasts.html">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Trends & Forecasts</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="reports.html">
+                            <i class="fas fa-file-alt"></i>
+                            <span>Reports</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="settings.html">
+                            <i class="fas fa-cog"></i>
+                            <span>Settings</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-details">
+                        <span class="user-name">User</span>
+                        <span class="user-role">Admin</span>
+                    </div>
+                </div>
+                <a href="login.html" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <div class="header-title">
+                    <h2>Alerts & Incidents</h2>
+                    <p>Monitor and manage system alerts and incident reports</p>
+                </div>
+                <div class="header-actions">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search alerts...">
+                    </div>
+                    <div class="notifications">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">12</span>
+                    </div>
+                    <div class="date-display">
+                        <i class="fas fa-calendar"></i>
+                        <span>Sept 13, 2023</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Stats Overview -->
+            <section class="stats-overview">
+                <div class="stat-item">
+                    <div class="stat-icon critical">
+                        <i class="fas fa-exclamation-circle"></i>
+                    </div>
+                    <div class="stat-details">
+                        <span class="stat-value">5</span>
+                        <span class="stat-label">Critical Alerts</span>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="stat-details">
+                        <span class="stat-value">12</span>
+                        <span class="stat-label">Warnings</span>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon info">
+                        <i class="fas fa-info-circle"></i>
+                    </div>
+                    <div class="stat-details">
+                        <span class="stat-value">23</span>
+                        <span class="stat-label">Info Alerts</span>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon resolved">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-details">
+                        <span class="stat-value">42</span>
+                        <span class="stat-label">Resolved Today</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- AI Insight Box -->
+            <section class="ai-insight">
+                <div class="section-header">
+                    <h3><i class="fas fa-brain"></i> AI Insights</h3>
+                    <button class="refresh-btn">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+                <div class="insight-content">
+                    <div class="insight-icon">
+                        <i class="fas fa-lightbulb"></i>
+                    </div>
+                    <div class="insight-text">
+                        <p>Multiple temperature alerts in Terminal 1 may be related to HVAC system issue. Network device failures appear to be clustered around Switch-T1-A, suggesting potential hardware failure.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Alert Filters -->
+            <section class="filters-section">
+                <div class="filters-header">
+                    <h3>Alert Filters</h3>
+                    <button class="btn secondary">
+                        <i class="fas fa-times"></i> Clear Filters
+                    </button>
+                </div>
+                <div class="filters-grid">
+                    <div class="filter-group">
+                        <label for="severity-filter">Severity</label>
+                        <select id="severity-filter">
+                            <option value="all">All Severities</option>
+                            <option value="critical">Critical</option>
+                            <option value="warning">Warning</option>
+                            <option value="info">Info</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="status-filter">Status</label>
+                        <select id="status-filter">
+                            <option value="all">All Status</option>
+                            <option value="open">Open</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="resolved">Resolved</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="type-filter">Alert Type</label>
+                        <select id="type-filter">
+                            <option value="all">All Types</option>
+                            <option value="network">Network</option>
+                            <option value="environmental">Environmental</option>
+                            <option value="security">Security</option>
+                            <option value="system">System</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="date-filter">Time Range</label>
+                        <select id="date-filter">
+                            <option value="today">Today</option>
+                            <option value="24h">Last 24 Hours</option>
+                            <option value="7d" selected>Last 7 Days</option>
+                            <option value="30d">Last 30 Days</option>
+                            <option value="custom">Custom Range</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Alerts Table -->
+            <section class="alerts-section">
+                <div class="section-header">
+                    <h3>Active Alerts</h3>
+                    <div class="table-controls">
+                        <button class="btn primary">
+                            <i class="fas fa-plus"></i> New Incident
+                        </button>
+                        <button class="export-btn">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="alerts-table">
+                        <thead>
+                            <tr>
+                                <th class="select-col">
+                                    <input type="checkbox" id="select-all">
+                                </th>
+                                <th>Timestamp</th>
+                                <th>Alert Type</th>
+                                <th>Severity</th>
+                                <th>Device/Zone</th>
+                                <th>Description</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="critical">
+                                <td class="select-col">
+                                    <input type="checkbox">
+                                </td>
+                                <td>13:25:42<br><span class="date">Sep 13, 2023</span></td>
+                                <td>Network</td>
+                                <td><span class="severity-badge critical">Critical</span></td>
+                                <td>Switch-T1-A</td>
+                                <td>Network switch offline - affecting multiple cameras in Terminal 1</td>
+                                <td><span class="status-badge open">Open</span></td>
+                                <td>
+                                    <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
+                                    <button class="action-btn assign-btn"><i class="fas fa-user-plus"></i></button>
+                                </td>
+                            </tr>
+                            <tr class="critical">
+                                <td class="select-col">
+                                    <input type="checkbox">
+                                </td>
+                                <td>12:48:15<br><span class="date">Sep 13, 2023</span></td>
+                                <td>Environmental</td>
+                                <td><span class="severity-badge critical">Critical</span></td>
+                                <td>Gate A5</td>
+                                <td>Temperature exceeding threshold (26.3°C)</td>
+                                <td><span class="status-badge in-progress">In Progress</span></td>
+                                <td>
+                                    <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
+                                    <button class="action-btn assign-btn"><i class="fas fa-user-plus"></i></button>
+                                </td>
+                            </tr>
+                            <tr class="warning">
+                                <td class="select-col">
+                                    <input type="checkbox">
+                                </td>
+                                <td>11:32:58<br><span class="date">Sep 13, 2023</span></td>
+                                <td>Security</td>
+                                <td><span class="severity-badge warning">Warning</span></td>
+                                <td>CAM-T1-015</td>
+                                <td>Camera offline for 4+ hours</td>
+                                <td><span class="status-badge open">Open</span></td>
+                                <td>
+                                    <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
+                                    <button class="action-btn assign-btn"><i class="fas fa-user-plus"></i></button>
+                                </td>
+                            </tr>
+                            <tr class="warning">
+                                <td class="select-col">
+                                    <input type="checkbox">
+                                </td>
+                                <td>10:15:23<br><span class="date">Sep 13, 2023</span></td>
+                                <td>Environmental</td>
+                                <td><span class="severity-badge warning">Warning</span></td>
+                                <td>Control Tower</td>
+                                <td>UPS battery below 90% capacity</td>
+                                <td><span class="status-badge open">Open</span></td>
+                                <td>
+                                    <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
+                                    <button class="action-btn assign-btn"><i class="fas fa-user-plus"></i></button>
+                                </td>
+                            </tr>
+                            <tr class="warning">
+                                <td class="select-col">
+                                    <input type="checkbox">
+                                </td>
+                                <td>09:42:10<br><span class="date">Sep 13, 2023</span></td>
+                                <td>Fire Safety</td>
+                                <td><span class="severity-badge warning">Warning</span></td>
+                                <td>Extinguisher BP-08</td>
+                                <td>Maintenance overdue - last checked Jun 15, 2023</td>
+                                <td><span class="status-badge open">Open</span></td>
+                                <td>
+                                    <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
+                                    <button class="action-btn assign-btn"><i class="fas fa-user-plus"></i></button>
+                                </td>
+                            </tr>
+                            <tr class="info">
+                                <td class="select-col">
+                                    <input type="checkbox">
+                                </td>
+                                <td>08:56:33<br><span class="date">Sep 13, 2023</span></td>
+                                <td>System</td>
+                                <td><span class="severity-badge info">Info</span></td>
+                                <td>Backup Server</td>
+                                <td>Weekly backup completed successfully</td>
+                                <td><span class="status-badge resolved">Resolved</span></td>
+                                <td>
+                                    <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
+                                    <button class="action-btn assign-btn"><i class="fas fa-user-plus"></i></button>
+                                </td>
+                            </tr>
+                            <tr class="info">
+                                <td class="select-col">
+                                    <input type="checkbox">
+                                </td>
+                                <td>07:30:45<br><span class="date">Sep 13, 2023</span></td>
+                                <td>Network</td>
+                                <td><span class="severity-badge info">Info</span></td>
+                                <td>Router-Gate-A</td>
+                                <td>Scheduled reboot completed</td>
+                                <td><span class="status-badge resolved">Resolved</span></td>
+                                <td>
+                                    <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
+                                    <button class="action-btn assign-btn"><i class="fas fa-user-plus"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="table-footer">
+                    <div class="bulk-actions">
+                        <select id="bulk-action">
+                            <option value="">Bulk Actions</option>
+                            <option value="assign">Assign Selected</option>
+                            <option value="resolve">Mark as Resolved</option>
+                            <option value="delete">Delete Selected</option>
+                        </select>
+                        <button class="btn secondary">Apply</button>
+                    </div>
+                    <div class="pagination">
+                        <button class="pagination-btn"><i class="fas fa-chevron-left"></i></button>
+                        <span class="page-number">Page 1 of 3</span>
+                        <button class="pagination-btn"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    <div class="rows-info">Showing 7 of 40 alerts</div>
+                </div>
+            </section>
+
+            <!-- Alert Trends Chart -->
+            <section class="trends-section">
+                <div class="section-header">
+                    <h3>Alert Trends</h3>
+                    <div class="chart-controls">
+                        <select id="trend-time-range">
+                            <option value="7d" selected>Last 7 Days</option>
+                            <option value="30d">Last 30 Days</option>
+                            <option value="90d">Last 90 Days</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <div class="mock-chart">
+                        <div class="chart-bars">
+                            <div class="bar-group">
+                                <div class="bar critical" style="height: 85%;" data-value="12">
+                                    <span class="bar-label">Sep 7</span>
+                                </div>
+                                <div class="bar warning" style="height: 70%;" data-value="10">
+                                    <span class="bar-label"></span>
+                                </div>
+                                <div class="bar info" style="height: 45%;" data-value="7">
+                                    <span class="bar-label"></span>
+                                </div>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bar critical" style="height: 65%;" data-value="9">
+                                    <span class="bar-label">Sep 8</span>
+                                </div>
+                                <div class="bar warning" style="height: 55%;" data-value="8">
+                                    <span class="bar-label"></span>
+                                </div>
+                                <div class="bar info" style="height: 35%;" data-value="5">
+                                    <span class="bar-label"></span>
+                                </div>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bar critical" style="height: 75%;" data-value="11">
+                                    <span class="bar-label">Sep 9</span>
+                                </div>
+                                <div class="bar warning" style="height: 60%;" data-value="9">
+                                    <span class="bar-label"></span>
+                                </div>
+                                <div class="bar info" style="height: 40%;" data-value="6">
+                                    <span class="bar-label"></span>
+                                </div>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bar critical" style="height: 80%;" data-value="11">
+                                    <span class="bar-label">Sep 10</span>
+                                </div>
+                                <div class="bar warning" style="height: 65%;" data-value="9">
+                                    <span class="bar-label"></span>
+                                </div>
+                                <div class="bar info" style="height: 50%;" data-value="7">
+                                    <span class="bar-label"></span>
+                                </div>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bar critical" style="height: 90%;" data-value="13">
+                                    <span class="bar-label">Sep 11</span>
+                                </div>
+                                <div class="bar warning" style="height: 75%;" data-value="11">
+                                    <span class="bar-label"></span>
+                                </div>
+                                <div class="bar info" style="height: 55%;" data-value="8">
+                                    <span class="bar-label"></span>
+                                </div>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bar critical" style="height: 95%;" data-value="14">
+                                    <span class="bar-label">Sep 12</span>
+                                </div>
+                                <div class="bar warning" style="height: 80%;" data-value="12">
+                                    <span class="bar-label"></span>
+                                </div>
+                                <div class="bar info" style="height: 60%;" data-value="9">
+                                    <span class="bar-label"></span>
+                                </div>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bar critical" style="height: 100%;" data-value="15">
+                                    <span class="bar-label">Sep 13</span>
+                                </div>
+                                <div class="bar warning" style="height: 85%;" data-value="13">
+                                    <span class="bar-label"></span>
+                                </div>
+                                <div class="bar info" style="height: 65%;" data-value="10">
+                                    <span class="bar-label"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chart-legend">
+                        <div class="legend-item">
+                            <span class="legend-color critical"></span>
+                            <span>Critical Alerts</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color warning"></span>
+                            <span>Warning Alerts</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color info"></span>
+                            <span>Info Alerts</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

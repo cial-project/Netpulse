@@ -1,0 +1,152 @@
+/* landing.css */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body, html {
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+/* Hero Section */
+.hero {
+  position: relative;
+  min-height: 72.25vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: white;
+  overflow: hidden;
+}
+
+.hero-bg {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* makes it cover entire hero */
+  z-index: 0; /* behind everything */
+}
+
+.overlay {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+  z-index: 1;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2; /* in front of overlay */
+  max-width: 600px;
+  padding: 1.5rem;
+}
+
+.logo-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.logo-icon {
+  background-color: #28a745;
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  margin-right: 10px;
+}
+
+.hero-content h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+.tagline {
+  font-size: 1.2rem;
+  margin: 1rem 0 2rem;
+  color: #f8f9fa;
+}
+
+.hero-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+
+.btn.primary {
+  background-color: #28a745;
+  color: white;
+}
+
+.btn.primary:hover {
+  background-color: #218838;
+}
+
+.btn.secondary {
+  background-color: white;
+  color: #28a745;
+  border: 2px solid #28a745;
+}
+
+.btn.secondary:hover {
+  background-color: #f8f9fa;
+}
+
+/* Features Section */
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 2rem;
+  padding: 1rem 2rem;
+  background: #f8f9fa;
+  text-align: center;
+}
+
+.feature i {
+  font-size: 2rem;
+  color: #28a745;
+  margin-bottom: 1rem;
+}
+
+.feature h3 {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #212529;
+}
+
+.feature p {
+  font-size: 0.9rem;
+  color: #495057;
+}
+
+/* Footer */
+.footer {
+  background: #212529;
+  color: #adb5bd;
+  padding: 1rem;
+  text-align: center;
+  font-size: 0.85rem;
+}

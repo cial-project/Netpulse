@@ -1,0 +1,13 @@
+/* trends-and-forecasts.css - based on alerts-and-incidents.css */
+
+@import url('alerts-and-incidents.css');
+
+/* Override only if needed */
+.chart-container {
+  margin-top: 1rem;
+  height: 400px;
+  background: white;
+  border-radius: 10px;
+  padding: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}

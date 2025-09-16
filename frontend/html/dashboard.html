@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard - NetPulse</title>
-  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -78,8 +78,8 @@
                         <i class="fas fa-user"></i>
                     </div>
                     <div class="user-details">
-                        <span class="user-name">User</span>
-                        <span class="user-role">Admin</span>
+                        <span class="user-name" id="sidebar-username"></span>
+                        <span class="user-role" id="sidebar-userrole"></span>
                     </div>
                 </div>
                 <a href="login.html" class="logout-btn">
@@ -93,7 +93,7 @@
       <header class="content-header">
         <div class="header-title">
           <h2>Dashboard</h2>
-          <p>Welcome back, User. Here's the current system status.</p>
+          <p>Welcome back, <span id="header-username"></span>. Here's the current system status.</p>
         </div>
         <div class="header-actions">
           <div class="search-box">
@@ -106,7 +106,7 @@
           </div>
           <div class="date-display">
             <i class="fas fa-calendar"></i>
-            <span>Sept 13, 2023</span>
+            <span id="current-date"></span>
           </div>
         </div>
       </header>
@@ -117,7 +117,7 @@
           <div class="kpi-icon"><i class="fas fa-server"></i></div>
           <div class="kpi-content">
             <h3>Devices Status</h3>
-            <div class="kpi-value">42/45 <span class="kpi-subtext">Online</span></div>
+            <div class="kpi-value" id="kpi-devices-status"></div>
           </div>
         </div>
 
@@ -125,7 +125,7 @@
           <div class="kpi-icon alert"><i class="fas fa-exclamation-circle"></i></div>
           <div class="kpi-content">
             <h3>Active Alerts</h3>
-            <div class="kpi-value">3 <span class="kpi-subtext">Critical</span></div>
+            <div class="kpi-value" id="kpi-active-alerts"></div>
           </div>
         </div>
 
@@ -133,7 +133,7 @@
           <div class="kpi-icon environment"><i class="fas fa-temperature-high"></i></div>
           <div class="kpi-content">
             <h3>Avg Temperature</h3>
-            <div class="kpi-value">22.5° <span class="kpi-subtext">C</span></div>
+            <div class="kpi-value" id="kpi-avg-temperature"></div>
           </div>
         </div>
 
@@ -141,7 +141,7 @@
           <div class="kpi-icon ups"><i class="fas fa-battery-full"></i></div>
           <div class="kpi-content">
             <h3>UPS Status</h3>
-            <div class="kpi-value">95% <span class="kpi-subtext">Capacity</span></div>
+            <div class="kpi-value" id="kpi-ups-status"></div>
           </div>
         </div>
 
@@ -149,7 +149,7 @@
           <div class="kpi-icon bandwidth"><i class="fas fa-exchange-alt"></i></div>
           <div class="kpi-content">
             <h3>Network Bandwidth</h3>
-            <div class="kpi-value">345 <span class="kpi-subtext">Mbps</span></div>
+            <div class="kpi-value" id="kpi-bandwidth"></div>
           </div>
         </div>
 
@@ -157,7 +157,7 @@
           <div class="kpi-icon throughput"><i class="fas fa-tachometer-alt"></i></div>
           <div class="kpi-content">
             <h3>Throughput</h3>
-            <div class="kpi-value">5.4 <span class="kpi-subtext">Gbps</span></div>
+            <div class="kpi-value" id="kpi-throughput"></div>
           </div>
         </div>
 
@@ -165,7 +165,7 @@
           <div class="kpi-icon latency"><i class="fas fa-clock"></i></div>
           <div class="kpi-content">
             <h3>Latency</h3>
-            <div class="kpi-value">42 <span class="kpi-subtext">ms</span></div>
+            <div class="kpi-value" id="kpi-latency"></div>
           </div>
         </div>
 
@@ -173,7 +173,7 @@
           <div class="kpi-icon jitter"><i class="fas fa-wave-square"></i></div>
           <div class="kpi-content">
             <h3>Jitter</h3>
-            <div class="kpi-value">7 <span class="kpi-subtext">ms</span></div>
+            <div class="kpi-value" id="kpi-jitter"></div>
           </div>
         </div>
       </section>
@@ -186,12 +186,7 @@
         </div>
         <div class="insight-content">
           <div class="insight-icon"><i class="fas fa-lightbulb"></i></div>
-          <div class="insight-text">
-            <p>Temperature rising in Server Room A. Predicted to exceed threshold in 2 hours.</p>
-            <p>Latency spikes detected in Terminal 2 network — possible congestion.</p>
-            <p>Jitter variation trending up near Gate A — monitoring required.</p>
-            <p>Throughput bottleneck forecast in Core Switch 3 within 6 hours.</p>
-          </div>
+          <div class="insight-text" id="ai-insights"></div>
         </div>
       </section>
 
@@ -202,34 +197,8 @@
         </div>
         <div class="map-container">
           <div class="map-area">
-            <div class="map-grid">
-              <div class="map-zone" style="top: 20%; left: 25%;">
-                <div class="zone-point online"></div>
-                <span class="zone-label">Check-in</span>
-              </div>
-              <div class="map-zone" style="top: 45%; left: 60%;">
-                <div class="zone-point warning"></div>
-                <span class="zone-label">Security</span>
-              </div>
-              <div class="map-zone" style="top: 70%; left: 40%;">
-                <div class="zone-point offline"></div>
-                <span class="zone-label">Gate A</span>
-              </div>
-              <div class="map-zone" style="top: 35%; left: 75%;">
-                <div class="zone-point online"></div>
-                <span class="zone-label">Baggage</span>
-              </div>
-              <div class="map-zone" style="top: 60%; left: 20%;">
-                <div class="zone-point critical"></div>
-                <span class="zone-label">Server Room</span>
-              </div>
-            </div>
-          </div>
-          <div class="map-legend">
-            <div class="legend-item"><div class="legend-color online"></div><span>Online (32)</span></div>
-            <div class="legend-item"><div class="legend-color warning"></div><span>Warning (6)</span></div>
-            <div class="legend-item"><div class="legend-color critical"></div><span>Critical (3)</span></div>
-            <div class="legend-item"><div class="legend-color offline"></div><span>Offline (4)</span></div>
+            <div class="map-grid" id="map-zones"></div>
+            <div class="map-legend" id="map-legend"></div>
           </div>
         </div>
       </section>
@@ -238,38 +207,31 @@
       <section class="stats-section">
         <div class="stat-card">
           <h4>Temperature</h4>
-          <div class="stat-value">22.5 <span>°C</span></div>
+          <div class="stat-value" id="stat-temperature"></div>
           <div class="stat-progress">
-            <div class="progress-bar" style="width: 65%"></div>
+            <div class="progress-bar" id="stat-temperature-bar"></div>
           </div>
-          <div class="stat-comparison negative">
-            <i class="fas fa-arrow-up"></i> +3°C from yesterday
-          </div>
+          <div class="stat-comparison" id="stat-temperature-comp"></div>
         </div>
-
         <div class="stat-card">
           <h4>Humidity Level</h4>
-          <div class="stat-value">45 <span>%</span></div>
+          <div class="stat-value" id="stat-humidity"></div>
           <div class="stat-progress">
-            <div class="progress-bar" style="width: 45%"></div>
+            <div class="progress-bar" id="stat-humidity-bar"></div>
           </div>
-          <div class="stat-comparison">
-            <span class="neutral"><i class="fas fa-minus"></i> Stable</span>
-          </div>
+          <div class="stat-comparison" id="stat-humidity-comp"></div>
         </div>
-
         <div class="stat-card">
           <h4>Passenger Systems</h4>
-          <div class="stat-value">100<span>%</span></div>
+          <div class="stat-value" id="stat-passenger-systems"></div>
           <div class="stat-progress">
-            <div class="progress-bar" style="width: 100%"></div>
+            <div class="progress-bar" id="stat-passenger-bar"></div>
           </div>
-          <div class="stat-comparison">
-            <span class="positive"><i class="fas fa-check"></i> All systems operational</span>
-          </div>
+          <div class="stat-comparison" id="stat-passenger-comp"></div>
         </div>
       </section>
     </main>
   </div>
+  <script src="js/dashboard.js"></script>
 </body>
 </html>

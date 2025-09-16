@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NetPulse - Login</title>
-  <link rel="stylesheet" href="css/login.css">
+  <title>NetPulse - Sign Up</title>
+  <link rel="stylesheet" href="../css/signup.css">
 </head>
 <body>
-  <div class="login-container">
-    <!-- Left Half (Image) -->
-    <div class="login-image">
+  <div class="signup-container">
+    <!-- Left half image -->
+    <div class="signup-image">
       <img src="../media/airportcolour.png" alt="Airport Image">
     </div>
 
-    <!-- Right Half (Form) -->
-    <div class="login-form-area">
+    <!-- Right half white bg with form -->
+    <div class="signup-form-area">
       <div class="form-wrapper">
-        <div class="login-header">
+        <div class="signup-header">
           <div class="logo-container">
             <div class="logo-icon">✈</div>
             <h1>NetPulse</h1>
@@ -25,7 +25,12 @@
           <p class="sub-title">Airport Unified Monitoring & Management System</p>
         </div>
 
-        <form class="login-form" onsubmit="redirectToDashboard(event)">
+        <form class="signup-form">
+          <div class="input-group">
+            <label for="fullname">Full Name</label>
+            <input type="text" id="fullname" placeholder="Enter your full name" required>
+          </div>
+
           <div class="input-group">
             <label for="email">Company Email</label>
             <input type="email" id="email" placeholder="Enter your company email" required>
@@ -36,33 +41,23 @@
             <input type="password" id="password" placeholder="Enter your password" required>
           </div>
 
-          <div class="remember-forgot">
-            <div class="remember-me">
-              <input type="checkbox" id="remember">
-              <label for="remember">Remember me</label>
-            </div>
-            <a href="#" class="forgot-link">Forgot Password?</a>
+          <div class="input-group">
+            <label for="confirm-password">Confirm Password</label>
+            <input type="password" id="confirm-password" placeholder="Confirm your password" required>
           </div>
 
-          <button type="submit" class="login-btn">Login</button>
-          <p class="signup-link">
-            Don’t have an account?
-            <a href="signup.html">Sign up</a>
-          </p>
+          <button type="submit" class="signup-btn">Sign Up</button>
+          <div id="signup-error" style="color:red;"></div>
         </form>
 
-        <div class="login-footer">
-          <p>Need help? Contact <a href="#">IT Support</a></p>
+        <div class="signup-footer">
+          <p>Already have an account? <a href="login.html">Login</a></p>
           <p class="version">v1.0.0 MVP</p>
         </div>
       </div>
     </div>
   </div>
+
+  <script src="../js/signup.js"></script>
 </body>
-<script>
-  function redirectToDashboard(event) {
-    event.preventDefault();
-    window.location.href = "dashboard.html";
-  }
-</script>
 </html>

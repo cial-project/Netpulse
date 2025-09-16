@@ -239,7 +239,7 @@ body {
 /* KPI Section */
 .kpi-section {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 1.5rem;
     margin-bottom: 2rem;
 }
@@ -281,6 +281,35 @@ body {
     color: #ffc107;
 }
 
+.kpi-icon.bandwidth {
+    background-color: #ffe6f0; /* light pink bg */
+    color: #d63384;           /* magenta/pink icon */
+}
+
+.kpi-icon.throughput {
+    background-color: #e6f0ff; /* light blue bg */
+    color: #007bff;            /* blue icon */
+}
+
+.kpi-icon.latency {
+    background-color: #f3e9ff; /* light purple bg */
+    color: #6f42c1;            /* purple icon */
+}
+
+.kpi-icon.jitter {
+    background-color: #fff4e6; /* light orange bg */
+    color: #fd7e14;            /* orange icon */
+}
+
+/* optional: tighten up trend layout */
+.kpi-trend {
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
 .kpi-content h3 {
     font-size: 0.9rem;
     color: #6c757d;
@@ -299,6 +328,7 @@ body {
     font-size: 0.9rem;
     color: #6c757d;
     font-weight: 400;
+    margin-left: 6px;
 }
 
 .kpi-progress {

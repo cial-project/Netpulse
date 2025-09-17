@@ -1,28 +1,34 @@
-document.getElementById('signup-form').addEventListener('submit', function(e) {
+document.querySelector('.signup-form').addEventListener('submit', function(e) {
     e.preventDefault();
 
+    const fullName = document.getElementById('fullname').value;
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirm-password').value;
+
+    if (password !== confirmPassword) {
+        document.getElementById('signup-error').textContent = 'Passwords do not match.';
+        return;
+    }
+
     const formData = {
-        username: document.getElementById('signup-username').value,
-        email: document.getElementById('signup-email').value,
-        password: document.getElementById('signup-password').value,
-        // Add more fields as needed
+        username: fullName,
+        email: email,
+        password: password,
     };
 
     fetch('/api/signup/', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            // 'X-CSRFToken': getCookie('csrftoken'), // Uncomment if CSRF protection is needed
         },
         body: JSON.stringify(formData)
     })
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            // Redirect or show success message
             window.location.href = 'login.html';
         } else {
-            // Show error message
             document.getElementById('signup-error').textContent = data.error || 'Signup failed.';
         }
     })

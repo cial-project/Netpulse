@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - NetPulse</title>
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+  <div class="dashboard-container">
+
+    <!-- Sidebar placeholder -->
+    <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-container">
+                    <div class="logo-icon">✈</div>
+                    <h1>NetPulse</h1>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="nav-item active">
+                        <a href="dashboard.html">
+                            <i class="fas fa-home"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="network-devices.html">
+                            <i class="fas fa-network-wired"></i>
+                            <span>Network Devices</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="environmental.html">
+                            <i class="fas fa-temperature-low"></i>
+                            <span>Environmental</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="security-systems.html">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>Security Systems</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="alerts-and-incidents.html">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>Alerts & Incidents</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="trends-and-forecasts.html">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Trends & Forecasts</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="reports.html">
+                            <i class="fas fa-file-alt"></i>
+                            <span>Reports</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="settings.html">
+                            <i class="fas fa-cog"></i>
+                            <span>Settings</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-details">
+                        <span class="user-name" id="sidebar-username"></span>
+                        <span class="user-role" id="sidebar-userrole"></span>
+                    </div>
+                </div>
+                <a href="login.html" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                </a>
+            </div>
+        </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <header class="content-header">
+        <div class="header-title">
+          <h2>Dashboard</h2>
+          <p>Welcome back, <span id="header-username"></span>. Here's the current system status.</p>
+        </div>
+        <div class="header-actions">
+          <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Search...">
+          </div>
+          <div class="notifications">
+            <i class="fas fa-bell"></i>
+            <span class="notification-badge">3</span>
+          </div>
+          <div class="date-display">
+            <i class="fas fa-calendar"></i>
+            <span id="current-date"></span>
+          </div>
+        </div>
+      </header>
+
+      <!-- KPI Section (8 cards) -->
+      <section class="kpi-section">
+        <div class="kpi-card">
+          <div class="kpi-icon"><i class="fas fa-server"></i></div>
+          <div class="kpi-content">
+            <h3>Devices Status</h3>
+            <div class="kpi-value" id="kpi-devices-status"></div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon alert"><i class="fas fa-exclamation-circle"></i></div>
+          <div class="kpi-content">
+            <h3>Active Alerts</h3>
+            <div class="kpi-value" id="kpi-active-alerts"></div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon environment"><i class="fas fa-temperature-high"></i></div>
+          <div class="kpi-content">
+            <h3>Avg Temperature</h3>
+            <div class="kpi-value" id="kpi-avg-temperature"></div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon ups"><i class="fas fa-battery-full"></i></div>
+          <div class="kpi-content">
+            <h3>UPS Status</h3>
+            <div class="kpi-value" id="kpi-ups-status"></div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon bandwidth"><i class="fas fa-exchange-alt"></i></div>
+          <div class="kpi-content">
+            <h3>Network Bandwidth</h3>
+            <div class="kpi-value" id="kpi-bandwidth"></div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon throughput"><i class="fas fa-tachometer-alt"></i></div>
+          <div class="kpi-content">
+            <h3>Throughput</h3>
+            <div class="kpi-value" id="kpi-throughput"></div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon latency"><i class="fas fa-clock"></i></div>
+          <div class="kpi-content">
+            <h3>Latency</h3>
+            <div class="kpi-value" id="kpi-latency"></div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon jitter"><i class="fas fa-wave-square"></i></div>
+          <div class="kpi-content">
+            <h3>Jitter</h3>
+            <div class="kpi-value" id="kpi-jitter"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- AI Insights -->
+      <section class="ai-insight">
+        <div class="section-header">
+          <h3><i class="fas fa-brain"></i> AI Insights</h3>
+          <button class="refresh-btn"><i class="fas fa-sync-alt"></i></button>
+        </div>
+        <div class="insight-content">
+          <div class="insight-icon"><i class="fas fa-lightbulb"></i></div>
+          <div class="insight-text" id="ai-insights"></div>
+        </div>
+      </section>
+
+      <!-- Airport Map -->
+      <section class="map-section">
+        <div class="section-header">
+          <h3><i class="fas fa-map-marked-alt"></i> Airport Overview</h3>
+        </div>
+        <div class="map-container">
+          <div class="map-area">
+            <div class="map-grid" id="map-zones"></div>
+            <div class="map-legend" id="map-legend"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Stats Section -->
+      <section class="stats-section">
+        <div class="stat-card">
+          <h4>Temperature</h4>
+          <div class="stat-value" id="stat-temperature"></div>
+          <div class="stat-progress">
+            <div class="progress-bar" id="stat-temperature-bar"></div>
+          </div>
+          <div class="stat-comparison" id="stat-temperature-comp"></div>
+        </div>
+        <div class="stat-card">
+          <h4>Humidity Level</h4>
+          <div class="stat-value" id="stat-humidity"></div>
+          <div class="stat-progress">
+            <div class="progress-bar" id="stat-humidity-bar"></div>
+          </div>
+          <div class="stat-comparison" id="stat-humidity-comp"></div>
+        </div>
+        <div class="stat-card">
+          <h4>Passenger Systems</h4>
+          <div class="stat-value" id="stat-passenger-systems"></div>
+          <div class="stat-progress">
+            <div class="progress-bar" id="stat-passenger-bar"></div>
+          </div>
+          <div class="stat-comparison" id="stat-passenger-comp"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

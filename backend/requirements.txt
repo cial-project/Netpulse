@@ -1,0 +1,11 @@
+Django==4.2.7
+djangorestframework==3.14.0
+django-cors-headers==4.3.1
+python-decouple==3.8
+mysqlclient==2.2.0
+djangorestframework-simplejwt==5.3.0
+channels==4.0.0
+channels-redis==4.1.0
+redis==5.0.1
+celery==5.3.4
+pysnmp==4.4.12

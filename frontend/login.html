@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NetPulse - Login</title>
+  <link rel="stylesheet" href="css/login.css"> <!-- ✅ fixed -->
+</head>
+<body>
+  <div class="login-container">
+    <!-- Left Half (Image) -->
+    <div class="login-image">
+      <img src="media/airportcolour.png" alt="Airport Image"> <!-- ✅ fixed -->
+    </div>
+
+    <!-- Right Half (Form) -->
+    <div class="login-form-area">
+      <div class="form-wrapper">
+        <div class="login-header">
+          <div class="logo-container">
+            <div class="logo-icon">✈</div>
+            <h1>NetPulse</h1>
+          </div>
+          <p>Cochin International Airport Limited</p>
+          <p class="sub-title">Airport Unified Monitoring & Management System</p>
+        </div>
+
+        <form class="login-form" onsubmit="loginUser(event)">
+          <div class="input-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" 
+                   placeholder="Enter your username" 
+                   required autocomplete="username">
+          </div> 
+
+          <div class="input-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" 
+                   placeholder="Enter your password" 
+                   required autocomplete="current-password">
+          </div>
+
+          <div class="remember-forgot">
+            <div class="remember-me">
+              <input type="checkbox" id="remember">
+              <label for="remember">Remember me</label>
+            </div>
+            <a href="#" class="forgot-link">Forgot Password?</a>
+          </div>
+
+          <button type="submit" class="login-btn">Login</button>
+          <p class="signup-link">
+            Don’t have an account?
+            <a href="signup.html">Sign up</a>
+          </p>
+        </form>
+
+        <div class="login-footer">
+          <p>Need help? Contact <a href="#">IT Support</a></p>
+          <p class="version">v1.0.0 MVP</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✅ backend-aware JS -->
+  <script src="js/login.js"></script>
+</body>
+</html>

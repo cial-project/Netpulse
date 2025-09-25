@@ -1,4 +1,12 @@
 document.addEventListener('DOMContentLoaded', function() {
+    function formatDate(date) {
+        return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+    var dateElem = document.getElementById('current-date');
+    if (dateElem) {
+        dateElem.textContent = formatDate(new Date());
+    }
+
     // Fetch stats
     fetch('/api/network-devices/stats/')
         .then(res => res.json())

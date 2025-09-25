@@ -3,6 +3,9 @@ function formatDate(date) {
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
+// Set current date
+document.getElementById('current-date').textContent = formatDate(new Date());
+
 // 1. User Info
 fetch('/api/user/')
     .then(res => res.json())
@@ -12,10 +15,7 @@ fetch('/api/user/')
         document.getElementById('header-username').textContent = data.username;
     });
 
-// 2. Current Date
-document.getElementById('current-date').textContent = formatDate(new Date());
-
-// 3. KPIs
+// 2. KPIs
 fetch('/api/kpi/')
     .then(res => res.json())
     .then(data => {
@@ -29,7 +29,7 @@ fetch('/api/kpi/')
         document.getElementById('kpi-jitter').textContent = data.jitter;
     });
 
-// 4. AI Insights
+// 3. AI Insights
 fetch('/api/ai-insights/')
     .then(res => res.json())
     .then(data => {
@@ -42,7 +42,7 @@ fetch('/api/ai-insights/')
         });
     });
 
-// 5. Map Zones
+// 4. Map Zones
 fetch('/api/map/')
     .then(res => res.json())
     .then(data => {
@@ -71,7 +71,7 @@ fetch('/api/map/')
         });
     });
 
-// 6. Stats Section
+// 5. Stats Section
 fetch('/api/stats/')
     .then(res => res.json())
     .then(data => {
@@ -89,4 +89,14 @@ fetch('/api/stats/')
         document.getElementById('stat-passenger-systems').innerHTML = `${data.passenger_systems.value}<span>%</span>`;
         document.getElementById('stat-passenger-bar').style.width = data.passenger_systems.progress;
         document.getElementById('stat-passenger-comp').innerHTML = data.passenger_systems.comparison;
+    });
+
+// 6. Notifications Count
+fetch('/api/notifications/count/')
+    .then(res => res.json())
+    .then(data => {
+        const badge = document.getElementById('notification-badge');
+        if (badge) {
+            badge.textContent = data.count > 0 ? data.count : '';
+        }
     });

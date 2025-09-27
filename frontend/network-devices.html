@@ -38,12 +38,7 @@
                             <span>Environmental</span>
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a href="security-systems.html">
-                            <i class="fas fa-shield-alt"></i>
-                            <span>Security Systems</span>
-                        </a>
-                    </li>
+                    
                     <li class="nav-item">
                         <a href="alerts-and-incidents.html">
                             <i class="fas fa-exclamation-triangle"></i>
@@ -197,18 +192,24 @@
                         </button>
                     </div>
     <!-- Add Device Modal -->
-    <div id="add-device-modal" class="modal" style="display:none; position:fixed; top:0; left:0; width:150%; height:100vh; background:rgba(0,0,0,0.4); align-items:center; justify-content:center; z-index:1000;">
-        <div class="modal-content" style="background:#fff; padding:2rem; border-radius:8px; min-width:320px; max-width:400px; margin:auto; position:relative;">
-            <span class="modal-close" style="position:absolute; top:1rem; right:1rem; cursor:pointer; font-size:1.5rem;">&times;</span>
+<div id="add-device-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <div class="modal-header">
             <h3>Add New Device</h3>
+            <span class="modal-close">&times;</span>
+        </div>
+        <div class="modal-body">
             <form id="add-device-form">
-                <div class="input-group">
-                    <label for="device-name">Device Name</label>
-                    <input type="text" id="device-name" required>
+                <div class="form-group">
+                    <label for="device-name">Device Name *</label>
+                    <input type="text" id="device-name" name="device-name" required 
+                           placeholder="e.g., Core-Router-01">
                 </div>
-                <div class="input-group">
-                    <label for="device-type">Device Type</label>
-                    <select id="device-type" required>
+                
+                <div class="form-group">
+                    <label for="device-type">Device Type *</label>
+                    <select id="device-type" name="device-type" required>
+                        <option value="">Select device type...</option>
                         <option value="router">Router</option>
                         <option value="switch">Switch</option>
                         <option value="firewall">Firewall</option>
@@ -216,23 +217,45 @@
                         <option value="server">Server</option>
                     </select>
                 </div>
-                <div class="input-group">
-                    <label for="ip-address">IP Address</label>
-                    <input type="text" id="ip-address" required>
+                
+                <div class="form-group">
+                    <label for="ip-address">IP Address *</label>
+                    <input type="text" id="ip-address" name="ip-address" required 
+                           placeholder="e.g., 192.168.1.100">
                 </div>
-                <div class="input-group">
+                
+                <div class="form-group">
                     <label for="location">Location</label>
-                    <input type="text" id="location">
+                    <input type="text" id="location" name="location" 
+                           placeholder="e.g., Terminal 1, Server Room A">
                 </div>
-                <div class="input-group">
-                    <label for="is-active">Active</label>
-                    <input type="checkbox" id="is-active" checked>
+                
+                <div class="form-group">
+                    <label for="snmp-community">SNMP Community</label>
+                    <input type="text" id="snmp-community" name="snmp-community" 
+                           value="public" placeholder="SNMP community string">
                 </div>
-                <div id="add-device-error" style="color:red; margin-bottom:0.5rem;"></div>
-                <button type="submit" style="background:#007bff; color:#fff; border:none; padding:0.5rem 1rem; border-radius:4px; cursor:pointer;">Add Device</button>
+                
+                <div class="form-group checkbox-group">
+                    <label>
+                        <input type="checkbox" id="is-active" name="is-active" checked>
+                        <span class="checkmark"></span>
+                        Active (Start monitoring immediately)
+                    </label>
+                </div>
+                
+                <div id="add-device-error" class="error-message"></div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn secondary" id="cancel-add-device">Cancel</button>
+                    <button type="submit" class="btn primary">
+                        <i class="fas fa-plus"></i> Add Device
+                    </button>
+                </div>
             </form>
         </div>
     </div>
+</div>
                 </div>
 
                 <div class="table-container">
@@ -456,72 +479,6 @@
             </div>
         </div>
     </div>
-
     <script src="js/network-devices.js"></script>
-    <script>
-    // Modal logic for Add Device
-    document.addEventListener('DOMContentLoaded', function() {
-        const addBtn = document.querySelector('.add-device-btn');
-        const modal = document.getElementById('add-device-modal');
-        const closeModal = modal.querySelector('.modal-close');
-        const form = document.getElementById('add-device-form');
-        const errorDiv = document.getElementById('add-device-error');
-
-        addBtn.addEventListener('click', () => {
-            modal.style.display = 'flex';
-            errorDiv.textContent = '';
-            form.reset();
-            document.getElementById('is-active').checked = true;
-        });
-        closeModal.addEventListener('click', () => {
-            modal.style.display = 'none';
-        });
-        window.addEventListener('click', (event) => {
-            if (event.target === modal) {
-                modal.style.display = 'none';
-            }
-        });
-        form.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            errorDiv.textContent = '';
-            const name = document.getElementById('device-name').value.trim();
-            const device_type = document.getElementById('device-type').value;
-            const ip_address = document.getElementById('ip-address').value.trim();
-            const location = document.getElementById('location').value.trim();
-            const is_active = document.getElementById('is-active').checked;
-            if (!name || !device_type || !ip_address) {
-                errorDiv.textContent = 'Please fill all required fields.';
-                return;
-            }
-            try {
-                const token = localStorage.getItem('access_token');
-                const response = await fetch('http://127.0.0.1:8000/api/auth/devices/', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        name,
-                        device_type,
-                        ip_address,
-                        location,
-                        is_active
-                    })
-                });
-                if (!response.ok) {
-                    const data = await response.json();
-                    errorDiv.textContent = data.detail || 'Failed to add device.';
-                    return;
-                }
-                modal.style.display = 'none';
-                // Refresh device list
-                if (typeof loadNetworkDevices === 'function') loadNetworkDevices();
-            } catch (err) {
-                errorDiv.textContent = 'Network error.';
-            }
-        });
-    });
-    </script>
 </body>
 </html>

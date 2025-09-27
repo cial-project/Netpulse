@@ -697,3 +697,231 @@ body {
         width: 100%;
     }
 }
+
+/* NEW: Device Grid Styles */
+.device-grid-section {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    margin-bottom: 2rem;
+}
+
+.grid-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.view-options {
+    display: flex;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    padding: 2px;
+}
+
+.view-btn {
+    padding: 0.4rem 0.75rem;
+    background: none;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    color: #6c757d;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.view-btn.active {
+    background-color: white;
+    color: #28a745;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.device-grid-container {
+    display: flex;
+    gap: 2rem;
+}
+
+.device-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 1rem;
+    min-height: 200px;
+}
+
+.device-grid.compact-view {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+}
+
+.device-grid.detailed-view {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+.device-item {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    cursor: pointer;
+}
+
+.device-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.device-item.online {
+    border-color: #28a745;
+    background-color: #f8fff9;
+}
+
+.device-item.offline {
+    border-color: #dc3545;
+    background-color: #fff8f8;
+}
+
+.device-item.warning {
+    border-color: #ffc107;
+    background-color: #fffdf4;
+}
+
+.device-item.critical {
+    border-color: #dc3545;
+    background-color: #fff5f5;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.8; }
+    100% { opacity: 1; }
+}
+
+.device-icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.device-item.online .device-icon {
+    color: #28a745;
+}
+
+.device-item.offline .device-icon {
+    color: #dc3545;
+}
+
+.device-item.warning .device-icon {
+    color: #ffc107;
+}
+
+.device-item.critical .device-icon {
+    color: #dc3545;
+}
+
+.device-info {
+    font-size: 0.8rem;
+}
+
+.device-name {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.device-status {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+    display: inline-block;
+}
+
+.device-item.online .device-status {
+    background-color: #28a745;
+    color: white;
+}
+
+.device-item.offline .device-status {
+    background-color: #dc3545;
+    color: white;
+}
+
+.device-item.warning .device-status {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.device-item.critical .device-status {
+    background-color: #dc3545;
+    color: white;
+}
+
+.grid-legend {
+    width: 180px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    height: fit-content;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.legend-dot.online {
+    background-color: #28a745;
+}
+
+.legend-dot.offline {
+    background-color: #dc3545;
+}
+
+.legend-dot.warning {
+    background-color: #ffc107;
+}
+
+.legend-dot.critical {
+    background-color: #dc3545;
+}
+
+.grid-loading, .grid-empty, .grid-error {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 3rem;
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .device-grid-container {
+        flex-direction: column;
+    }
+    
+    .grid-legend {
+        width: 100%;
+        flex-direction: row;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .device-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    }
+}

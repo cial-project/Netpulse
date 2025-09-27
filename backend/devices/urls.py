@@ -1,6 +1,7 @@
+# In devices/urls.py - ensure proper structure
 from django.urls import path
 from . import views
 
 urlpatterns = [
-   path("status/", views.device_status, name="device_status"),
+    path("status/", views.device_status, name="device_status"),
 ]

@@ -56,6 +56,14 @@ class Device(models.Model):
     snmp_community = models.CharField(max_length=100, default='public')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    is_online = models.BooleanField(default=False)
+    last_seen = models.DateTimeField(null=True, blank=True)
+    sys_name = models.CharField(max_length=100, blank=True)
+    uptime_days = models.FloatField(default=0)
+    
+    def __str__(self):
+        status = "Online" if self.is_online else "Offline"
+        return f"{self.name} ({self.ip_address}) - {status}"
 
     def __str__(self):
         return f"{self.name} ({self.ip_address})"
@@ -96,3 +104,5 @@ class Metric(models.Model):
     
     class Meta:
         ordering = ['-timestamp']
+
+    

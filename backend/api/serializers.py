@@ -66,3 +66,20 @@ class MetricSerializer(serializers.ModelSerializer):
     class Meta:
         model = Metric
         fields = '__all__'
+
+class DeviceSerializer(serializers.ModelSerializer):
+    status = serializers.SerializerMethodField()
+    last_metrics = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Device
+        fields = '__all__'
+    
+    def get_status(self, obj):
+        return 'online' if obj.is_online else 'offline'
+    
+    def get_last_metrics(self, obj):
+        last_metric = obj.metrics.order_by('-timestamp').first()
+        if last_metric:
+            return MetricSerializer(last_metric).data
+        return None

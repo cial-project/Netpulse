@@ -894,3 +894,389 @@ body {
         flex-direction: column;
     }
 }
+
+/* Enhanced device table styles */
+.device-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.device-name-cell i {
+    color: #6c757d;
+    width: 16px;
+}
+
+.device-type-badge {
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.device-type-badge.router { background: #e3f2fd; color: #1976d2; }
+.device-type-badge.switch { background: #f3e5f5; color: #7b1fa2; }
+.device-type-badge.firewall { background: #ffebee; color: #d32f2f; }
+.device-type-badge.ap { background: #e8f5e8; color: #388e3c; }
+.device-type-badge.server { background: #fff3e0; color: #f57c00; }
+
+.ip-address {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+}
+
+.status-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    width: fit-content;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.status-badge.online .status-dot { background: #28a745; }
+.status-badge.offline .status-dot { background: #dc3545; }
+.status-badge.warning .status-dot { background: #ffc107; }
+
+.status-badge.online { background: #d4edda; color: #155724; }
+.status-badge.offline { background: #f8d7da; color: #721c24; }
+.status-badge.warning { background: #fff3cd; color: #856404; }
+
+.action-buttons {
+    display: flex;
+    gap: 0.3rem;
+}
+
+.action-btn {
+    padding: 0.4rem;
+    border: none;
+    border-radius: 4px;
+    background: #f8f9fa;
+    color: #6c757d;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+    background: #e9ecef;
+    color: #495057;
+}
+
+.action-btn.refresh-btn:hover {
+    background: #007bff;
+    color: white;
+}
+
+/* Row status highlighting */
+tr.online { border-left: 3px solid #28a745; }
+tr.offline { border-left: 3px solid #dc3545; }
+tr.warning { border-left: 3px solid #ffc107; }
+
+tr:hover {
+    background-color: #f8f9fa;
+    transform: translateX(2px);
+    transition: all 0.2s ease;
+}
+
+/* Auto-refresh indicator */
+.auto-refresh-indicator {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: #28a745;
+    color: white;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    animation: pulse 2s infinite;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background-color: white;
+    margin: 5% auto;
+    padding: 0;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #212529;
+}
+
+.modal-close {
+    font-size: 1.5rem;
+    font-weight: bold;
+    cursor: pointer;
+    color: #6c757d;
+    transition: color 0.2s ease;
+}
+
+.modal-close:hover {
+    color: #dc3545;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+/* Form Styles */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #495057;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #28a745;
+    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+}
+
+.checkbox-group label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    margin-bottom: 0;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: auto;
+    margin-right: 0.5rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 2rem;
+}
+
+.btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn.primary {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn.primary:hover {
+    background-color: #218838;
+}
+
+.btn.secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn.secondary:hover {
+    background-color: #545b62;
+}
+
+.error-message {
+    color: #dc3545;
+    padding: 0.75rem;
+    background-color: #f8d7da;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    display: none;
+}
+
+.error-message.show {
+    display: block;
+}
+
+/* Success message */
+.success-message {
+    color: #155724;
+    padding: 0.75rem;
+    background-color: #d4edda;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    display: none;
+}
+
+.success-message.show {
+    display: block;
+}
+
+/* Delete button styles */
+.action-btn.delete-btn {
+    color: #dc3545;
+    background: transparent;
+    border: 1px solid #dc3545;
+}
+
+.action-btn.delete-btn:hover {
+    background: #dc3545;
+    color: white;
+}
+
+/* Notification styles */
+.device-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 1rem;
+    min-width: 300px;
+    max-width: 400px;
+    z-index: 10000;
+    transform: translateX(400px);
+    transition: transform 0.3s ease;
+    border-left: 4px solid #6c757d;
+}
+
+.device-notification.show {
+    transform: translateX(0);
+}
+
+.device-notification-success {
+    border-left-color: #28a745;
+}
+
+.device-notification-error {
+    border-left-color: #dc3545;
+}
+
+.notification-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.notification-content i {
+    font-size: 1.2rem;
+}
+
+.device-notification-success .notification-content i {
+    color: #28a745;
+}
+
+.device-notification-error .notification-content i {
+    color: #dc3545;
+}
+
+.notification-content span {
+    flex: 1;
+    font-size: 0.9rem;
+}
+
+.notification-close {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: #6c757d;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.notification-close:hover {
+    color: #495057;
+}
+
+/* Update table column width for new delete button */
+.devices-table th:nth-child(7),
+.devices-table td:nth-child(7) {
+    width: 180px; /* Increased width for 4 buttons */
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.3rem;
+    justify-content: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .action-buttons {
+        flex-direction: column;
+        gap: 0.2rem;
+    }
+    
+    .action-btn {
+        padding: 0.3rem;
+    }
+    
+    .devices-table th:nth-child(7),
+    .devices-table td:nth-child(7) {
+        width: 120px;
+    }
+}

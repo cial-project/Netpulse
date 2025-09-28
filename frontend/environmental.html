@@ -6,6 +6,8 @@
     <title>Environmental Monitoring - NetPulse</title>
     <link rel="stylesheet" href="css/environmental.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Add Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="dashboard-container">
@@ -92,15 +94,15 @@
                 <div class="header-actions">
                     <div class="search-box">
                         <i class="fas fa-search"></i>
-                        <input type="text" placeholder="Search zones...">
+                        <input type="text" placeholder="Search zones..." id="zone-search">
                     </div>
                     <div class="notifications">
                         <i class="fas fa-bell"></i>
-                        <span class="notification-badge">2</span>
+                        <span class="notification-badge" id="env-alert-count">2</span>
                     </div>
                     <div class="date-display">
                         <i class="fas fa-calendar"></i>
-                        <span>Sept 13, 2023</span>
+                        <span id="current-date">Sept 13, 2023</span>
                     </div>
                 </div>
             </header>
@@ -108,11 +110,11 @@
             <!-- Stats Overview -->
             <section class="stats-overview">
                 <div class="stat-item">
-                    <div class="stat-icon">
+                    <div class="stat-icon temperature">
                         <i class="fas fa-thermometer-half"></i>
                     </div>
                     <div class="stat-details">
-                        <span class="stat-value">22.5°</span>
+                        <span class="stat-value" id="avg-temperature">22.5°</span>
                         <span class="stat-label">Avg Temperature</span>
                     </div>
                 </div>
@@ -121,7 +123,7 @@
                         <i class="fas fa-tint"></i>
                     </div>
                     <div class="stat-details">
-                        <span class="stat-value">45%</span>
+                        <span class="stat-value" id="avg-humidity">45%</span>
                         <span class="stat-label">Avg Humidity</span>
                     </div>
                 </div>
@@ -130,7 +132,7 @@
                         <i class="fas fa-battery-full"></i>
                     </div>
                     <div class="stat-details">
-                        <span class="stat-value">95%</span>
+                        <span class="stat-value" id="ups-capacity">95%</span>
                         <span class="stat-label">UPS Capacity</span>
                     </div>
                 </div>
@@ -139,7 +141,7 @@
                         <i class="fas fa-exclamation-triangle"></i>
                     </div>
                     <div class="stat-details">
-                        <span class="stat-value">3</span>
+                        <span class="stat-value" id="env-warnings">3</span>
                         <span class="stat-label">Env. Warnings</span>
                     </div>
                 </div>
@@ -149,7 +151,7 @@
             <section class="ai-insight">
                 <div class="section-header">
                     <h3><i class="fas fa-brain"></i> AI Insights</h3>
-                    <button class="refresh-btn">
+                    <button class="refresh-btn" id="refresh-insights">
                         <i class="fas fa-sync-alt"></i>
                     </button>
                 </div>
@@ -158,7 +160,7 @@
                         <i class="fas fa-temperature-high"></i>
                     </div>
                     <div class="insight-text">
-                        <p>Temperature rising in Server Room A. Predicted to exceed threshold in 2 hours. Humidity levels stable across all zones.</p>
+                        <p id="ai-insight-text">Temperature rising in Server Room A. Predicted to exceed threshold in 2 hours. Humidity levels stable across all zones.</p>
                     </div>
                 </div>
             </section>
@@ -183,9 +185,17 @@
                                 <option value="critical">Critical</option>
                             </select>
                         </div>
-                        <button class="export-btn">
-                            <i class="fas fa-download"></i> Export
-                        </button>
+                        <div class="action-buttons">
+                            <button class="btn primary" id="add-zone-btn">
+                                <i class="fas fa-plus"></i> Add Zone
+                            </button>
+                            <button class="btn danger" id="delete-zone-btn" disabled>
+                                <i class="fas fa-trash"></i> Delete Selected
+                            </button>
+                            <button class="export-btn" id="export-data">
+                                <i class="fas fa-download"></i> Export
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -193,6 +203,9 @@
                     <table class="environment-table">
                         <thead>
                             <tr>
+                                <th width="50">
+                                    <input type="checkbox" id="select-all-zones">
+                                </th>
                                 <th>Zone</th>
                                 <th>Temperature</th>
                                 <th>Humidity</th>
@@ -202,106 +215,23 @@
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr>
-                                <td>Server Room A</td>
-                                <td>24.2°C</td>
-                                <td>42%</td>
-                                <td>95%</td>
-                                <td><span class="status-badge normal">Normal</span></td>
-                                <td>2 minutes ago</td>
-                                <td>
-                                    <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
-                                    <button class="action-btn config-btn"><i class="fas fa-cog"></i></button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Check-in Area</td>
-                                <td>21.8°C</td>
-                                <td>48%</td>
-                                <td>N/A</td>
-                                <td><span class="status-badge normal">Normal</span></td>
-                                <td>5 minutes ago</td>
-                                <td>
-                                    <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
-                                    <button class="action-btn config-btn"><i class="fas fa-cog"></i></button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Security Screening</td>
-                                <td>23.1°C</td>
-                                <td>45%</td>
-                                <td>N/A</td>
-                                <td><span class="status-badge normal">Normal</span></td>
-                                <td>3 minutes ago</td>
-                                <td>
-                                    <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
-                                    <button class="action-btn config-btn"><i class="fas fa-cog"></i></button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Control Tower</td>
-                                <td>22.5°C</td>
-                                <td>43%</td>
-                                <td>88%</td>
-                                <td><span class="status-badge warning">Warning</span></td>
-                                <td>4 minutes ago</td>
-                                <td>
-                                    <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
-                                    <button class="action-btn config-btn"><i class="fas fa-cog"></i></button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Baggage Handling</td>
-                                <td>25.7°C</td>
-                                <td>52%</td>
-                                <td>N/A</td>
-                                <td><span class="status-badge warning">Warning</span></td>
-                                <td>6 minutes ago</td>
-                                <td>
-                                    <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
-                                    <button class="action-btn config-btn"><i class="fas fa-cog"></i></button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Gate A5</td>
-                                <td>26.3°C</td>
-                                <td>49%</td>
-                                <td>N/A</td>
-                                <td><span class="status-badge critical">Critical</span></td>
-                                <td>8 minutes ago</td>
-                                <td>
-                                    <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
-                                    <button class="action-btn config-btn"><i class="fas fa-cog"></i></button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>IT Closet B2</td>
-                                <td>23.8°C</td>
-                                <td>38%</td>
-                                <td>92%</td>
-                                <td><span class="status-badge normal">Normal</span></td>
-                                <td>7 minutes ago</td>
-                                <td>
-                                    <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
-                                    <button class="action-btn config-btn"><i class="fas fa-cog"></i></button>
-                                </td>
-                            </tr>
+                        <tbody id="zones-tbody">
+                            <!-- Data will be populated by JavaScript -->
                         </tbody>
                     </table>
                 </div>
 
                 <div class="table-footer">
                     <div class="pagination">
-                        <button class="pagination-btn"><i class="fas fa-chevron-left"></i></button>
-                        <span class="page-number">Page 1 of 2</span>
-                        <button class="pagination-btn"><i class="fas fa-chevron-right"></i></button>
+                        <button class="pagination-btn" id="prev-page"><i class="fas fa-chevron-left"></i></button>
+                        <span class="page-number" id="page-info">Page 1 of 1</span>
+                        <button class="pagination-btn" id="next-page"><i class="fas fa-chevron-right"></i></button>
                     </div>
-                    <div class="rows-info">Showing 7 of 14 zones</div>
+                    <div class="rows-info" id="rows-info">Loading zones...</div>
                 </div>
             </section>
 
-            <!-- Charts Section -->
+            <!-- Real Charts Section -->
             <section class="charts-section">
                 <div class="chart-row">
                     <div class="chart-card">
@@ -314,46 +244,7 @@
                             </select>
                         </div>
                         <div class="chart-container">
-                            <div class="mock-chart">
-                                <div class="chart-line">
-                                    <div class="data-point" style="left: 5%; height: 40%;"></div>
-                                    <div class="data-point" style="left: 15%; height: 45%;"></div>
-                                    <div class="data-point" style="left: 25%; height: 50%;"></div>
-                                    <div class="data-point" style="left: 35%; height: 55%;"></div>
-                                    <div class="data-point" style="left: 45%; height: 60%;"></div>
-                                    <div class="data-point anomaly-point" style="left: 55%; height: 75%;"></div>
-                                    <div class="data-point" style="left: 65%; height: 65%;"></div>
-                                    <div class="data-point" style="left: 75%; height: 60%;"></div>
-                                    <div class="data-point" style="left: 85%; height: 55%;"></div>
-                                    <div class="data-point" style="left: 95%; height: 50%;"></div>
-                                </div>
-                                <div class="forecast-line">
-                                    <div class="data-point" style="left: 65%; height: 65%;"></div>
-                                    <div class="data-point" style="left: 75%; height: 70%;"></div>
-                                    <div class="data-point" style="left: 85%; height: 75%;"></div>
-                                    <div class="data-point" style="left: 95%; height: 80%;"></div>
-                                </div>
-                                <div class="chart-x-axis">
-                                    <span>00:00</span>
-                                    <span>06:00</span>
-                                    <span>12:00</span>
-                                    <span>18:00</span>
-                                    <span>23:59</span>
-                                </div>
-                                <div class="chart-y-axis">
-                                    <span>15°</span>
-                                    <span>20°</span>
-                                    <span>25°</span>
-                                    <span>30°</span>
-                                    <span>35° C</span>
-                                </div>
-                                <div class="chart-annotation">
-                                    <div class="annotation forecast">
-                                        <div class="annotation-marker"></div>
-                                        <div class="annotation-text">Forecast</div>
-                                    </div>
-                                </div>
-                            </div>
+                            <canvas id="temperatureChart"></canvas>
                         </div>
                     </div>
 
@@ -367,34 +258,7 @@
                             </select>
                         </div>
                         <div class="chart-container">
-                            <div class="mock-chart">
-                                <div class="chart-line humidity">
-                                    <div class="data-point" style="left: 5%; height: 45%;"></div>
-                                    <div class="data-point" style="left: 15%; height: 50%;"></div>
-                                    <div class="data-point" style="left: 25%; height: 48%;"></div>
-                                    <div class="data-point" style="left: 35%; height: 52%;"></div>
-                                    <div class="data-point" style="left: 45%; height: 55%;"></div>
-                                    <div class="data-point" style="left: 55%; height: 53%;"></div>
-                                    <div class="data-point" style="left: 65%; height: 50%;"></div>
-                                    <div class="data-point" style="left: 75%; height: 48%;"></div>
-                                    <div class="data-point" style="left: 85%; height: 45%;"></div>
-                                    <div class="data-point" style="left: 95%; height: 42%;"></div>
-                                </div>
-                                <div class="chart-x-axis">
-                                    <span>00:00</span>
-                                    <span>06:00</span>
-                                    <span>12:00</span>
-                                    <span>18:00</span>
-                                    <span>23:59</span>
-                                </div>
-                                <div class="chart-y-axis">
-                                    <span>0%</span>
-                                    <span>25%</span>
-                                    <span>50%</span>
-                                    <span>75%</span>
-                                    <span>100%</span>
-                                </div>
-                            </div>
+                            <canvas id="humidityChart"></canvas>
                         </div>
                     </div>
                 </div>
@@ -410,74 +274,20 @@
                             </select>
                         </div>
                         <div class="chart-container">
-                            <div class="mock-chart">
-                                <div class="chart-line ups">
-                                    <div class="data-point" style="left: 5%; height: 92%;"></div>
-                                    <div class="data-point" style="left: 15%; height: 91%;"></div>
-                                    <div class="data-point" style="left: 25%; height: 90%;"></div>
-                                    <div class="data-point" style="left: 35%; height: 89%;"></div>
-                                    <div class="data-point" style="left: 45%; height: 88%;"></div>
-                                    <div class="data-point" style="left: 55%; height: 87%;"></div>
-                                    <div class="data-point" style="left: 65%; height: 86%;"></div>
-                                    <div class="data-point" style="left: 75%; height: 85%;"></div>
-                                    <div class="data-point" style="left: 85%; height: 84%;"></div>
-                                    <div class="data-point" style="left: 95%; height: 83%;"></div>
-                                </div>
-                                <div class="chart-x-axis">
-                                    <span>00:00</span>
-                                    <span>06:00</span>
-                                    <span>12:00</span>
-                                    <span>18:00</span>
-                                    <span>23:59</span>
-                                </div>
-                                <div class="chart-y-axis">
-                                    <span>0%</span>
-                                    <span>25%</span>
-                                    <span>50%</span>
-                                    <span>75%</span>
-                                    <span>100%</span>
-                                </div>
-                            </div>
+                            <canvas id="upsChart"></canvas>
                         </div>
                     </div>
 
                     <div class="chart-card">
                         <div class="section-header">
                             <h3>Zone Comparison</h3>
-                            <select id="zone-select">
+                            <select id="metric-select">
                                 <option value="temperature" selected>Temperature</option>
                                 <option value="humidity">Humidity</option>
                             </select>
                         </div>
                         <div class="chart-container">
-                            <div class="mock-bar-chart">
-                                <div class="bar-container">
-                                    <div class="bar" style="height: 65%;" data-value="24.2°C">
-                                        <span class="bar-label">Server A</span>
-                                    </div>
-                                    <div class="bar" style="height: 55%;" data-value="21.8°C">
-                                        <span class="bar-label">Check-in</span>
-                                    </div>
-                                    <div class="bar" style="height: 58%;" data-value="23.1°C">
-                                        <span class="bar-label">Security</span>
-                                    </div>
-                                    <div class="bar" style="height: 57%;" data-value="22.5°C">
-                                        <span class="bar-label">Control</span>
-                                    </div>
-                                    <div class="bar warning" style="height: 72%;" data-value="25.7°C">
-                                        <span class="bar-label">Baggage</span>
-                                    </div>
-                                    <div class="bar critical" style="height: 79%;" data-value="26.3°C">
-                                        <span class="bar-label">Gate A5</span>
-                                    </div>
-                                </div>
-                                <div class="chart-y-axis">
-                                    <span>15°</span>
-                                    <span>20°</span>
-                                    <span>25°</span>
-                                    <span>30° C</span>
-                                </div>
-                            </div>
+                            <canvas id="zoneChart"></canvas>
                         </div>
                     </div>
                 </div>
@@ -485,92 +295,27 @@
         </main>
     </div>
 
-    <!-- Zone Detail Modal (Hidden by default) -->
+    <!-- Zone Detail Modal -->
     <div class="modal-overlay" id="zone-modal">
         <div class="modal">
             <div class="modal-header">
-                <h3>Zone Details: Server Room A</h3>
+                <h3 id="modal-title">Zone Details</h3>
                 <button class="modal-close">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="zone-details">
-                    <div class="detail-row">
-                        <span class="detail-label">Zone Type:</span>
-                        <span class="detail-value">Server Room</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Temperature:</span>
-                        <span class="detail-value">24.2°C <span class="detail-status normal">(Normal)</span></span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Humidity:</span>
-                        <span class="detail-value">42% <span class="detail-status normal">(Normal)</span></span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">UPS Status:</span>
-                        <span class="detail-value">95% <span class="detail-status normal">(Optimal)</span></span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Last Updated:</span>
-                        <span class="detail-value">2 minutes ago</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Monitoring Since:</span>
-                        <span class="detail-value">Jun 15, 2023 08:45</span>
-                    </div>
-                </div>
-                
-                <div class="threshold-settings">
-                    <h4>Alert Thresholds</h4>
-                    <div class="threshold-row">
-                        <span class="threshold-label">Temperature Warning:</span>
-                        <div class="threshold-value">26°C</div>
-                    </div>
-                    <div class="threshold-row">
-                        <span class="threshold-label">Temperature Critical:</span>
-                        <div class="threshold-value">28°C</div>
-                    </div>
-                    <div class="threshold-row">
-                        <span class="threshold-label">Humidity Warning:</span>
-                        <div class="threshold-value">55%</div>
-                    </div>
-                    <div class="threshold-row">
-                        <span class="threshold-label">Humidity Critical:</span>
-                        <div class="threshold-value">60%</div>
-                    </div>
+                <div class="zone-details" id="zone-details">
+                    <!-- Details will be populated by JavaScript -->
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn secondary">Cancel</button>
-                <button class="btn primary">Adjust Thresholds</button>
+                <button class="btn secondary" id="close-modal">Cancel</button>
+                <button class="btn primary" id="adjust-thresholds">Adjust Thresholds</button>
             </div>
         </div>
     </div>
 
-    <script>
-        // Simple JavaScript to demonstrate modal functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            const viewButtons = document.querySelectorAll('.view-btn');
-            const modal = document.getElementById('zone-modal');
-            const closeModal = document.querySelector('.modal-close');
-            
-            viewButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    modal.style.display = 'flex';
-                });
-            });
-            
-            closeModal.addEventListener('click', () => {
-                modal.style.display = 'none';
-            });
-            
-            // Close modal when clicking outside
-            window.addEventListener('click', (event) => {
-                if (event.target === modal) {
-                    modal.style.display = 'none';
-                }
-            });
-        });
-    </script>
+    <!-- JavaScript Files -->
+    <script src="js/api.js"></script>
+    <script src="js/environmental.js"></script>
 </body>
 </html>

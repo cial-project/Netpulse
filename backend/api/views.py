@@ -322,6 +322,35 @@ class DeviceViewSet(viewsets.ModelViewSet):
     queryset = Device.objects.all()
     serializer_class = DeviceSerializer
     permission_classes = [IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+        """Create device and perform initial SNMP poll to populate status/metrics"""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        device = serializer.save()
+
+        try:
+            result = poll_device(device.ip_address, device.device_type, device.snmp_community)
+            device.is_online = result.get('reachable', False)
+            if device.is_online:
+                device.last_seen = timezone.now()
+                device.sys_name = result.get('sys_name', device.sys_name)
+                device.uptime_days = result.get('uptime_days', device.uptime_days)
+                Metric.objects.create(
+                    device=device,
+                    cpu_usage=result.get('cpu_usage', 0),
+                    memory_usage=result.get('memory_usage', 0),
+                    network_in=result.get('network_in', 0),
+                    network_out=result.get('network_out', 0),
+                    temperature=result.get('temperature', None),
+                )
+            device.save()
+        except Exception as e:
+            # Log the error but do not fail creation
+            print(f"Initial poll failed for {device.ip_address}: {e}")
+
+        headers = self.get_success_headers(serializer.data)
+        return Response(DeviceSerializer(device, context={'request': request}).data, status=status.HTTP_201_CREATED, headers=headers)
     
     @action(detail=True, methods=['post'])
     def poll_now(self, request, pk=None):

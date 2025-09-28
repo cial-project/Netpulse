@@ -400,13 +400,22 @@ function setupAddDeviceModal() {
     // Form submission with duplicate prevention
     freshForm.addEventListener('submit', async (event) => {
         event.preventDefault();
-        
-        if (isAddingDevice) {
-            console.log('Device addition already in progress');
+
+        // If form already marked as submitting, ignore
+        if (freshForm.dataset.submitting === 'true') {
+            console.log('Form already submitting - ignoring duplicate submit');
             return;
         }
-        
-        await addNewDevice();
+
+        // Mark as submitting
+        freshForm.dataset.submitting = 'true';
+
+        try {
+            await addNewDevice();
+        } finally {
+            // Ensure flag is removed after submission completes
+            freshForm.dataset.submitting = 'false';
+        }
     });
 }
 
@@ -505,6 +514,235 @@ function startAutoRefresh() {
 // Initialize when page loads with duplicate prevention
 let isInitialized = false;
 
+// Bandwidth Chart functionality - Replace the existing chart code
+let bandwidthChart = null;
+
+function initializeBandwidthChart() {
+    const ctx = document.getElementById('bandwidthChart');
+    if (!ctx) {
+        console.log('Bandwidth chart canvas not found');
+        return;
+    }
+    
+    // Destroy existing chart if it exists
+    if (bandwidthChart) {
+        bandwidthChart.destroy();
+    }
+    
+    // Initialize with real data
+    bandwidthChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: generateTimeLabels(24),
+            datasets: [
+                {
+                    label: 'Download (Mbps)',
+                    data: generateBandwidthData(300, 800),
+                    borderColor: '#3182ce',
+                    backgroundColor: 'rgba(49, 130, 206, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#3182ce',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 3,
+                    pointHoverRadius: 5
+                },
+                {
+                    label: 'Upload (Mbps)',
+                    data: generateBandwidthData(100, 400),
+                    borderColor: '#38a169',
+                    backgroundColor: 'rgba(56, 161, 105, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#38a169',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 3,
+                    pointHoverRadius: 5
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Network Bandwidth Usage - Last 24 Hours',
+                    font: { 
+                        size: 16,
+                        weight: 'bold'
+                    },
+                    padding: 20,
+                    color: '#2d3748'
+                },
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true,
+                        pointStyle: 'circle'
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 10,
+                    cornerRadius: 4
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Time',
+                        color: '#4a5568',
+                        font: {
+                            weight: 'bold'
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.1)',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        color: '#718096',
+                        maxTicksLimit: 12
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Bandwidth (Mbps)',
+                        color: '#4a5568',
+                        font: {
+                            weight: 'bold'
+                        }
+                    },
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.1)',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        color: '#718096',
+                        callback: function(value) {
+                            return value + ' Mbps';
+                        }
+                    }
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            },
+            animation: {
+                duration: 1000,
+                easing: 'easeOutQuart'
+            }
+        }
+    });
+    
+    // Set up chart controls
+    setupChartControls();
+}
+
+function generateTimeLabels(hours = 24) {
+    const labels = [];
+    const now = new Date();
+    
+    for (let i = hours; i >= 0; i--) {
+        const time = new Date(now);
+        time.setHours(time.getHours() - i);
+        
+        // Format as HH:MM
+        const hoursStr = time.getHours().toString().padStart(2, '0');
+        const minutesStr = time.getMinutes().toString().padStart(2, '0');
+        
+        labels.push(`${hoursStr}:${minutesStr}`);
+    }
+    
+    return labels;
+}
+
+function generateBandwidthData(min, max) {
+    const data = [];
+    const baseVariation = 0.3;
+    
+    for (let i = 0; i <= 24; i++) {
+        // Simulate daily pattern - higher during business hours (9 AM - 5 PM)
+        const hour = (new Date().getHours() - (24 - i) + 24) % 24;
+        const isBusinessHours = hour >= 9 && hour <= 17;
+        const baseLevel = isBusinessHours ? 0.6 : 0.3;
+        
+        // Add some random variation
+        const variation = (Math.random() * 0.4) - 0.2;
+        const value = baseLevel + variation;
+        
+        // Scale to the specified range
+        const scaledValue = min + (value * (max - min));
+        data.push(Math.max(min, Math.min(max, Math.round(scaledValue))));
+    }
+    
+    return data;
+}
+
+function setupChartControls() {
+    const timeRangeSelect = document.getElementById('time-range');
+    const deviceSelect = document.getElementById('device-select');
+    
+    if (timeRangeSelect) {
+        timeRangeSelect.addEventListener('change', function() {
+            updateChartData(this.value);
+        });
+    }
+    
+    if (deviceSelect) {
+        deviceSelect.addEventListener('change', function() {
+            updateChartData(timeRangeSelect.value, this.value);
+        });
+    }
+}
+
+function updateChartData(timeRange, device = 'all') {
+    if (!bandwidthChart) return;
+    
+    let hours;
+    switch(timeRange) {
+        case '1h': hours = 1; break;
+        case '6h': hours = 6; break;
+        case '12h': hours = 12; break;
+        case '24h': hours = 24; break;
+        case '7d': hours = 168; break;
+        default: hours = 24;
+    }
+    
+    // Update chart labels
+    bandwidthChart.data.labels = generateTimeLabels(hours);
+    
+    // Update data based on device selection
+    let downloadMax = 800, uploadMax = 400;
+    if (device !== 'all') {
+        // Adjust ranges based on device type
+        downloadMax = 600;
+        uploadMax = 300;
+    }
+    
+    bandwidthChart.data.datasets[0].data = generateBandwidthData(300, downloadMax);
+    bandwidthChart.data.datasets[1].data = generateBandwidthData(100, uploadMax);
+    
+    // Update chart title
+    bandwidthChart.options.plugins.title.text = 
+        `Network Bandwidth Usage - Last ${timeRange.toUpperCase()}`;
+    
+    bandwidthChart.update();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     if (isInitialized) {
         console.log('Network Devices already initialized');
@@ -520,5 +758,13 @@ document.addEventListener('DOMContentLoaded', function() {
     setupAddDeviceModal();
     startAutoRefresh();
     
-    console.log('✅ Network Devices page initialized');
+    // Initialize bandwidth chart
+    setTimeout(() => {
+        initializeBandwidthChart();
+    }, 500);
+    
+    console.log('✅ Network Devices page initialized with bandwidth chart');
 });
+
+// Also reinitialize when coming back to the page
+window.addEventListener('load', initializeBandwidthChart);

@@ -6,6 +6,8 @@
   <title>Reports - NetPulse</title>
   <link rel="stylesheet" href="css/reports.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Add Chart.js for report charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <div class="dashboard-container">
@@ -40,17 +42,17 @@
       </div>
     </aside>
 
-    <!-- Main -->
+    <!-- Main Content -->
     <main class="main-content">
       <header class="content-header">
         <div class="header-title">
-          <h2>Reports</h2>
-          <p>Generate and manage system reports</p>
+          <h2>Reports & Analytics</h2>
+          <p>Generate, manage, and analyze system performance reports</p>
         </div>
         <div class="header-actions">
           <div class="search-box">
             <i class="fas fa-search"></i>
-            <input type="text" placeholder="Search reports...">
+            <input type="text" placeholder="Search reports..." id="search-reports">
           </div>
           <div class="notifications">
             <i class="fas fa-bell"></i>
@@ -58,36 +60,222 @@
           </div>
           <div class="date-display">
             <i class="fas fa-calendar"></i>
-            <span>Sept 13, 2023</span>
+            <span id="current-date">Sept 13, 2023</span>
           </div>
         </div>
       </header>
 
-      <!-- Filters -->
-      <section class="filters-section">
-        <div class="filters-header">
-          <h3>Report Filters</h3>
-          <button class="btn secondary"><i class="fas fa-times"></i> Clear Filters</button>
-        </div>
-        <div class="filters-grid">
-          <div class="filter-group">
-            <label for="report-type">Report Type</label>
-            <select id="report-type">
-              <option value="all">All Types</option>
-              <option value="alerts">Alerts Summary</option>
-              <option value="trends">Trends Analysis</option>
-              <option value="network">Network Health</option>
-              <option value="environment">Environmental</option>
-            </select>
+      <!-- Quick Stats -->
+      <section class="stats-overview">
+        <div class="stat-item">
+          <div class="stat-icon primary">
+            <i class="fas fa-file-alt"></i>
           </div>
-          <div class="filter-group">
-            <label for="date-range">Date Range</label>
-            <select id="date-range">
-              <option value="7d">Last 7 Days</option>
-              <option value="30d" selected>Last 30 Days</option>
-              <option value="90d">Last 90 Days</option>
-              <option value="custom">Custom Range</option>
-            </select>
+          <div class="stat-details">
+            <span class="stat-value" id="total-reports">24</span>
+            <span class="stat-label">Total Reports</span>
+          </div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-icon success">
+            <i class="fas fa-check-circle"></i>
+          </div>
+          <div class="stat-details">
+            <span class="stat-value" id="completed-reports">18</span>
+            <span class="stat-label">Completed</span>
+          </div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-icon warning">
+            <i class="fas fa-clock"></i>
+          </div>
+          <div class="stat-details">
+            <span class="stat-value" id="pending-reports">4</span>
+            <span class="stat-label">Pending</span>
+          </div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-icon danger">
+            <i class="fas fa-exclamation-triangle"></i>
+          </div>
+          <div class="stat-details">
+            <span class="stat-value" id="failed-reports">2</span>
+            <span class="stat-label">Failed</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Report Generation Panel -->
+      <section class="generation-panel">
+        <div class="section-header">
+          <h3><i class="fas fa-plus-circle"></i> Generate New Report</h3>
+          <button class="btn secondary" id="quick-report">
+            <i class="fas fa-bolt"></i> Quick Report
+          </button>
+        </div>
+        <div class="generation-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="report-template">Report Template</label>
+              <select id="report-template">
+                <option value="">Select Template...</option>
+                <option value="daily-summary">Daily Summary</option>
+                <option value="weekly-performance">Weekly Performance</option>
+                <option value="monthly-audit">Monthly Audit</option>
+                <option value="incident-analysis">Incident Analysis</option>
+                <option value="capacity-planning">Capacity Planning</option>
+                <option value="custom">Custom Report</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="report-title">Report Title</label>
+              <input type="text" id="report-title" placeholder="Enter report title...">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="date-from">Date From</label>
+              <input type="date" id="date-from" value="2023-09-01">
+            </div>
+            <div class="form-group">
+              <label for="date-to">Date To</label>
+              <input type="date" id="date-to" value="2023-09-13">
+            </div>
+            <div class="form-group">
+              <label for="report-format">Format</label>
+              <select id="report-format">
+                <option value="pdf">PDF</option>
+                <option value="excel">Excel</option>
+                <option value="html">HTML</option>
+                <option value="json">JSON</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group full-width">
+              <label>Include Data</label>
+              <div class="checkbox-group">
+                <label class="checkbox-item">
+                  <input type="checkbox" name="include-data" value="devices" checked>
+                  <span class="checkmark"></span>
+                  Device Performance
+                </label>
+                <label class="checkbox-item">
+                  <input type="checkbox" name="include-data" value="alerts" checked>
+                  <span class="checkmark"></span>
+                  Alert History
+                </label>
+                <label class="checkbox-item">
+                  <input type="checkbox" name="include-data" value="environment" checked>
+                  <span class="checkmark"></span>
+                  Environmental Data
+                </label>
+                <label class="checkbox-item">
+                  <input type="checkbox" name="include-data" value="trends">
+                  <span class="checkmark"></span>
+                  Trend Analysis
+                </label>
+                <label class="checkbox-item">
+                  <input type="checkbox" name="include-data" value="forecasts">
+                  <span class="checkmark"></span>
+                  AI Forecasts
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn secondary" id="preview-report">
+              <i class="fas fa-eye"></i> Preview
+            </button>
+            <button class="btn primary" id="generate-report">
+              <i class="fas fa-play"></i> Generate Report
+            </button>
+            <button class="btn success" id="schedule-report">
+              <i class="fas fa-clock"></i> Schedule
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Report Preview Section -->
+      <section class="preview-section" id="preview-section" style="display: none;">
+        <div class="section-header">
+          <h3><i class="fas fa-eye"></i> Report Preview</h3>
+          <button class="btn secondary" id="close-preview">
+            <i class="fas fa-times"></i> Close Preview
+          </button>
+        </div>
+        <div class="preview-content">
+          <div class="preview-charts">
+            <div class="preview-chart">
+              <canvas id="previewChart1"></canvas>
+            </div>
+            <div class="preview-chart">
+              <canvas id="previewChart2"></canvas>
+            </div>
+          </div>
+          <div class="preview-summary">
+            <h4>Report Summary</h4>
+            <div class="summary-stats">
+              <div class="summary-item">
+                <span class="summary-label">Time Period:</span>
+                <span class="summary-value" id="preview-period">Sep 1 - Sep 13, 2023</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">Devices Monitored:</span>
+                <span class="summary-value" id="preview-devices">42</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">Alerts Generated:</span>
+                <span class="summary-value" id="preview-alerts">156</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">Uptime Average:</span>
+                <span class="summary-value" id="preview-uptime">98.7%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Scheduled Reports -->
+      <section class="scheduled-section">
+        <div class="section-header">
+          <h3><i class="fas fa-clock"></i> Scheduled Reports</h3>
+          <button class="btn primary" id="add-schedule">
+            <i class="fas fa-plus"></i> Add Schedule
+          </button>
+        </div>
+        <div class="scheduled-list">
+          <div class="schedule-item">
+            <div class="schedule-info">
+              <h4>Weekly Performance Report</h4>
+              <p>Every Monday at 08:00 AM</p>
+              <span class="schedule-status active">Active</span>
+            </div>
+            <div class="schedule-actions">
+              <button class="action-btn edit-btn" title="Edit Schedule">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="action-btn delete-btn" title="Delete Schedule">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+          <div class="schedule-item">
+            <div class="schedule-info">
+              <h4>Monthly Audit Report</h4>
+              <p>1st of every month at 06:00 AM</p>
+              <span class="schedule-status active">Active</span>
+            </div>
+            <div class="schedule-actions">
+              <button class="action-btn edit-btn" title="Edit Schedule">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="action-btn delete-btn" title="Delete Schedule">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -97,56 +285,233 @@
         <div class="section-header">
           <h3>Available Reports</h3>
           <div class="table-controls">
-            <button class="btn primary"><i class="fas fa-plus"></i> Generate New Report</button>
+            <div class="filter-group">
+              <select id="report-status-filter">
+                <option value="all">All Status</option>
+                <option value="completed">Completed</option>
+                <option value="pending">Pending</option>
+                <option value="failed">Failed</option>
+              </select>
+              <select id="report-type-filter">
+                <option value="all">All Types</option>
+                <option value="alerts">Alerts Summary</option>
+                <option value="trends">Trends Analysis</option>
+                <option value="network">Network Health</option>
+                <option value="environment">Environmental</option>
+                <option value="performance">Performance</option>
+              </select>
+            </div>
+            <button class="btn primary" id="generate-new-report">
+              <i class="fas fa-plus"></i> Generate New Report
+            </button>
           </div>
         </div>
         <div class="table-container">
           <table class="reports-table">
             <thead>
               <tr>
+                <th class="select-col">
+                  <input type="checkbox" id="select-all-reports">
+                </th>
                 <th>Report Name</th>
                 <th>Type</th>
                 <th>Generated On</th>
                 <th>Generated By</th>
+                <th>Size</th>
+                <th>Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="reports-table-body">
               <tr>
-                <td>Weekly Alerts Summary</td>
-                <td>Alerts</td>
-                <td>Sep 12, 2023</td>
+                <td class="select-col">
+                  <input type="checkbox" class="report-checkbox">
+                </td>
+                <td>
+                  <div class="report-name-cell">
+                    <i class="fas fa-file-pdf"></i>
+                    <div>
+                      <div class="report-title">Weekly Alerts Summary</div>
+                      <div class="report-period">Sep 6 - Sep 12, 2023</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="report-type-badge alerts">Alerts</span></td>
+                <td>Sep 12, 2023<br><span class="report-time">14:30:45</span></td>
                 <td>System</td>
+                <td>2.4 MB</td>
+                <td><span class="status-badge completed">Completed</span></td>
                 <td>
-                  <button class="action-btn"><i class="fas fa-download"></i></button>
-                  <button class="action-btn"><i class="fas fa-eye"></i></button>
+                  <div class="action-buttons">
+                    <button class="action-btn download-btn" title="Download Report">
+                      <i class="fas fa-download"></i>
+                    </button>
+                    <button class="action-btn view-btn" title="View Report">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="action-btn share-btn" title="Share Report">
+                      <i class="fas fa-share"></i>
+                    </button>
+                    <button class="action-btn delete-btn" title="Delete Report">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
                 </td>
               </tr>
               <tr>
-                <td>Monthly Network Health</td>
-                <td>Network</td>
-                <td>Sep 1, 2023</td>
+                <td class="select-col">
+                  <input type="checkbox" class="report-checkbox">
+                </td>
+                <td>
+                  <div class="report-name-cell">
+                    <i class="fas fa-file-excel"></i>
+                    <div>
+                      <div class="report-title">Monthly Network Health</div>
+                      <div class="report-period">Sep 1 - Sep 30, 2023</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="report-type-badge network">Network</span></td>
+                <td>Sep 1, 2023<br><span class="report-time">09:15:22</span></td>
                 <td>User</td>
+                <td>5.7 MB</td>
+                <td><span class="status-badge completed">Completed</span></td>
                 <td>
-                  <button class="action-btn"><i class="fas fa-download"></i></button>
-                  <button class="action-btn"><i class="fas fa-eye"></i></button>
+                  <div class="action-buttons">
+                    <button class="action-btn download-btn" title="Download Report">
+                      <i class="fas fa-download"></i>
+                    </button>
+                    <button class="action-btn view-btn" title="View Report">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="action-btn share-btn" title="Share Report">
+                      <i class="fas fa-share"></i>
+                    </button>
+                    <button class="action-btn delete-btn" title="Delete Report">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
                 </td>
               </tr>
               <tr>
-                <td>Quarterly Environmental Trends</td>
-                <td>Environmental</td>
-                <td>Aug 30, 2023</td>
-                <td>Admin</td>
+                <td class="select-col">
+                  <input type="checkbox" class="report-checkbox">
+                </td>
                 <td>
-                  <button class="action-btn"><i class="fas fa-download"></i></button>
-                  <button class="action-btn"><i class="fas fa-eye"></i></button>
+                  <div class="report-name-cell">
+                    <i class="fas fa-file-alt"></i>
+                    <div>
+                      <div class="report-title">Quarterly Environmental Trends</div>
+                      <div class="report-period">Jul 1 - Sep 30, 2023</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="report-type-badge environment">Environmental</span></td>
+                <td>Aug 30, 2023<br><span class="report-time">16:45:10</span></td>
+                <td>Admin</td>
+                <td>3.2 MB</td>
+                <td><span class="status-badge completed">Completed</span></td>
+                <td>
+                  <div class="action-buttons">
+                    <button class="action-btn download-btn" title="Download Report">
+                      <i class="fas fa-download"></i>
+                    </button>
+                    <button class="action-btn view-btn" title="View Report">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="action-btn share-btn" title="Share Report">
+                      <i class="fas fa-share"></i>
+                    </button>
+                    <button class="action-btn delete-btn" title="Delete Report">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td class="select-col">
+                  <input type="checkbox" class="report-checkbox">
+                </td>
+                <td>
+                  <div class="report-name-cell">
+                    <i class="fas fa-file-pdf"></i>
+                    <div>
+                      <div class="report-title">Daily Performance Report</div>
+                      <div class="report-period">Sep 13, 2023</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="report-type-badge performance">Performance</span></td>
+                <td>Sep 13, 2023<br><span class="report-time">08:00:00</span></td>
+                <td>System</td>
+                <td>1.1 MB</td>
+                <td><span class="status-badge pending">Generating...</span></td>
+                <td>
+                  <div class="action-buttons">
+                    <button class="action-btn" disabled title="Report in progress">
+                      <i class="fas fa-sync fa-spin"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td class="select-col">
+                  <input type="checkbox" class="report-checkbox">
+                </td>
+                <td>
+                  <div class="report-name-cell">
+                    <i class="fas fa-file-alt"></i>
+                    <div>
+                      <div class="report-title">Incident Analysis Report</div>
+                      <div class="report-period">Sep 10 - Sep 13, 2023</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="report-type-badge trends">Trends</span></td>
+                <td>Sep 13, 2023<br><span class="report-time">10:20:15</span></td>
+                <td>User</td>
+                <td>--</td>
+                <td><span class="status-badge failed">Failed</span></td>
+                <td>
+                  <div class="action-buttons">
+                    <button class="action-btn retry-btn" title="Retry Generation">
+                      <i class="fas fa-redo"></i>
+                    </button>
+                    <button class="action-btn delete-btn" title="Delete Report">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
+
+        <div class="table-footer">
+          <div class="bulk-actions">
+            <select id="bulk-action">
+              <option value="">Bulk Actions</option>
+              <option value="download">Download Selected</option>
+              <option value="delete">Delete Selected</option>
+              <option value="share">Share Selected</option>
+            </select>
+            <button class="btn secondary" id="apply-bulk-action">Apply</button>
+          </div>
+          <div class="pagination">
+            <button class="pagination-btn" id="prev-page">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <span class="page-number">Page 1 of 3</span>
+            <button class="pagination-btn" id="next-page">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+          <div class="rows-info">Showing 5 of 24 reports</div>
+        </div>
       </section>
     </main>
   </div>
+
+  <script src="js/reports.js"></script>
 </body>
 </html>

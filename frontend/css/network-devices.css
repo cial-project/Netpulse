@@ -1280,3 +1280,29 @@ tr:hover {
         width: 120px;
     }
 }
+
+/* Real chart container */
+.chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+}
+
+#bandwidthChart {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Chart controls */
+.chart-controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.chart-controls select {
+    padding: 0.5rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    background: white;
+}

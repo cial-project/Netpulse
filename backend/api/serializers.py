@@ -83,3 +83,15 @@ class DeviceSerializer(serializers.ModelSerializer):
         if last_metric:
             return MetricSerializer(last_metric).data
         return None
+
+    def validate_ip_address(self, value):
+        # Prevent creating duplicate devices with the same IP
+        request = self.context.get('request')
+        # When updating, allow same instance
+        instance = getattr(self, 'instance', None)
+        qs = Device.objects.filter(ip_address=value)
+        if instance:
+            qs = qs.exclude(pk=instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError('A device with this IP address already exists.')
+        return value

@@ -48,7 +48,7 @@ class Device(models.Model):
     ]
     
     name = models.CharField(max_length=100)
-    ip_address = models.GenericIPAddressField()
+    ip_address = models.GenericIPAddressField(unique=True)
     device_type = models.CharField(max_length=20, choices=DEVICE_TYPES)
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)

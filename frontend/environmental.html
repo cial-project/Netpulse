@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Environmental Monitoring - NetPulse</title>
+    <link rel="stylesheet" href="css/environmental.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Add Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-container">
+                    <div class="logo-icon">✈</div>
+                    <h1>NetPulse</h1>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="nav-item">
+                        <a href="dashboard.html">
+                            <i class="fas fa-home"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="network-devices.html">
+                            <i class="fas fa-network-wired"></i>
+                            <span>Network Devices</span>
+                        </a>
+                    </li>
+                    <li class="nav-item active">
+                        <a href="environmental.html">
+                            <i class="fas fa-temperature-low"></i>
+                            <span>Environmental</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a href="alerts-and-incidents.html">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>Alerts & Incidents</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="trends-and-forecasts.html">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Trends & Forecasts</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="reports.html">
+                            <i class="fas fa-file-alt"></i>
+                            <span>Reports</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="settings.html">
+                            <i class="fas fa-cog"></i>
+                            <span>Settings</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-details">
+                        <span class="user-name">User</span>
+                        <span class="user-role">Admin</span>
+                    </div>
+                </div>
+                <a href="login.html" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <div class="header-title">
+                    <h2>Environmental Monitoring</h2>
+                    <p>Monitor temperature, humidity, UPS status, and other environmental factors</p>
+                </div>
+                <div class="header-actions">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search zones..." id="zone-search">
+                    </div>
+                    <div class="notifications">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge" id="env-alert-count">2</span>
+                    </div>
+                    <div class="date-display">
+                        <i class="fas fa-calendar"></i>
+                        <span id="current-date">Sept 13, 2023</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Stats Overview -->
+            <section class="stats-overview">
+                <div class="stat-item">
+                    <div class="stat-icon temperature">
+                        <i class="fas fa-thermometer-half"></i>
+                    </div>
+                    <div class="stat-details">
+                        <span class="stat-value" id="avg-temperature">22.5°</span>
+                        <span class="stat-label">Avg Temperature</span>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon humidity">
+                        <i class="fas fa-tint"></i>
+                    </div>
+                    <div class="stat-details">
+                        <span class="stat-value" id="avg-humidity">45%</span>
+                        <span class="stat-label">Avg Humidity</span>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon ups">
+                        <i class="fas fa-battery-full"></i>
+                    </div>
+                    <div class="stat-details">
+                        <span class="stat-value" id="ups-capacity">95%</span>
+                        <span class="stat-label">UPS Capacity</span>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="stat-details">
+                        <span class="stat-value" id="env-warnings">3</span>
+                        <span class="stat-label">Env. Warnings</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- AI Insight Box -->
+            <section class="ai-insight">
+                <div class="section-header">
+                    <h3><i class="fas fa-brain"></i> AI Insights</h3>
+                    <button class="refresh-btn" id="refresh-insights">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+                <div class="insight-content">
+                    <div class="insight-icon">
+                        <i class="fas fa-temperature-high"></i>
+                    </div>
+                    <div class="insight-text">
+                        <p id="ai-insight-text">Temperature rising in Server Room A. Predicted to exceed threshold in 2 hours. Humidity levels stable across all zones.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Environmental Data Table -->
+            <section class="environment-section">
+                <div class="section-header">
+                    <h3>Zone Monitoring</h3>
+                    <div class="table-controls">
+                        <div class="filter-group">
+                            <select id="zone-filter">
+                                <option value="all">All Zones</option>
+                                <option value="terminal1">Terminal 1</option>
+                                <option value="terminal2">Terminal 2</option>
+                                <option value="control">Control Tower</option>
+                                <option value="server">Server Rooms</option>
+                            </select>
+                            <select id="status-filter">
+                                <option value="all">All Status</option>
+                                <option value="normal">Normal</option>
+                                <option value="warning">Warning</option>
+                                <option value="critical">Critical</option>
+                            </select>
+                        </div>
+                        <div class="action-buttons">
+                            <button class="btn primary" id="add-zone-btn">
+                                <i class="fas fa-plus"></i> Add Zone
+                            </button>
+                            <button class="btn danger" id="delete-zone-btn" disabled>
+                                <i class="fas fa-trash"></i> Delete Selected
+                            </button>
+                            <button class="export-btn" id="export-data">
+                                <i class="fas fa-download"></i> Export
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="environment-table">
+                        <thead>
+                            <tr>
+                                <th width="50">
+                                    <input type="checkbox" id="select-all-zones">
+                                </th>
+                                <th>Zone</th>
+                                <th>Temperature</th>
+                                <th>Humidity</th>
+                                <th>UPS Battery</th>
+                                <th>Status</th>
+                                <th>Last Checked</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="zones-tbody">
+                            <!-- Data will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="table-footer">
+                    <div class="pagination">
+                        <button class="pagination-btn" id="prev-page"><i class="fas fa-chevron-left"></i></button>
+                        <span class="page-number" id="page-info">Page 1 of 1</span>
+                        <button class="pagination-btn" id="next-page"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    <div class="rows-info" id="rows-info">Loading zones...</div>
+                </div>
+            </section>
+
+            <!-- Real Charts Section -->
+            <section class="charts-section">
+                <div class="chart-row">
+                    <div class="chart-card">
+                        <div class="section-header">
+                            <h3>Temperature Trends</h3>
+                            <select id="temp-time-range">
+                                <option value="24h" selected>Last 24 Hours</option>
+                                <option value="7d">Last 7 Days</option>
+                                <option value="30d">Last 30 Days</option>
+                            </select>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="temperatureChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <div class="section-header">
+                            <h3>Humidity Levels</h3>
+                            <select id="humidity-time-range">
+                                <option value="24h" selected>Last 24 Hours</option>
+                                <option value="7d">Last 7 Days</option>
+                                <option value="30d">Last 30 Days</option>
+                            </select>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="humidityChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-row">
+                    <div class="chart-card">
+                        <div class="section-header">
+                            <h3>UPS Battery Status</h3>
+                            <select id="ups-time-range">
+                                <option value="24h" selected>Last 24 Hours</option>
+                                <option value="7d">Last 7 Days</option>
+                                <option value="30d">Last 30 Days</option>
+                            </select>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="upsChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <div class="section-header">
+                            <h3>Zone Comparison</h3>
+                            <select id="metric-select">
+                                <option value="temperature" selected>Temperature</option>
+                                <option value="humidity">Humidity</option>
+                            </select>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="zoneChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Zone Detail Modal -->
+    <div class="modal-overlay" id="zone-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modal-title">Zone Details</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="zone-details" id="zone-details">
+                    <!-- Details will be populated by JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn secondary" id="close-modal">Cancel</button>
+                <button class="btn primary" id="adjust-thresholds">Adjust Thresholds</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Files -->
+    <script src="js/api.js"></script>
+    <script src="js/environmental.js"></script>
+</body>
+</html>

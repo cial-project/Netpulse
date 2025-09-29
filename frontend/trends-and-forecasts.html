@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trends & Forecasts - NetPulse</title>
+  <link rel="stylesheet" href="css/trends-and-forecasts.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Add Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+</head>
+<body>
+  <div class="dashboard-container">
+    <!-- Sidebar (same as your existing code) -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-container">
+          <div class="logo-icon">✈</div>
+          <h1>NetPulse</h1>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <ul>
+          <li class="nav-item"><a href="dashboard.html"><i class="fas fa-home"></i> Dashboard</a></li>
+          <li class="nav-item"><a href="network-devices.html"><i class="fas fa-network-wired"></i> Network Devices</a></li>
+          <li class="nav-item"><a href="environmental.html"><i class="fas fa-temperature-low"></i> Environmental</a></li>
+          <li class="nav-item"><a href="alerts-and-incidents.html"><i class="fas fa-exclamation-triangle"></i> Alerts & Incidents</a></li>
+          <li class="nav-item active"><a href="trends-and-forecasts.html"><i class="fas fa-chart-line"></i> Trends & Forecasts</a></li>
+          <li class="nav-item"><a href="reports.html"><i class="fas fa-file-alt"></i> Reports</a></li>
+          <li class="nav-item"><a href="settings.html"><i class="fas fa-cog"></i> Settings</a></li>
+        </ul>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar"><i class="fas fa-user"></i></div>
+          <div class="user-details">
+            <span class="user-name">User</span>
+            <span class="user-role">Admin</span>
+          </div>
+        </div>
+        <a href="login.html" class="logout-btn"><i class="fas fa-sign-out-alt"></i></a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <header class="content-header">
+        <div class="header-title">
+          <h2>Trends & Forecasts</h2>
+          <p>Visualize historical trends and AI-powered forecasts</p>
+        </div>
+        <div class="header-actions">
+          <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Search metrics..." id="search-metrics">
+          </div>
+          <div class="notifications">
+            <i class="fas fa-bell"></i>
+            <span class="notification-badge">4</span>
+          </div>
+          <div class="date-display">
+            <i class="fas fa-calendar"></i>
+            <span id="current-date">Sept 13, 2023</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Filters Section -->
+      <section class="filters-section">
+        <div class="filters-header">
+          <h3>Analysis Filters</h3>
+          <button class="btn secondary" id="clear-filters"><i class="fas fa-times"></i> Clear Filters</button>
+        </div>
+        <div class="filters-grid">
+          <div class="filter-group">
+            <label for="metric-type">Metric Type</label>
+            <select id="metric-type">
+              <option value="bandwidth">Network Bandwidth</option>
+              <option value="cpu">CPU Usage</option>
+              <option value="memory">Memory Usage</option>
+              <option value="temperature">Temperature</option>
+              <option value="humidity">Humidity</option>
+              <option value="alerts">Alert Trends</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="time-range">Time Range</label>
+            <select id="time-range">
+              <option value="1h">Last 1 Hour</option>
+              <option value="6h">Last 6 Hours</option>
+              <option value="24h">Last 24 Hours</option>
+              <option value="7d" selected>Last 7 Days</option>
+              <option value="30d">Last 30 Days</option>
+              <option value="90d">Last 90 Days</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="device-select">Device/Zone</label>
+            <select id="device-select">
+              <option value="all">All Devices</option>
+              <option value="Core-Router-01">Core-Router-01</option>
+              <option value="Switch-T1-A">Switch-T1-A</option>
+              <option value="Server-Room-A">Server Room A</option>
+              <option value="Terminal-1">Terminal 1</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="forecast-period">Forecast Period</label>
+            <select id="forecast-period">
+              <option value="24h">Next 24 Hours</option>
+              <option value="7d" selected>Next 7 Days</option>
+              <option value="30d">Next 30 Days</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <!-- Main Trends Chart -->
+      <section class="trends-section">
+        <div class="section-header">
+          <h3><i class="fas fa-chart-line"></i> Trend Analysis & Forecast</h3>
+          <div class="chart-controls">
+            <button class="btn secondary" id="export-chart"><i class="fas fa-download"></i> Export</button>
+            <button class="btn primary" id="refresh-chart"><i class="fas fa-sync-alt"></i> Refresh</button>
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas id="trendChart"></canvas>
+        </div>
+        <div class="chart-stats">
+          <div class="stat-card">
+            <span class="stat-label">Current Value</span>
+            <span class="stat-value" id="current-value">--</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Trend</span>
+            <span class="stat-value" id="trend-direction">--</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Peak Value</span>
+            <span class="stat-value" id="peak-value">--</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Forecast Accuracy</span>
+            <span class="stat-value" id="forecast-accuracy">--</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Additional Charts Grid -->
+      <section class="charts-grid">
+        <div class="chart-card">
+          <div class="section-header">
+            <h4><i class="fas fa-network-wired"></i> Bandwidth Comparison</h4>
+            <select class="chart-filter">
+              <option value="devices">By Devices</option>
+              <option value="time">By Time Period</option>
+            </select>
+          </div>
+          <div class="chart-container-small">
+            <canvas id="comparisonChart"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="section-header">
+            <h4><i class="fas fa-exclamation-triangle"></i> Alert Trends</h4>
+            <select class="chart-filter">
+              <option value="severity">By Severity</option>
+              <option value="type">By Type</option>
+            </select>
+          </div>
+          <div class="chart-container-small">
+            <canvas id="alertTrendsChart"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="section-header">
+            <h4><i class="fas fa-thermometer-half"></i> Seasonal Patterns</h4>
+            <select class="chart-filter">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+            </select>
+          </div>
+          <div class="chart-container-small">
+            <canvas id="seasonalChart"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="section-header">
+            <h4><i class="fas fa-brain"></i> Anomaly Detection</h4>
+            <select class="chart-filter">
+              <option value="recent">Recent</option>
+              <option value="historical">Historical</option>
+            </select>
+          </div>
+          <div class="chart-container-small">
+            <canvas id="anomalyChart"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- AI Insights Section -->
+      <section class="ai-insight">
+        <div class="section-header">
+          <h3><i class="fas fa-brain"></i> AI Forecast & Insights</h3>
+          <button class="refresh-btn" id="refresh-insights"><i class="fas fa-sync-alt"></i> Refresh Insights</button>
+        </div>
+        <div class="insight-content">
+          <div class="insight-icon"><i class="fas fa-lightbulb"></i></div>
+          <div class="insight-text">
+            <div id="ai-insights">
+              <p>Analyzing historical patterns and current trends...</p>
+            </div>
+            <div class="insight-metrics">
+              <div class="metric-item">
+                <span class="metric-label">Confidence Level:</span>
+                <span class="metric-value high">92%</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">Pattern Strength:</span>
+                <span class="metric-value medium">78%</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">Risk Assessment:</span>
+                <span class="metric-value low">Low</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Forecast Details Table -->
+      <section class="forecast-table-section">
+        <div class="section-header">
+          <h3><i class="fas fa-table"></i> Forecast Details</h3>
+          <button class="btn secondary" id="export-forecast"><i class="fas fa-file-export"></i> Export Data</button>
+        </div>
+        <div class="table-container">
+          <table class="forecast-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Actual Value</th>
+                <th>Forecast Value</th>
+                <th>Confidence</th>
+                <th>Variance</th>
+                <th>Trend</th>
+              </tr>
+            </thead>
+            <tbody id="forecast-table-body">
+              <!-- Data will be populated by JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/trends-and-forecasts.js"></script>
+</body>
+</html>

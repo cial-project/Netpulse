@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Devices - NetPulse</title>
+    <link rel="stylesheet" href="css/network-devices.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-container">
+                    <div class="logo-icon">✈</div>
+                    <h1>NetPulse</h1>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="nav-item">
+                        <a href="dashboard.html">
+                            <i class="fas fa-home"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item active">
+                        <a href="network-devices.html">
+                            <i class="fas fa-network-wired"></i>
+                            <span>Network Devices</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="environmental.html">
+                            <i class="fas fa-temperature-low"></i>
+                            <span>Environmental</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a href="alerts-and-incidents.html">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>Alerts & Incidents</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="trends-and-forecasts.html">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Trends & Forecasts</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="reports.html">
+                            <i class="fas fa-file-alt"></i>
+                            <span>Reports</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="settings.html">
+                            <i class="fas fa-cog"></i>
+                            <span>Settings</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-details">
+                        <span class="user-name">User</span>
+                        <span class="user-role">Admin</span>
+                    </div>
+                </div>
+                <a href="login.html" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <div class="header-title">
+                    <h2>Network Devices Monitoring</h2>
+                    <p>Monitor all network devices, bandwidth usage, and connectivity status</p>
+                </div>
+                <div class="header-actions">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search devices...">
+                    </div>
+                    <div class="notifications">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">3</span>
+                    </div>
+                    <div class="date-display">
+                        <i class="fas fa-calendar"></i>
+                        <span>Sept 13, 2023</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Stats Overview -->
+            <section class="stats-overview">
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <i class="fas fa-server"></i>
+                    </div>
+                    <div class="stat-details">
+                        <span class="stat-value">42</span>
+                        <span class="stat-label">Total Devices</span>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon online">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-details">
+                        <span class="stat-value">38</span>
+                        <span class="stat-label">Online</span>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="stat-details">
+                        <span class="stat-value">3</span>
+                        <span class="stat-label">Warning</span>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon critical">
+                        <i class="fas fa-times-circle"></i>
+                    </div>
+                    <div class="stat-details">
+                        <span class="stat-value">1</span>
+                        <span class="stat-label">Critical</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- AI Insight Box -->
+            <section class="ai-insight">
+                <div class="section-header">
+                    <h3><i class="fas fa-brain"></i> AI Insights</h3>
+                    <button class="refresh-btn">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+                <div class="insight-content">
+                    <div class="insight-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="insight-text">
+                        <p>Bandwidth usage on Router-02 shows unusual pattern. Predicted to exceed normal thresholds in 4 hours. Check for potential network congestion.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Devices Table -->
+            <section class="devices-section">
+                <div class="section-header">
+                    <h3>Network Devices Status</h3>
+                    <div class="table-controls">
+                        <div class="filter-group">
+                            <select id="status-filter">
+                                <option value="all">All Status</option>
+                                <option value="online">Online</option>
+                                <option value="warning">Warning</option>
+                                <option value="critical">Critical</option>
+                                <option value="offline">Offline</option>
+                            </select>
+                            <select id="type-filter">
+                                <option value="all">All Types</option>
+                                <option value="router">Routers</option>
+                                <option value="switch">Switches</option>
+                                <option value="firewall">Firewalls</option>
+                                <option value="ap">Access Points</option>
+                            </select>
+                        </div>
+                        <button class="export-btn">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                        <button class="add-device-btn" style="margin-left: 1rem; background: #28a745; color: #fff; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">
+                            <i class="fas fa-plus"></i> Add Device
+                        </button>
+                    </div>
+    <!-- Add Device Modal -->
+<div id="add-device-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Add New Device</h3>
+            <span class="modal-close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="add-device-form">
+                <div class="form-group">
+                    <label for="device-name">Device Name *</label>
+                    <input type="text" id="device-name" name="device-name" required 
+                           placeholder="e.g., Core-Router-01">
+                </div>
+                
+                <div class="form-group">
+                    <label for="device-type">Device Type *</label>
+                    <select id="device-type" name="device-type" required>
+                        <option value="">Select device type...</option>
+                        <option value="router">Router</option>
+                        <option value="switch">Switch</option>
+                        <option value="firewall">Firewall</option>
+                        <option value="ap">Access Point</option>
+                        <option value="server">Server</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="ip-address">IP Address *</label>
+                    <input type="text" id="ip-address" name="ip-address" required 
+                           placeholder="e.g., 192.168.1.100">
+                </div>
+                
+                <div class="form-group">
+                    <label for="location">Location</label>
+                    <input type="text" id="location" name="location" 
+                           placeholder="e.g., Terminal 1, Server Room A">
+                </div>
+                
+                <div class="form-group">
+                    <label for="snmp-community">SNMP Community</label>
+                    <input type="text" id="snmp-community" name="snmp-community" 
+                           value="public" placeholder="SNMP community string">
+                </div>
+                
+                <div class="form-group checkbox-group">
+                    <label>
+                        <input type="checkbox" id="is-active" name="is-active" checked>
+                        <span class="checkmark"></span>
+                        Active (Start monitoring immediately)
+                    </label>
+                </div>
+                
+                <div id="add-device-error" class="error-message"></div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn secondary" id="cancel-add-device">Cancel</button>
+                    <button type="submit" class="btn primary">
+                        <i class="fas fa-plus"></i> Add Device
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+                </div>
+
+                <div class="table-container">
+                    <table class="devices-table">
+                        <thead>
+                            <tr>
+                                <th>Device Name</th>
+                                <th>Type</th>
+                                <th>IP Address</th>
+                                <th>Status</th>
+                                <th>Uptime</th>
+                                <th>Last Checked</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Core-Router-01</td>
+                                <td>Router</td>
+                                <td>192.168.1.1</td>
+                                <td><span class="status-badge online">Online</span></td>
+                                <td>42 days</td>
+                                <td>2 minutes ago</td>
+                                <td>
+                                    <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
+                                    <button class="action-btn config-btn"><i class="fas fa-cog"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Switch-T1-A</td>
+                                <td>Switch</td>
+                                <td>192.168.1.2</td>
+                                <td><span class="status-badge online">Online</span></td>
+                                <td>38 days</td>
+                                <td>3 minutes ago</td>
+                                <td>
+                                    <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
+                                    <button class="action-btn config-btn"><i class="fas fa-cog"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Firewall-Main</td>
+                                <td>Firewall</td>
+                                <td>192.168.1.3</td>
+                                <td><span class="status-badge warning">Warning</span></td>
+                                <td>15 days</td>
+                                <td>5 minutes ago</td>
+                                <td>
+                                    <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
+                                    <button class="action-btn config-btn"><i class="fas fa-cog"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>AP-Terminal-B</td>
+                                <td>Access Point</td>
+                                <td>192.168.1.4</td>
+                                <td><span class="status-badge critical">Critical</span></td>
+                                <td>0 days</td>
+                                <td>10 minutes ago</td>
+                                <td>
+                                    <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
+                                    <button class="action-btn config-btn"><i class="fas fa-cog"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Router-Gate-A</td>
+                                <td>Router</td>
+                                <td>192.168.1.5</td>
+                                <td><span class="status-badge online">Online</span></td>
+                                <td>62 days</td>
+                                <td>1 minute ago</td>
+                                <td>
+                                    <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
+                                    <button class="action-btn config-btn"><i class="fas fa-cog"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Switch-Baggage</td>
+                                <td>Switch</td>
+                                <td>192.168.1.6</td>
+                                <td><span class="status-badge warning">Warning</span></td>
+                                <td>27 days</td>
+                                <td>4 minutes ago</td>
+                                <td>
+                                    <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
+                                    <button class="action-btn config-btn"><i class="fas fa-cog"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>AP-Checkin</td>
+                                <td>Access Point</td>
+                                <td>192.168.1.7</td>
+                                <td><span class="status-badge online">Online</span></td>
+                                <td>33 days</td>
+                                <td>2 minutes ago</td>
+                                <td>
+                                    <button class="action-btn view-btn"><i class="fas fa-eye"></i></button>
+                                    <button class="action-btn config-btn"><i class="fas fa-cog"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="table-footer">
+                    <div class="pagination">
+                        <button class="pagination-btn"><i class="fas fa-chevron-left"></i></button>
+                        <span class="page-number">Page 1 of 3</span>
+                        <button class="pagination-btn"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    <div class="rows-info">Showing devices</div>
+                </div>
+            </section>
+
+            <!-- Bandwidth Chart - REAL VERSION -->
+<section class="chart-section">
+    <div class="section-header">
+        <h3>Bandwidth Usage</h3>
+        <div class="chart-controls">
+            <select id="time-range">
+                <option value="1h">Last 1 Hour</option>
+                <option value="6h">Last 6 Hours</option>
+                <option value="12h">Last 12 Hours</option>
+                <option value="24h" selected>Last 24 Hours</option>
+                <option value="7d">Last 7 Days</option>
+            </select>
+            <select id="device-select">
+                <option value="all">All Devices</option>
+                <!-- Devices will be populated dynamically -->
+            </select>
+        </div>
+    </div>
+
+    <div class="chart-container">
+        <canvas id="bandwidthChart"></canvas>
+    </div>
+</section>
+        </main>
+    </div>
+
+    <!-- Device Detail Modal (Hidden by default) -->
+    <div class="modal-overlay" id="device-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Device Details: Core-Router-01</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="device-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Device Type:</span>
+                        <span class="detail-value">Router</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">IP Address:</span>
+                        <span class="detail-value">192.168.1.1</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">MAC Address:</span>
+                        <span class="detail-value">00:1A:2B:3C:4D:5E</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Status:</span>
+                        <span class="detail-value"><span class="status-badge online">Online</span></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Uptime:</span>
+                        <span class="detail-value">42 days, 3 hours, 12 minutes</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Last Reboot:</span>
+                        <span class="detail-value">Aug 2, 2023 14:32</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Location:</span>
+                        <span class="detail-value">Terminal 1, Server Room A</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn secondary">Cancel</button>
+                <button class="btn primary">Refresh Data</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/network-devices.js"></script>
+</body>
+</html>

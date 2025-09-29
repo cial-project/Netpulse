@@ -18,6 +18,15 @@ class EnvironmentalMonitor {
         this.setupChartControls(); // Add this line
     }
 
+    // Helper to attach an event listener only once per element/key
+    addListenerOnce(element, key, event, handler) {
+        if (!element) return;
+        const safeKey = `npEnv_${String(key || '')}`.replace(/[^a-zA-Z0-9_]/g, '_');
+        if (element.dataset && element.dataset[safeKey]) return;
+        element.addEventListener(event, handler);
+        try { element.dataset[safeKey] = 'true'; } catch (e) { /* ignore */ }
+    }
+
     initializeCharts() {
         this.initTemperatureChart();
         this.initHumidityChart();
@@ -554,13 +563,10 @@ class EnvironmentalMonitor {
         });
 
         // Filters
-        document.getElementById('zone-filter').addEventListener('change', (e) => {
-            this.filterZones();
-        });
-
-        document.getElementById('status-filter').addEventListener('change', (e) => {
-            this.filterZones();
-        });
+        const zoneFilterEl = document.getElementById('zone-filter');
+        const statusFilterEl = document.getElementById('status-filter');
+        this.addListenerOnce(zoneFilterEl, 'zone-filter-change', 'change', (e) => this.filterZones());
+        this.addListenerOnce(statusFilterEl, 'status-filter-change', 'change', (e) => this.filterZones());
 
         // Search
         document.getElementById('zone-search').addEventListener('input', (e) => {
@@ -568,24 +574,16 @@ class EnvironmentalMonitor {
         });
 
         // Refresh insights
-        document.getElementById('refresh-insights').addEventListener('click', () => {
-            this.refreshAIInsights();
-        });
+        this.addListenerOnce(document.getElementById('refresh-insights'), 'refresh-insights', 'click', () => this.refreshAIInsights());
 
         // Add Zone Button
-        document.getElementById('add-zone-btn').addEventListener('click', () => {
-            this.showAddZoneModal();
-        });
+        this.addListenerOnce(document.getElementById('add-zone-btn'), 'add-zone-click', 'click', () => this.showAddZoneModal());
 
         // Delete Selected Zones Button
-        document.getElementById('delete-zone-btn').addEventListener('click', () => {
-            this.deleteSelectedZones();
-        });
+        this.addListenerOnce(document.getElementById('delete-zone-btn'), 'delete-zones-click', 'click', () => this.deleteSelectedZones());
 
         // Select All Checkbox
-        document.getElementById('select-all-zones').addEventListener('change', (e) => {
-            this.toggleSelectAllZones(e.target.checked);
-        });
+        this.addListenerOnce(document.getElementById('select-all-zones'), 'select-all-change', 'change', (e) => this.toggleSelectAllZones(e.target.checked));
 
         // Individual Zone Checkboxes
         document.addEventListener('change', (e) => {
@@ -594,21 +592,26 @@ class EnvironmentalMonitor {
             }
         });
 
-        // Individual Delete Buttons
-        document.addEventListener('click', (e) => {
-            if (e.target.closest('.delete-btn')) {
-                const zoneId = parseInt(e.target.closest('.delete-btn').dataset.zoneId);
+        // Individual Delete Buttons (delegated)
+        this.addListenerOnce(document, 'delegated-delete-click', 'click', (e) => {
+            const del = e.target.closest && e.target.closest('.delete-btn');
+            if (del) {
+                const zoneId = parseInt(del.dataset.zoneId);
                 this.deleteSingleZone(zoneId);
             }
         });
 
-        // View buttons for zone details
-        document.addEventListener('click', (e) => {
-            if (e.target.closest('.view-btn')) {
-                const zoneId = parseInt(e.target.closest('.view-btn').dataset.zoneId);
+        // View buttons for zone details (delegated)
+        this.addListenerOnce(document, 'delegated-view-click', 'click', (e) => {
+            const view = e.target.closest && e.target.closest('.view-btn');
+            if (view) {
+                const zoneId = parseInt(view.dataset.zoneId);
                 this.showZoneDetails(zoneId);
             }
         });
+
+        // Export data button
+        this.addListenerOnce(document.getElementById('export-data'), 'export-data-click', 'click', () => this.exportData());
 
         // Modal setup
         this.setupModal();
@@ -624,9 +627,12 @@ class EnvironmentalMonitor {
             let filteredZones = this.zones;
 
             if (zoneFilter !== 'all') {
-                filteredZones = filteredZones.filter(zone => 
-                    zone.name.toLowerCase().includes(zoneFilter)
-                );
+                const nf = String(zoneFilter).toLowerCase().replace(/[^a-z0-9]+/g, '');
+                filteredZones = filteredZones.filter(zone => {
+                    const nameNorm = String(zone.name).toLowerCase().replace(/[^a-z0-9]+/g, '');
+                    const typeNorm = String(zone.type || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+                    return nameNorm.includes(nf) || typeNorm === nf || typeNorm.includes(nf);
+                });
             }
 
             if (statusFilter !== 'all') {
@@ -893,19 +899,16 @@ class EnvironmentalMonitor {
             setTimeout(() => modal.remove(), 300);
         };
 
-        closeBtn.addEventListener('click', closeModal);
-        modalClose.addEventListener('click', closeModal);
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) closeModal();
-        });
+        // Attach handlers idempotently
+        this.addListenerOnce(closeBtn, 'close-add-zone', 'click', closeModal);
+        this.addListenerOnce(modalClose, 'modal-close-add-zone', 'click', closeModal);
+        this.addListenerOnce(modal, 'modal-click-close', 'click', (e) => { if (e.target === modal) closeModal(); });
 
-        // Save zone
-        saveBtn.addEventListener('click', () => {
-            this.saveNewZone();
-        });
+        // Save zone (idempotent)
+        this.addListenerOnce(saveBtn, 'save-zone-click', 'click', () => this.saveNewZone());
 
-        // Enter key support
-        form.addEventListener('keypress', (e) => {
+        // Enter key support on the form
+        this.addListenerOnce(form, 'add-zone-enter', 'keypress', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 this.saveNewZone();
@@ -1047,6 +1050,48 @@ class EnvironmentalMonitor {
         }, 5000);
     }
 
+    exportData() {
+        try {
+            if (!this.zones || this.zones.length === 0) {
+                this.showNotification('No environmental data to export', 'info');
+                return;
+            }
+
+            const rows = this.zones.map(z => ({
+                id: z.id,
+                name: z.name,
+                temperature: z.temp,
+                humidity: z.humidity,
+                ups: z.ups || '',
+                status: z.status,
+                lastChecked: z.lastChecked
+            }));
+
+            const headers = Object.keys(rows[0]);
+            const csv = [headers.join(',')].concat(rows.map(r => headers.map(h => {
+                const v = r[h] === null || r[h] === undefined ? '' : String(r[h]);
+                // Escape quotes
+                return `"${v.replace(/"/g, '""')}"`;
+            }).join(','))).join('\n');
+
+            const csvContent = '\ufeff' + csv;
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `environmental-data-${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+
+            this.showNotification('Environmental data exported', 'success');
+        } catch (err) {
+            console.error('Export failed:', err);
+            this.showNotification('Failed to export data', 'error');
+        }
+    }
+
     updateDateTime() {
         const now = new Date();
         const dateElement = document.getElementById('current-date');
@@ -1061,7 +1106,11 @@ class EnvironmentalMonitor {
     }
 }
 
-// Initialize when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    new EnvironmentalMonitor();
-});
+// Initialize when page loads (robust to late script load)
+(function initEnv() {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => new EnvironmentalMonitor());
+    } else {
+        new EnvironmentalMonitor();
+    }
+})();

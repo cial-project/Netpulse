@@ -399,6 +399,124 @@ body {
     gap: 0.5rem;
 }
 
+/* Modal styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.4);
+    display: none; /* toggled to flex by JS */
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal {
+    background: #ffffff;
+    border-radius: 10px;
+    width: min(800px, calc(100vw - 2rem));
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+}
+
+.modal-large {
+    width: min(900px, calc(100vw - 2rem));
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: #212529;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: #6c757d;
+    cursor: pointer;
+}
+
+.modal-body {
+    padding: 1rem 1.25rem;
+    overflow-y: auto;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    border-top: 1px solid #e9ecef;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-group label {
+    font-size: 0.9rem;
+    color: #495057;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 0.95rem;
+}
+
+.error-message {
+    display: none;
+    color: #dc3545;
+    margin-top: 0.5rem;
+}
+
+/* Simple button baseline */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.9rem;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: #f8f9fa;
+    color: #212529;
+    cursor: pointer;
+}
+
+.btn.primary { background: #28a745; color: #fff; border-color: #28a745; }
+.btn.secondary { background: #e9ecef; color: #212529; }
+.btn.warning { background: #ffc107; color: #212529; border-color: #ffc107; }
+.btn.danger { background: #dc3545; color: #fff; border-color: #dc3545; }
+.btn.success { background: #198754; color: #fff; border-color: #198754; }
+
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
 .filter-group label {
     font-weight: 600;
     color: #495057;

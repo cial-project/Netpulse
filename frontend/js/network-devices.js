@@ -169,21 +169,35 @@ function formatRelativeTime(dateString) {
     return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
 }
 
+// Helper to attach an event listener only once per element/key
+function addListenerOnce(element, key, event, handler) {
+    if (!element) return;
+    const safeKey = `npNet_${String(key || '')}`.replace(/[^a-zA-Z0-9_]/g, '_');
+    try {
+        if (element.dataset && element.dataset[safeKey]) return;
+        element.addEventListener(event, handler);
+        element.dataset[safeKey] = 'true';
+    } catch (e) {
+        // ignore dataset errors on some elements
+        element.addEventListener(event, handler);
+    }
+}
+
 // Event delegation for action buttons
 function setupEventDelegation() {
-    // Remove any existing event listeners from the table
-    const table = document.querySelector('.devices-table');
-    const newTable = table.cloneNode(true);
-    table.parentNode.replaceChild(newTable, table);
-    
-    // Add single event listener to the table body
-    document.querySelector('.devices-table tbody').addEventListener('click', (e) => {
+    const tableBody = document.querySelector('.devices-table tbody');
+    if (!tableBody) return;
+
+    // Attach the delegated listener only once
+    if (tableBody.dataset.delegateAttached === 'true') return;
+
+    tableBody.addEventListener('click', (e) => {
         const target = e.target.closest('button');
         if (!target) return;
-        
+
         const deviceId = target.dataset.deviceId;
         const deviceName = target.dataset.deviceName;
-        
+
         if (target.classList.contains('view-btn')) {
             showDeviceDetails(deviceId);
         } else if (target.classList.contains('refresh-btn')) {
@@ -194,6 +208,8 @@ function setupEventDelegation() {
             deleteDevice(deviceId, deviceName);
         }
     });
+
+    tableBody.dataset.delegateAttached = 'true';
 }
 
 async function refreshDeviceStatus(deviceId) {
@@ -304,19 +320,9 @@ function showDeviceDetails(deviceId) {
 function setupFilters() {
     const statusFilter = document.getElementById('status-filter');
     const typeFilter = document.getElementById('type-filter');
-    
-    // Clone to remove existing listeners
-    if (statusFilter) {
-        const newStatusFilter = statusFilter.cloneNode(true);
-        statusFilter.parentNode.replaceChild(newStatusFilter, statusFilter);
-        newStatusFilter.addEventListener('change', filterDevices);
-    }
-    
-    if (typeFilter) {
-        const newTypeFilter = typeFilter.cloneNode(true);
-        typeFilter.parentNode.replaceChild(newTypeFilter, typeFilter);
-        newTypeFilter.addEventListener('change', filterDevices);
-    }
+    // Attach listeners idempotently using addListenerOnce
+    addListenerOnce(statusFilter, 'statusFilterChange', 'change', filterDevices);
+    addListenerOnce(typeFilter, 'typeFilterChange', 'change', filterDevices);
 }
 
 function filterDevices() {
@@ -326,13 +332,70 @@ function filterDevices() {
     const rows = document.querySelectorAll('.devices-table tbody tr');
     
     rows.forEach(row => {
-        const status = row.classList.contains('online') ? 'online' : 'offline';
-        const type = row.querySelector('.device-type-badge').textContent.toLowerCase();
+        // Determine status robustly
+        const status = row.classList.contains('online') ? 'online' : (row.classList.contains('warning') ? 'warning' : (row.classList.contains('critical') ? 'critical' : 'offline'));
+
+        // Determine device type from rendered badge if present, otherwise fallback to the second cell text
+        let typeEl = row.querySelector('.device-type-badge');
+        if (!typeEl) {
+            // fallback: second cell
+            typeEl = row.children[1] || row.querySelector('td:nth-child(2)');
+        }
+        const type = (typeEl && typeEl.textContent) ? typeEl.textContent.trim().toLowerCase() : '';
         
         const statusMatch = statusFilter === 'all' || status === statusFilter;
         const typeMatch = typeFilter === 'all' || type === typeFilter;
-        
-        row.style.display = statusMatch && typeMatch ? '' : 'none';
+
+        row.style.display = (statusMatch && typeMatch) ? '' : 'none';
+    });
+}
+
+// CSV Export for Network Devices
+function exportData() {
+    const rows = Array.from(document.querySelectorAll('.devices-table tbody tr'))
+        .filter(r => r.style.display !== 'none');
+
+    if (!rows || rows.length === 0) {
+        showNotification('No devices to export', 'info');
+        return;
+    }
+
+    const headers = ['Device Name', 'Type', 'IP Address', 'Status', 'Uptime', 'Last Checked'];
+    const csv = [headers.join(',')];
+
+    rows.forEach(row => {
+        const name = (row.querySelector('.device-name-cell') || row.children[0]).textContent.trim();
+        const type = (row.querySelector('.device-type-badge') || row.children[1]).textContent.trim();
+        const ip = (row.querySelector('.ip-address') || row.children[2]).textContent.trim();
+        const statusBadge = row.querySelector('.status-badge');
+        const status = statusBadge ? statusBadge.textContent.trim() : (row.classList.contains('online') ? 'Online' : 'Offline');
+        const uptime = row.children[4] ? row.children[4].textContent.trim() : '';
+        const lastChecked = row.children[5] ? row.children[5].textContent.trim() : '';
+
+        const escapeCell = (s) => '"' + String(s).replace(/"/g, '""') + '"';
+        csv.push([escapeCell(name), escapeCell(type), escapeCell(ip), escapeCell(status), escapeCell(uptime), escapeCell(lastChecked)].join(','));
+    });
+
+    const csvString = '\uFEFF' + csv.join('\n'); // prepend BOM for Excel
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const now = new Date().toISOString().slice(0,19).replace(/:/g, '-');
+    a.download = `network_devices_export_${now}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    showNotification('Export started', 'success');
+}
+
+function setupExportButton() {
+    const exportBtn = document.querySelector('.export-btn');
+    if (!exportBtn) return;
+    addListenerOnce(exportBtn, 'exportClick', 'click', (e) => {
+        e.preventDefault();
+        exportData();
     });
 }
 
@@ -347,35 +410,31 @@ function setupAddDeviceModal() {
 
     if (!modal || !addBtn) return;
 
-    // Remove any existing event listeners by cloning
-    const newAddBtn = addBtn.cloneNode(true);
-    addBtn.parentNode.replaceChild(newAddBtn, addBtn);
-    
-    const newForm = form.cloneNode(true);
-    form.parentNode.replaceChild(newForm, form);
-    
-    // Get fresh references
-    const freshAddBtn = document.querySelector('.add-device-btn');
-    const freshForm = document.getElementById('add-device-form');
+    // Attach listeners only once using dataset flags (avoid cloning DOM nodes)
+    const freshAddBtn = addBtn;
+    const freshForm = form;
     const freshCloseBtn = document.querySelector('.modal-close');
 
     // Track modal state
     let isModalOpen = false;
 
-    // Open modal
-    freshAddBtn.addEventListener('click', () => {
-        if (isModalOpen) return;
-        
-        isModalOpen = true;
-        modal.style.display = 'flex';
-        const errorDiv = document.getElementById('add-device-error');
-        if (errorDiv) {
-            errorDiv.textContent = '';
-            errorDiv.style.display = 'none';
-        }
-        freshForm.reset();
-        document.getElementById('is-active').checked = true;
-    });
+    // Open modal (idempotent attachment)
+    if (freshAddBtn && freshAddBtn.dataset.modalAttached !== 'true') {
+        freshAddBtn.addEventListener('click', () => {
+            if (isModalOpen) return;
+
+            isModalOpen = true;
+            modal.style.display = 'flex';
+            const errorDiv = document.getElementById('add-device-error');
+            if (errorDiv) {
+                errorDiv.textContent = '';
+                errorDiv.style.display = 'none';
+            }
+            freshForm.reset();
+            document.getElementById('is-active').checked = true;
+        });
+        freshAddBtn.dataset.modalAttached = 'true';
+    }
 
     // Close modal
     function closeModal() {
@@ -388,35 +447,46 @@ function setupAddDeviceModal() {
         }
     }
 
-    if (freshCloseBtn) {
+    if (freshCloseBtn && freshCloseBtn.dataset.closeAttached !== 'true') {
         freshCloseBtn.addEventListener('click', closeModal);
+        freshCloseBtn.dataset.closeAttached = 'true';
     }
+
+    // Cancel button inside form (idempotent)
+    const cancelBtn = document.getElementById('cancel-add-device');
+    addListenerOnce(cancelBtn, 'cancelAddDevice', 'click', (e) => {
+        e.preventDefault();
+        closeModal();
+    });
 
     // Close modal when clicking outside
     modal.addEventListener('click', (event) => {
         if (event.target === modal) closeModal();
     });
 
-    // Form submission with duplicate prevention
-    freshForm.addEventListener('submit', async (event) => {
-        event.preventDefault();
+    // Form submission with duplicate prevention (attach once)
+    if (freshForm && freshForm.dataset.submitAttached !== 'true') {
+        freshForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
 
-        // If form already marked as submitting, ignore
-        if (freshForm.dataset.submitting === 'true') {
-            console.log('Form already submitting - ignoring duplicate submit');
-            return;
-        }
+            // If form already marked as submitting, ignore
+            if (freshForm.dataset.submitting === 'true') {
+                console.log('Form already submitting - ignoring duplicate submit');
+                return;
+            }
 
-        // Mark as submitting
-        freshForm.dataset.submitting = 'true';
+            // Mark as submitting
+            freshForm.dataset.submitting = 'true';
 
-        try {
-            await addNewDevice();
-        } finally {
-            // Ensure flag is removed after submission completes
-            freshForm.dataset.submitting = 'false';
-        }
-    });
+            try {
+                await addNewDevice();
+            } finally {
+                // Ensure flag is removed after submission completes
+                freshForm.dataset.submitting = 'false';
+            }
+        });
+        freshForm.dataset.submitAttached = 'true';
+    }
 }
 
 // Add new device function
@@ -472,12 +542,33 @@ async function addNewDevice() {
             form.reset();
             loadNetworkDevices(); // Refresh the list
             
-        } else {
-            // Error handling
-            const errorData = await response.json();
-            
+        } else if (response) {
+            // Error handling with robust parsing
+            let errorData = null;
+            try {
+                errorData = await response.json();
+            } catch (e) {
+                console.error('Failed to parse error JSON', e);
+            }
+
+            // Field-level messages
+            const fieldErrors = [];
+            if (errorData) {
+                for (const key of Object.keys(errorData)) {
+                    const val = errorData[key];
+                    if (Array.isArray(val)) {
+                        fieldErrors.push(`${key}: ${val.join(', ')}`);
+                    } else if (typeof val === 'object') {
+                        fieldErrors.push(`${key}: ${JSON.stringify(val)}`);
+                    } else {
+                        fieldErrors.push(`${key}: ${val}`);
+                    }
+                }
+            }
+
+            const message = fieldErrors.length > 0 ? fieldErrors.join(' | ') : (errorData && errorData.detail) ? errorData.detail : 'Failed to add device.';
             if (errorDiv) {
-                errorDiv.textContent = errorData.detail || 'Failed to add device.';
+                errorDiv.textContent = message;
                 errorDiv.style.display = 'block';
             }
         }
@@ -756,6 +847,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadNetworkDevices();
     setupFilters();
     setupAddDeviceModal();
+    setupExportButton();
     startAutoRefresh();
     
     // Initialize bandwidth chart

@@ -13,6 +13,8 @@ from asgiref.sync import async_to_sync
 from .models import User, Device, Alert, Metric
 from .serializers import (UserSerializer, LoginSerializer, SignupSerializer, 
                          DeviceSerializer, AlertSerializer, MetricSerializer)
+from .permissions import IsAdminOrOperatorOrReadOnly
+import logging
 from devices.snmp_service import poll_device
 
 class AuthViewSet(viewsets.ViewSet):
@@ -321,7 +323,9 @@ class DashboardViewSet(viewsets.ViewSet):
 class DeviceViewSet(viewsets.ModelViewSet):
     queryset = Device.objects.all()
     serializer_class = DeviceSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminOrOperatorOrReadOnly]
+
+    logger = logging.getLogger(__name__)
 
     def create(self, request, *args, **kwargs):
         """Create device and perform initial SNMP poll to populate status/metrics"""
@@ -347,7 +351,7 @@ class DeviceViewSet(viewsets.ModelViewSet):
             device.save()
         except Exception as e:
             # Log the error but do not fail creation
-            print(f"Initial poll failed for {device.ip_address}: {e}")
+            self.logger.exception(f"Initial poll failed for {device.ip_address}: {e}")
 
         headers = self.get_success_headers(serializer.data)
         return Response(DeviceSerializer(device, context={'request': request}).data, status=status.HTTP_201_CREATED, headers=headers)

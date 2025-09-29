@@ -363,6 +363,16 @@ class AlertsManager {
         this.setupKeyboard();
     }
 
+    // Helper to add an event listener only once for a given key on an element
+    addListenerOnce(element, key, event, handler) {
+        if (!element) return;
+        // dataset property names must be valid identifiers (no dashes). Sanitize the key.
+        const safeKey = `npListener_${String(key || '')}`.replace(/[^a-zA-Z0-9_]/g, '_');
+        if (element.dataset && element.dataset[safeKey]) return;
+        element.addEventListener(event, handler);
+        try { element.dataset[safeKey] = 'true'; } catch (e) { /* ignore if dataset not writable */ }
+    }
+
     setupPagination() {
         const prevPage = document.getElementById('prev-page');
         const nextPage = document.getElementById('next-page');
@@ -393,36 +403,34 @@ class AlertsManager {
         const dateFilter = document.getElementById('date-filter');
         const alertSearch = document.getElementById('alert-search');
         const clearFilters = document.getElementById('clear-filters');
-
-        // Remove any existing event listeners by cloning elements
-        this.replaceElementWithClone(severityFilter);
-        this.replaceElementWithClone(statusFilter);
-        this.replaceElementWithClone(typeFilter);
-        this.replaceElementWithClone(dateFilter);
-        this.replaceElementWithClone(alertSearch);
-        this.replaceElementWithClone(clearFilters);
-
-        // Add new event listeners
-        if (severityFilter) severityFilter.addEventListener('change', () => this.filterAlerts());
-        if (statusFilter) statusFilter.addEventListener('change', () => this.filterAlerts());
-        if (typeFilter) typeFilter.addEventListener('change', () => this.filterAlerts());
-        if (dateFilter) dateFilter.addEventListener('change', () => this.filterAlerts());
-        if (alertSearch) alertSearch.addEventListener('input', () => this.filterAlerts());
-        if (clearFilters) clearFilters.addEventListener('click', () => this.clearFilters());
+        // Attach listeners idempotently (won't attach twice on re-init)
+        this.addListenerOnce(severityFilter, 'severity-change', 'change', () => this.filterAlerts());
+        this.addListenerOnce(statusFilter, 'status-change', 'change', () => this.filterAlerts());
+        this.addListenerOnce(typeFilter, 'type-change', 'change', () => this.filterAlerts());
+        this.addListenerOnce(dateFilter, 'date-change', 'change', () => this.filterAlerts());
+        this.addListenerOnce(alertSearch, 'search-input', 'input', () => this.filterAlerts());
+        this.addListenerOnce(clearFilters, 'clear-click', 'click', () => this.clearFilters());
     }
 
-    replaceElementWithClone(element) {
-        if (!element) return;
-        const clone = element.cloneNode(true);
-        element.parentNode.replaceChild(clone, element);
-    }
 
     setupActionButtons() {
-        // New Incident Button - FIXED
+        // New Incident Button - attach once and provide delegated fallback
         const newIncidentBtn = document.getElementById('new-incident-btn');
-        if (newIncidentBtn) {
-            newIncidentBtn.addEventListener('click', () => {
-                this.showNewIncidentModal();
+        this.addListenerOnce(newIncidentBtn, 'new-incident-click', 'click', (e) => {
+            console.debug('[Alerts] New Incident clicked');
+            e.preventDefault();
+            this.showNewIncidentModal();
+        });
+
+        // Delegated fallback to ensure click works even if element is re-rendered
+        if (document.body) {
+            this.addListenerOnce(document.body, 'delegateNewIncident', 'click', (e) => {
+                const btn = e.target.closest && e.target.closest('#new-incident-btn');
+                if (btn) {
+                    e.preventDefault();
+                    console.debug('[Alerts] Delegated New Incident click');
+                    this.showNewIncidentModal();
+                }
             });
         }
 
@@ -430,7 +438,7 @@ class AlertsManager {
         const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
         const bulkResolveBtn = document.getElementById('bulk-resolve-btn');
         const applyBulkAction = document.getElementById('apply-bulk-action');
-        const exportAlerts = document.getElementById('export-alerts');
+    const exportAlerts = document.getElementById('export-alerts');
 
         if (bulkDeleteBtn) {
             bulkDeleteBtn.addEventListener('click', () => {
@@ -450,15 +458,32 @@ class AlertsManager {
             });
         }
 
-        if (exportAlerts) {
-            exportAlerts.addEventListener('click', () => {
-                this.exportAlerts();
-            });
-        }
+        this.addListenerOnce(exportAlerts, 'export-click', 'click', () => {
+            console.debug('[Alerts] Export clicked');
+            this.exportAlerts();
+        });
 
         // Individual alert actions - using event delegation
         document.addEventListener('click', (e) => {
             this.handleAlertActions(e);
+        });
+
+        // Delegated handlers for modal buttons to ensure reliability
+        document.addEventListener('click', (e) => {
+            const saveBtn = e.target.closest && e.target.closest('#save-incident');
+            if (saveBtn) {
+                e.preventDefault();
+                console.debug('[Alerts] Delegated Save Incident click');
+                this.saveNewIncident();
+                return;
+            }
+            const cancelBtn = e.target.closest && e.target.closest('#cancel-incident');
+            if (cancelBtn) {
+                e.preventDefault();
+                console.debug('[Alerts] Delegated Cancel Incident click');
+                this.closeNewIncidentModal();
+                return;
+            }
         });
     }
 
@@ -842,12 +867,26 @@ class AlertsManager {
     }
 
     showNewIncidentModal() {
-        const modal = document.getElementById('new-incident-modal');
-        if (modal) {
-            modal.style.display = 'flex';
-            document.getElementById('new-incident-form').reset();
-            this.hideError();
+        let modal = document.getElementById('new-incident-modal');
+        if (!modal) {
+            // Create on-demand if missing
+            this.createNewIncidentModal();
+            modal = document.getElementById('new-incident-modal');
+            // Re-wire modal listeners after creation
+            this.setupModalEventListeners();
         }
+        if (!modal) {
+            console.error('New Incident modal could not be created');
+            this.showNotification('Unable to open New Incident dialog. Please reload the page.', 'error');
+            return;
+        }
+
+        modal.style.display = 'flex';
+        const formEl = document.getElementById('new-incident-form');
+        if (formEl && typeof formEl.reset === 'function') {
+            formEl.reset();
+        }
+        this.hideError();
     }
 
     closeNewIncidentModal() {
@@ -1120,18 +1159,29 @@ class AlertsManager {
     }
 
     exportAlerts() {
-        const csvContent = this.convertToCSV(this.filteredAlerts);
-        const blob = new Blob([csvContent], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `alerts-${new Date().toISOString().split('T')[0]}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-        
-        this.showNotification('Alerts exported successfully', 'success');
+        try {
+            if (!this.filteredAlerts || this.filteredAlerts.length === 0) {
+                this.showNotification('No alerts to export for the current filters', 'info');
+                return;
+            }
+
+            // Add UTF-8 BOM for better Excel compatibility
+            const csvContent = '\ufeff' + this.convertToCSV(this.filteredAlerts);
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `alerts-${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            this.showNotification('Alerts exported successfully', 'success');
+        } catch (err) {
+            console.error('Export failed:', err);
+            this.showNotification('Failed to export alerts. Please try again.', 'error');
+        }
     }
 
     convertToCSV(alerts) {
@@ -1237,7 +1287,11 @@ class AlertsManager {
     }
 }
 
-// Initialize when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    new AlertsManager();
-});
+// Initialize when page loads (robust to late script load)
+(function initAlerts() {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => new AlertsManager());
+    } else {
+        new AlertsManager();
+    }
+})();

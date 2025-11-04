@@ -77,15 +77,101 @@ class RealTimeMonitor {
             case 'device_update':
                 this.showNotification('Device status updated', 'info');
                 this.refreshData();
+                // Update device grid item in-place if present
+                if (data.device) {
+                    this.updateDeviceInGrid(data.device);
+                }
+                // append to notification panel if open (prefer alert payload if present)
+                if (window.showNotifications) {
+                    // refresh the panel contents
+                    window.showNotifications().catch(()=>{});
+                }
+                // If an alert object was included, add it to the panel immediately
+                if (data.alert) {
+                    this.prependNotificationToPanel({
+                        title: data.alert.title || `Device ${data.device?.name} status change`,
+                        description: data.alert.description || '',
+                        severity: data.alert.severity || 'info',
+                        created_at: data.alert.created_at || new Date().toISOString()
+                    });
+                    this.incrementBadge();
+                }
                 break;
                 
             case 'alert_triggered':
                 this.handleNewAlert(data.alert);
+                // also ensure the alert appears in the floating panel immediately
+                this.prependNotificationToPanel({
+                    title: data.alert.title,
+                    description: data.alert.description || '',
+                    severity: data.alert.severity || 'info',
+                    created_at: data.alert.created_at || new Date().toISOString()
+                });
+                this.incrementBadge();
                 break;
                 
             case 'metric_update':
                 this.updateCharts(data.metrics);
                 break;
+        }
+    }
+
+    updateDeviceInGrid(device) {
+        try {
+            const id = device.id;
+            const el = document.querySelector(`.device-item[data-device-id="${id}"]`);
+            if (el) {
+                // Update classes and status text
+                if (device.is_online) {
+                    el.classList.remove('offline');
+                    el.classList.add('online');
+                    el.querySelector('.device-status').textContent = 'Online';
+                } else {
+                    el.classList.remove('online');
+                    el.classList.add('offline');
+                    el.querySelector('.device-status').textContent = 'Offline';
+                }
+                // Update IP if changed
+                if (device.ip) {
+                    const ipEl = el.querySelector('.device-ip');
+                    if (ipEl) ipEl.textContent = device.ip;
+                }
+            } else {
+                // If device not present in the compact grid, refresh device grid
+                if (window.loadDeviceGrid) loadDeviceGrid();
+            }
+        } catch (e) {
+            console.error('Failed to update device in grid', e);
+        }
+    }
+
+    prependNotificationToPanel(item) {
+        try {
+            const panel = document.getElementById('notification-panel');
+            const html = `
+                <div style="padding:10px 12px; border-bottom:1px solid #f1f1f1">
+                    <div style="font-weight:600">${item.title}</div>
+                    <div style="font-size:0.85rem; color:#6b7280">${(item.severity||'info').toUpperCase()} • ${new Date(item.created_at).toLocaleString()}</div>
+                    <div style="margin-top:6px; font-size:0.9rem">${item.description || ''}</div>
+                </div>
+            `;
+            if (panel && panel.style.display !== 'none') {
+                panel.insertAdjacentHTML('afterbegin', html);
+            }
+        } catch (e) {
+            console.error('Failed to prepend notification', e);
+        }
+    }
+
+    incrementBadge() {
+        try {
+            const badge = document.querySelector('.notification-badge');
+            if (!badge) return;
+            const val = parseInt(badge.textContent || '0', 10) || 0;
+            badge.textContent = val + 1;
+            badge.style.display = 'inline-block';
+        } catch (e) {
+            console.error('Failed to increment badge', e);
         }
     }
 
@@ -97,13 +183,35 @@ class RealTimeMonitor {
                 `${data.devices_online}/${totalDevices} Online`;
         }
         
-        if (data.alerts_critical !== undefined) {
-            document.getElementById('kpi-active-alerts').textContent = 
-                `${data.alerts_critical} Critical Alerts`;
-        }
-        
-        // Update notification badge
+        // Update notification badge (alerts KPI removed from dashboard)
         this.updateNotificationBadge(data.alerts_critical || 0);
+    }
+
+    // Route incoming metric updates to page-specific handlers if present.
+    updateCharts(metrics) {
+        try {
+            // Trends page (has window.trendsApp with an updateCharts method)
+            if (window.trendsApp && typeof window.trendsApp.updateCharts === 'function') {
+                try { window.trendsApp.updateCharts(metrics); } catch (e) { console.error('trendsApp.updateCharts error', e); }
+            }
+
+            // Environmental page (attach as window.envApp)
+            if (window.envApp && typeof window.envApp.updateMetrics === 'function') {
+                try { window.envApp.updateMetrics(metrics); } catch (e) { console.error('envApp.updateMetrics error', e); }
+            }
+
+            // Network devices page bandwidth chart helper
+            if (typeof window.updateBandwidthChart === 'function') {
+                try { window.updateBandwidthChart(metrics); } catch (e) { console.error('updateBandwidthChart error', e); }
+            }
+
+            if (window.netPulseCharts && typeof window.netPulseCharts.ingestMetrics === 'function') {
+                try { window.netPulseCharts.ingestMetrics(metrics); } catch (e) { console.error('netPulseCharts.ingestMetrics error', e); }
+            }
+
+        } catch (e) {
+            console.error('Failed to route metric update to page handlers', e);
+        }
     }
 
     handleNewAlert(alert) {
@@ -169,7 +277,7 @@ class RealTimeMonitor {
         // Refresh all dashboard data
         if (window.loadKPIs) loadKPIs();
         if (window.loadAIInsights) loadAIInsights();
-        if (window.loadStats) loadStats();
+        if (window.loadStatsOverview) loadStatsOverview();
     }
 
     refreshAlerts() {
@@ -180,3 +288,14 @@ class RealTimeMonitor {
 
 // Initialize real-time monitoring
 const realTimeMonitor = new RealTimeMonitor();
+// Expose for debugging
+window.realTimeMonitor = realTimeMonitor;
+
+// Auto-connect on DOMContentLoaded
+document.addEventListener('DOMContentLoaded', () => {
+    try {
+        realTimeMonitor.connect();
+    } catch (e) {
+        console.error('Failed to start realTimeMonitor', e);
+    }
+});

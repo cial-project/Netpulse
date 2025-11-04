@@ -3,6 +3,22 @@ from typing import Dict
 import logging
 from datetime import datetime, timedelta
 
+# Try to import pysnmp; if not available we will keep using the simulator-only behaviour
+try:
+    from pysnmp.hlapi import (
+        SnmpEngine,
+        CommunityData,
+        UdpTransportTarget,
+        ContextData,
+        ObjectType,
+        ObjectIdentity,
+        getCmd,
+        nextCmd,
+    )
+    _HAS_PYSNMP = True
+except Exception:
+    _HAS_PYSNMP = False
+
 logger = logging.getLogger(__name__)
 
 # Store device states to maintain consistency
@@ -72,8 +88,95 @@ def get_device_status(ip: str, community: str = 'public') -> Dict:
             'network_out': 0
         }
 
-def poll_device(ip: str, device_type: str, community: str = 'public') -> Dict:
+def poll_device(ip: str, device_type: str, community: str = 'public', port: int = 161, custom_oids: str = '') -> Dict:
     """Complete device polling with enhanced demo data"""
+    # Prefer real SNMP polling when pysnmp is available
+    if _HAS_PYSNMP:
+        try:
+            from api.models import Device, Metric
+        except Exception:
+            Device = None
+
+        # Try a lightweight SNMP poll (sysName, sysLocation, uptime, cpu)
+        try:
+            # Parse custom_oids: allow JSON dict or newline-separated values
+            parsed_oids = []
+            if custom_oids:
+                try:
+                    import json as _json
+                    if custom_oids.strip().startswith('{'):
+                        obj = _json.loads(custom_oids)
+                        # If it's a mapping of key:oid, keep values
+                        if isinstance(obj, dict):
+                            parsed_oids = list(obj.values())
+                    else:
+                        parsed_oids = [line.strip() for line in custom_oids.splitlines() if line.strip()]
+                except Exception:
+                    parsed_oids = [line.strip() for line in custom_oids.splitlines() if line.strip()]
+
+            snmp_result = _snmp_poll_basic(ip, community, port)
+            if snmp_result.get('reachable'):
+                # Map snmp_result to the expected result shape
+                result = {
+                    'status': 'up',
+                    'reachable': True,
+                    'sys_name': snmp_result.get('sysName') or f"Device-{ip}",
+                    'uptime_days': round(snmp_result.get('uptime_seconds', 0) / 86400.0, 2),
+                    'cpu_usage': snmp_result.get('cpu_load', 0.0),
+                    'memory_usage': 0.0,
+                    'network_in': 0.0,
+                    'network_out': 0.0,
+                    'temperature': snmp_result.get('temperature'),
+                }
+
+                # Persist a Metric if Device model available and device exists
+                try:
+                    if Device:
+                        dev = Device.objects.filter(ip_address=ip).first()
+                        if dev:
+                            Metric.objects.create(
+                                device=dev,
+                                cpu_usage=float(result.get('cpu_usage') or 0.0),
+                                memory_usage=float(result.get('memory_usage') or 0.0),
+                                network_in=float(result.get('network_in') or 0.0),
+                                network_out=float(result.get('network_out') or 0.0),
+                                temperature=result.get('temperature'),
+                            )
+                except Exception:
+                    logger.exception('Failed to save Metric for %s', ip)
+
+                # If pysnmp available and parsed_oids present, attempt to read them and include in result
+                if _HAS_PYSNMP and parsed_oids:
+                    try:
+                        extra = {}
+                        for oid in parsed_oids:
+                            # Attempt a single GET for each OID
+                            try:
+                                errorIndication, errorStatus, errorIndex, varBinds = next(
+                                    getCmd(
+                                        SnmpEngine(),
+                                        CommunityData(community, mpModel=1),
+                                        UdpTransportTarget((ip, port), timeout=2, retries=1),
+                                        ContextData(),
+                                        ObjectType(ObjectIdentity(oid)),
+                                    )
+                                )
+                                if not errorIndication and not errorStatus and varBinds:
+                                    for vb in varBinds:
+                                        extra[str(vb[0])] = str(vb[1].prettyPrint())
+                            except Exception:
+                                continue
+                        if extra:
+                            result['extra'] = extra
+                    except Exception:
+                        logger.exception('Failed to read custom OIDs for %s', ip)
+
+                return result
+        except Exception:
+            # SNMP read failed — fall back to simulator below
+            logger.debug('SNMP poll failed for %s, falling back to simulator', ip)
+
+    # Simulator fallback
     result = get_device_status(ip, community)
     
     # Add device-type specific characteristics
@@ -85,6 +188,96 @@ def poll_device(ip: str, device_type: str, community: str = 'public') -> Dict:
         elif device_type == 'ap':
             result['temperature'] = result.get('temperature', round(random.uniform(25, 35), 1))
     
+    return result
+
+
+def _snmp_poll_basic(ip: str, community: str = 'public', port: int = 161, timeout: int = 2):
+    """Perform a minimal SNMP poll using pysnmp and return a dict.
+
+    Returns a dict with keys: reachable (bool), sysName, sysLocation, uptime_seconds, cpu_load, temperature
+    """
+    if not _HAS_PYSNMP:
+        raise RuntimeError('pysnmp not available')
+
+    result = {'reachable': False}
+
+    target = UdpTransportTarget((ip, port), timeout=timeout, retries=1)
+    community_data = CommunityData(community, mpModel=1)  # SNMP v2c
+
+    # OIDs to read
+    sysName_oid = ObjectIdentity('1.3.6.1.2.1.1.5.0')
+    sysLocation_oid = ObjectIdentity('1.3.6.1.2.1.1.6.0')
+    sysUpTime_oid = ObjectIdentity('1.3.6.1.2.1.1.3.0')
+
+    # Do a multi-get for the basic OIDs
+    errorIndication, errorStatus, errorIndex, varBinds = next(
+        getCmd(
+            SnmpEngine(),
+            community_data,
+            target,
+            ContextData(),
+            ObjectType(sysName_oid),
+            ObjectType(sysLocation_oid),
+            ObjectType(sysUpTime_oid),
+        )
+    )
+
+    if errorIndication:
+        logger.debug('SNMP errorIndication for %s: %s', ip, errorIndication)
+        return result
+
+    if errorStatus:
+        logger.debug('SNMP errorStatus for %s: %s at %s', ip, errorStatus.prettyPrint(), errorIndex)
+        return result
+
+    # Parse varBinds
+    for varBind in varBinds:
+        oid, val = varBind
+        oid_str = str(oid)
+        if oid_str.endswith('.1.3.6.1.2.1.1.5.0') or oid_str.endswith('.1.3.6.1.2.1.1.5.0'):
+            result['sysName'] = str(val.prettyPrint())
+        elif oid_str.endswith('.1.3.6.1.2.1.1.6.0'):
+            result['sysLocation'] = str(val.prettyPrint())
+        elif oid_str.endswith('.1.3.6.1.2.1.1.3.0'):
+            # sysUpTime is in hundredths of seconds
+            try:
+                ticks = int(val)
+                result['uptime_seconds'] = ticks / 100.0
+            except Exception:
+                result['uptime_seconds'] = 0
+
+    result['reachable'] = True
+
+    # Try to get CPU load from HOST-RESOURCES-MIB (hrProcessorLoad) — take first entry if present
+    try:
+        # walk hrProcessorLoad table
+        cpu_load = None
+        for (errorIndication, errorStatus, errorIndex, varBinds) in nextCmd(
+            SnmpEngine(),
+            community_data,
+            target,
+            ContextData(),
+            ObjectType(ObjectIdentity('1.3.6.1.2.1.25.3.3.1.2')),
+            lexicographicMode=False,
+        ):
+            if errorIndication or errorStatus:
+                break
+            for vb in varBinds:
+                try:
+                    cpu_load = float(vb[1])
+                    break
+                except Exception:
+                    continue
+            if cpu_load is not None:
+                break
+        if cpu_load is not None:
+            result['cpu_load'] = cpu_load
+    except Exception:
+        logger.debug('Failed to read CPU load for %s', ip)
+
+    # Temperature OID is vendor specific. Try a couple of common ones (UCD-SNMP-MIB::extOutput or similar) - skip if not found
+    # For simplicity, we won't try many vendor OIDs here.
+
     return result
 
 def get_device_metrics_trend(ip: str, hours: int = 24):

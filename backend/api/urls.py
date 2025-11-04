@@ -2,11 +2,15 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 from .views import AuthViewSet, UserViewSet, DashboardViewSet, DeviceViewSet, AlertViewSet, MetricViewSet
+from .views import ZoneViewSet, ISPViewSet, AuditViewSet
 
 router = DefaultRouter()
 router.register(r'devices', DeviceViewSet, basename='device')
 router.register(r'alerts', AlertViewSet, basename='alert')
 router.register(r'metrics', MetricViewSet, basename='metric')  # Added basename
+router.register(r'zones', ZoneViewSet, basename='zone')
+router.register(r'isps', ISPViewSet, basename='isp')
+router.register(r'audits', AuditViewSet, basename='audit')
 
 urlpatterns = [
     # Authentication endpoints

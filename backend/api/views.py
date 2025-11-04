@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.utils import timezone
@@ -10,12 +10,17 @@ from django.db.models import Avg, Count, Q, Max
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
-from .models import User, Device, Alert, Metric
+from .models import User, Device, Alert, Metric, Zone
+from .models import ISP
 from .serializers import (UserSerializer, LoginSerializer, SignupSerializer, 
-                         DeviceSerializer, AlertSerializer, MetricSerializer)
+                         DeviceSerializer, AlertSerializer, MetricSerializer, ISPSerializer)
+from .serializers import ZoneSerializer
+from .siem import forward_to_siem
 from .permissions import IsAdminOrOperatorOrReadOnly
 import logging
 from devices.snmp_service import poll_device
+from django.db.models import Avg
+from django.db.models import Q
 
 class AuthViewSet(viewsets.ViewSet):
     permission_classes = [AllowAny]
@@ -26,6 +31,12 @@ class AuthViewSet(viewsets.ViewSet):
         if serializer.is_valid():
             user = serializer.validated_data['user']
             refresh = RefreshToken.for_user(user)
+            # Capture IP address for audit and SIEM
+            ip = request.META.get('REMOTE_ADDR') or request.META.get('HTTP_X_FORWARDED_FOR')
+            forward_to_siem('login', {
+                'username': user.username,
+                'time': timezone.now().isoformat(),
+            }, user=user, ip_address=ip)
             return Response({
                 'success': True,
                 'user': UserSerializer(user).data,
@@ -48,6 +59,17 @@ class AuthViewSet(viewsets.ViewSet):
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=False, methods=['post'])
+    def logout(self, request):
+        # For stateless JWT, we simply record audit and forward to SIEM if configured
+        user = request.user if request.user.is_authenticated else None
+        ip = request.META.get('REMOTE_ADDR') or request.META.get('HTTP_X_FORWARDED_FOR')
+        forward_to_siem('logout', {
+            'username': user.username if user else None,
+            'time': timezone.now().isoformat(),
+        }, user=user, ip_address=ip)
+        return Response({'success': True})
+
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
@@ -59,6 +81,23 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     def me(self, request):
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
+
+
+class AuditViewSet(viewsets.ReadOnlyModelViewSet):
+    """Expose recent audit events for admins/operators to review."""
+    permission_classes = [IsAuthenticated]
+    serializer_class = None
+
+    def get_queryset(self):
+        from .models import Audit
+        # Only admin or operator should see full list; others see their own events
+        if self.request.user.role in ('admin', 'operator'):
+            return Audit.objects.all()
+        return Audit.objects.filter(user=self.request.user)
+
+    def get_serializer_class(self):
+        from .serializers import AuditSerializer
+        return AuditSerializer
 
 class DashboardViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
@@ -100,6 +139,49 @@ class DashboardViewSet(viewsets.ViewSet):
             latest_metric = Metric.objects.order_by('-timestamp').first()
             current_bandwidth = latest_metric.network_in if latest_metric else 0
             current_throughput = latest_metric.network_out if latest_metric else 0
+
+            # Helper to compute average temperature for a site using device queryset
+            def avg_temp_for_devices(qs_devices):
+                try:
+                    if not qs_devices.exists():
+                        return None
+                    avg = Metric.objects.filter(device__in=qs_devices, temperature__isnull=False).aggregate(Avg('temperature'))['temperature__avg']
+                    return round(avg, 1) if avg is not None else None
+                except Exception:
+                    return None
+
+            # Estimate humidity from temperature (simple heuristic) when explicit humidity is not available
+            def estimate_humidity(temp):
+                try:
+                    t = float(temp)
+                    hum = 45 + (22.5 - t) * 1.2
+                    hum = max(20, min(80, round(hum)))
+                    return hum
+                except Exception:
+                    return 45
+
+            # Prefer explicit Zone objects if present; fallback to name/location heuristics
+            try:
+                zones = {z.key.lower(): z for z in Zone.objects.filter(key__in=['dc1', 'dc2', 'dr'])}
+            except Exception:
+                zones = {}
+
+            def temp_for_zone_key(key):
+                z = zones.get(key)
+                if z:
+                    return avg_temp_for_devices(z.devices.all())
+                # Fallback heuristics by keyword in name/location
+                kw = key
+                qs_devices = Device.objects.filter(Q(name__icontains=kw) | Q(location__icontains=kw))
+                return avg_temp_for_devices(qs_devices)
+
+            dc1_temp = temp_for_zone_key('dc1') or current_temp
+            dc2_temp = temp_for_zone_key('dc2') or current_temp
+            dr_temp = temp_for_zone_key('dr') or current_temp
+
+            dc1_hum = estimate_humidity(dc1_temp)
+            dc2_hum = estimate_humidity(dc2_temp)
+            dr_hum = estimate_humidity(dr_temp)
             
             data = {
                 # Device Status
@@ -127,6 +209,13 @@ class DashboardViewSet(viewsets.ViewSet):
                 'throughput': f"{current_throughput:.1f} Mbps",
                 'latency': '23 ms',  # Would come from actual latency monitoring
                 'jitter': '2 ms',    # Would come from actual jitter monitoring
+                # Per-site environmental (only these three zones are exposed to frontend)
+                'dc1_temperature': f"{dc1_temp}°C",
+                'dc1_humidity': f"{dc1_hum}% Humidity",
+                'dc2_temperature': f"{dc2_temp}°C",
+                'dc2_humidity': f"{dc2_hum}% Humidity",
+                'dr_temperature': f"{dr_temp}°C",
+                'dr_humidity': f"{dr_hum}% Humidity",
                 
                 # Raw values for charts
                 'bandwidth_value': current_bandwidth,
@@ -276,10 +365,29 @@ class DashboardViewSet(viewsets.ViewSet):
         try:
             # Get very recent data (last 5 minutes)
             recent_time = timezone.now() - timedelta(minutes=5)
-            
-            # Latest metrics
-            latest_metrics = Metric.objects.filter(timestamp__gte=recent_time).order_by('-timestamp')[:10]
+
+            metrics_queryset = Metric.objects.filter(timestamp__gte=recent_time).select_related('device')
+            if not metrics_queryset.exists():
+                metrics_queryset = Metric.objects.all().select_related('device')
+
+            latest_metrics = list(metrics_queryset.order_by('-timestamp')[:50])
             metrics_data = MetricSerializer(latest_metrics, many=True).data
+
+            laptop_metric = Metric.objects.filter(device__name__icontains='laptop').select_related('device').order_by('-timestamp').first()
+            laptop_payload = None
+            if laptop_metric:
+                laptop_payload = {
+                    'device_id': laptop_metric.device_id,
+                    'name': laptop_metric.device.name,
+                    'cpu': round(laptop_metric.cpu_usage, 1) if laptop_metric.cpu_usage is not None else None,
+                    'memory': round(laptop_metric.memory_usage, 1) if laptop_metric.memory_usage is not None else None,
+                    'timestamp': laptop_metric.timestamp.isoformat() if laptop_metric.timestamp else None,
+                }
+
+            cpu_values = [m.cpu_usage for m in latest_metrics if m.cpu_usage is not None]
+            mem_values = [m.memory_usage for m in latest_metrics if m.memory_usage is not None]
+            avg_cpu = round(sum(cpu_values) / len(cpu_values), 1) if cpu_values else None
+            avg_memory = round(sum(mem_values) / len(mem_values), 1) if mem_values else None
             
             # Current alerts
             current_alerts = Alert.objects.filter(status='open').order_by('-created_at')[:5]
@@ -299,7 +407,10 @@ class DashboardViewSet(viewsets.ViewSet):
                 'metrics': metrics_data,
                 'alerts': alerts_data,
                 'devices': devices_status,
-                'system_health': self.calculate_system_health()
+                'system_health': self.calculate_system_health(),
+                'avg_cpu': avg_cpu,
+                'avg_memory': avg_memory,
+                'laptop': laptop_payload
             })
             
         except Exception as e:
@@ -355,6 +466,14 @@ class DeviceViewSet(viewsets.ModelViewSet):
 
         headers = self.get_success_headers(serializer.data)
         return Response(DeviceSerializer(device, context={'request': request}).data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def get_queryset(self):
+        queryset = Device.objects.all()
+        # Allow filtering to only important devices for the dashboard
+        important = self.request.GET.get('important')
+        if important in ['1', 'true', 'True', 'yes', 'on']:
+            queryset = queryset.filter(is_important=True)
+        return queryset
     
     @action(detail=True, methods=['post'])
     def poll_now(self, request, pk=None):
@@ -486,6 +605,12 @@ class AlertViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(created_at__gte=time_threshold)
         
         return queryset.order_by('-created_at')
+
+class ZoneViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only API for Zones (DC1, DC2, DR etc.)."""
+    queryset = Zone.objects.all()
+    serializer_class = ZoneSerializer
+    permission_classes = [IsAuthenticated]
     
     @action(detail=True, methods=['post'])
     def acknowledge(self, request, pk=None):
@@ -641,5 +766,31 @@ class MetricViewSet(viewsets.ReadOnlyModelViewSet):
                 'devices_with_metrics': len(latest_metrics)
             })
             
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ISPViewSet(viewsets.ModelViewSet):
+    """ISP endpoints - allow unauthenticated reads but require auth for writes/probes."""
+    queryset = ISP.objects.all()
+    serializer_class = ISPSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    @action(detail=True, methods=['post'])
+    def probe(self, request, pk=None):
+        """Manually probe an ISP endpoint"""
+        try:
+            isp = self.get_object()
+            # Lightweight probe using the helper in devices.snmp_service (or a new helper)
+            from devices.isp_service import probe_isp
+            res = probe_isp(isp.host)
+            # Update model fields
+            isp.last_checked = timezone.now()
+            isp.latency_ms = res.get('latency_ms')
+            isp.packet_loss = res.get('packet_loss')
+            isp.upstream_mbps = res.get('upstream_mbps')
+            isp.downstream_mbps = res.get('downstream_mbps')
+            isp.save()
+            return Response({'success': True, 'result': res})
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

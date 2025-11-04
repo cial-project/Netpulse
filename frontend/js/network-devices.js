@@ -36,7 +36,7 @@ async function loadNetworkDevices() {
     const tableBody = document.querySelector('.devices-table tbody');
     if (!tableBody) return;
     
-    tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 2rem;">Loading devices...</td></tr>';
+    tableBody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 2rem;">Loading devices...</td></tr>';
 
     try {
         const response = await apiFetch('/devices/');
@@ -58,10 +58,32 @@ async function loadNetworkDevices() {
     }
 }
 
+// Load zones for the dropdown
+async function loadZones() {
+    try {
+        const response = await apiFetch('/zones/');
+        if (response && response.ok) {
+            const zones = await response.json();
+            const zoneSelect = document.getElementById('device-zone');
+            if (zoneSelect) {
+                zoneSelect.innerHTML = '<option value="">Select zone...</option>';
+                zones.forEach(zone => {
+                    const option = document.createElement('option');
+                    option.value = zone.id;
+                    option.textContent = zone.name;
+                    zoneSelect.appendChild(option);
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Error loading zones:', error);
+    }
+}
+
 function renderDevicesTable(devices) {
     const tableBody = document.querySelector('.devices-table tbody');
     if (!devices || devices.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 2rem;">No devices found. Add some devices to get started.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 2rem;">No devices found. Add some devices to get started.</td></tr>';
         return;
     }
 
@@ -75,6 +97,8 @@ function renderDevicesTable(devices) {
             </td>
             <td><span class="device-type-badge ${device.device_type}">${device.device_type || 'Unknown'}</span></td>
             <td class="ip-address">${device.ip_address || 'N/A'}</td>
+            <td>${device.zone || 'N/A'}</td>
+            <td>${device.port || 161}</td>
             <td>
                 <span class="status-badge ${device.is_online ? 'online' : 'offline'}">
                     <span class="status-dot"></span>
@@ -420,7 +444,7 @@ function setupAddDeviceModal() {
 
     // Open modal (idempotent attachment)
     if (freshAddBtn && freshAddBtn.dataset.modalAttached !== 'true') {
-        freshAddBtn.addEventListener('click', () => {
+        freshAddBtn.addEventListener('click', async () => {
             if (isModalOpen) return;
 
             isModalOpen = true;
@@ -432,6 +456,8 @@ function setupAddDeviceModal() {
             }
             freshForm.reset();
             document.getElementById('is-active').checked = true;
+            // Load zones for the dropdown
+            await loadZones();
         });
         freshAddBtn.dataset.modalAttached = 'true';
     }
@@ -511,6 +537,32 @@ async function addNewDevice() {
         snmp_community: 'public',
         is_active: document.getElementById('is-active').checked
     };
+
+    // Optional fields: poll interval and custom OIDs
+    const pollIntervalEl = document.getElementById('poll-interval');
+    const customOidsEl = document.getElementById('custom-oids');
+    if (pollIntervalEl && pollIntervalEl.value) {
+        formData.poll_interval_seconds = parseInt(pollIntervalEl.value, 10) || null;
+    }
+    if (customOidsEl && customOidsEl.value) {
+        formData.custom_oids = customOidsEl.value.trim();
+    }
+
+    // New fields
+    const snmpPortEl = document.getElementById('snmp-port');
+    const zoneEl = document.getElementById('device-zone');
+    const descriptionEl = document.getElementById('device-description');
+    const isImportantEl = document.getElementById('is-important');
+    if (snmpPortEl && snmpPortEl.value) {
+        formData.port = parseInt(snmpPortEl.value, 10) || 161;
+    }
+    if (zoneEl && zoneEl.value) {
+        formData.zone = parseInt(zoneEl.value, 10);
+    }
+    if (descriptionEl && descriptionEl.value) {
+        formData.description = descriptionEl.value.trim();
+    }
+    formData.is_important = isImportantEl ? isImportantEl.checked : false;
 
     // Validation
     if (!formData.name || !formData.device_type || !formData.ip_address) {
@@ -860,3 +912,33 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Also reinitialize when coming back to the page
 window.addEventListener('load', initializeBandwidthChart);
+
+// Allow websocket bridge to update bandwidth chart in real-time
+window.updateBandwidthChart = function(metrics = {}) {
+    try {
+        if (!bandwidthChart) return;
+
+        const now = new Date();
+        const label = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+
+        // Shift existing labels and push new time
+        if (Array.isArray(bandwidthChart.data.labels)) {
+            bandwidthChart.data.labels.shift();
+            bandwidthChart.data.labels.push(label);
+        }
+
+        const download = Number(metrics.download || metrics.network_in || metrics.download_mbps || Math.round(Math.random() * 500 + 100));
+        const upload = Number(metrics.upload || metrics.network_out || metrics.upload_mbps || Math.round(Math.random() * 200 + 50));
+
+        if (bandwidthChart.data.datasets && bandwidthChart.data.datasets.length >= 2) {
+            const dl = bandwidthChart.data.datasets[0].data;
+            const ul = bandwidthChart.data.datasets[1].data;
+            if (Array.isArray(dl)) { dl.shift(); dl.push(download); }
+            if (Array.isArray(ul)) { ul.shift(); ul.push(upload); }
+        }
+
+        bandwidthChart.update();
+    } catch (e) {
+        console.error('updateBandwidthChart error', e);
+    }
+};

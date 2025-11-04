@@ -48,6 +48,11 @@ class Device(models.Model):
     ]
     
     name = models.CharField(max_length=100)
+    # Optional relation to a Zone (e.g., DC1, DC2, DR)
+    # Added to support explicit zone management requested by the user
+    zone = models.ForeignKey(
+        'Zone', on_delete=models.SET_NULL, null=True, blank=True, related_name='devices'
+    )
     ip_address = models.GenericIPAddressField(unique=True)
     device_type = models.CharField(max_length=20, choices=DEVICE_TYPES)
     description = models.TextField(blank=True)
@@ -60,6 +65,15 @@ class Device(models.Model):
     last_seen = models.DateTimeField(null=True, blank=True)
     sys_name = models.CharField(max_length=100, blank=True)
     uptime_days = models.FloatField(default=0)
+    # SNMP port to contact the device (default 161)
+    port = models.IntegerField(default=161)
+    # Per-device polling interval (seconds). If null/0, server default is used.
+    poll_interval_seconds = models.IntegerField(null=True, blank=True, default=None)
+    # Optional JSON/text field where operator can list custom SNMP OIDs or key=value pairs
+    # to read for this device. Stored as newline-separated values or JSON string.
+    custom_oids = models.TextField(blank=True, default='')
+    # Mark devices that should appear in the concise Device Grid (top 4)
+    is_important = models.BooleanField(default=False)
     
     def __str__(self):
         status = "Online" if self.is_online else "Offline"
@@ -105,4 +119,49 @@ class Metric(models.Model):
     class Meta:
         ordering = ['-timestamp']
 
+class Zone(models.Model):
+    """Represents a named zone/location such as DC1, DC2 or DR."""
+    name = models.CharField(max_length=100, unique=True)
+    key = models.SlugField(max_length=50, unique=True)
+    description = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.name
+
+
+class ISP(models.Model):
+    """Represents an upstream ISP endpoint to monitor (ping/latency/bandwidth)."""
+    name = models.CharField(max_length=150, unique=True)
+    host = models.CharField(max_length=200, help_text='IP address or hostname to probe')
+    is_active = models.BooleanField(default=True)
+    last_checked = models.DateTimeField(null=True, blank=True)
+    latency_ms = models.FloatField(null=True, blank=True)
+    packet_loss = models.FloatField(null=True, blank=True)
+    upstream_mbps = models.FloatField(null=True, blank=True)
+    downstream_mbps = models.FloatField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.host})"
+
+
+class Audit(models.Model):
+    """Simple audit log for login/logout and SIEM-forwarded events."""
+    EVENT_CHOICES = [
+        ('login', 'Login'),
+        ('logout', 'Logout'),
+        ('siem', 'SIEM'),
+        ('other', 'Other'),
+    ]
+
+    event_type = models.CharField(max_length=20, choices=EVENT_CHOICES)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    details = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.event_type} - {self.user} @ {self.ip_address}"
     

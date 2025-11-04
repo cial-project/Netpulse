@@ -232,16 +232,44 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="snmp-community">SNMP Community</label>
-                    <input type="text" id="snmp-community" name="snmp-community" 
-                           value="public" placeholder="SNMP community string">
+                    <label for="snmp-port">SNMP Port</label>
+                    <input type="number" id="snmp-port" name="snmp-port" value="161" min="1" max="65535" placeholder="e.g., 161">
+                    <small class="muted">Port for SNMP communication (default 161).</small>
                 </div>
-                
+
+                <div class="form-group">
+                    <label for="device-zone">Zone</label>
+                    <select id="device-zone" name="device-zone">
+                        <option value="">Select zone...</option>
+                        <!-- Zones will be populated dynamically -->
+                    </select>
+                    <small class="muted">Assign to a location zone (e.g., DC1, DC2, DR).</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="device-description">Description</label>
+                    <textarea id="device-description" name="device-description" placeholder="Optional description of the device"></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="poll-interval">Polling Interval (seconds)</label>
+                        <input type="number" id="poll-interval" name="poll-interval" min="10" max="3600" placeholder="e.g., 300">
+                        <small class="muted">How often to poll this device (10-3600 seconds). Leave empty for default.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="custom-oids">Custom SNMP OIDs</label>
+                        <textarea id="custom-oids" name="custom-oids" placeholder="Optional custom OIDs (one per line)&#10;e.g., 1.3.6.1.4.1.12345.1.1.0=temperature&#10;1.3.6.1.4.1.12345.1.2.0=humidity"></textarea>
+                        <small class="muted">Custom OIDs to monitor (OID=name format).</small>
+                    </div>
+                </div>
+
                 <div class="form-group checkbox-group">
                     <label>
-                        <input type="checkbox" id="is-active" name="is-active" checked>
+                        <input type="checkbox" id="is-important" name="is-important">
                         <span class="checkmark"></span>
-                        Active (Start monitoring immediately)
+                        Critical Infrastructure (Display prominently in dashboard)
                     </label>
                 </div>
                 
@@ -266,6 +294,8 @@
                                 <th>Device Name</th>
                                 <th>Type</th>
                                 <th>IP Address</th>
+                                <th>Zone</th>
+                                <th>Port</th>
                                 <th>Status</th>
                                 <th>Uptime</th>
                                 <th>Last Checked</th>
@@ -277,6 +307,8 @@
                                 <td>Core-Router-01</td>
                                 <td>Router</td>
                                 <td>192.168.1.1</td>
+                                <td>DC1</td>
+                                <td>161</td>
                                 <td><span class="status-badge online">Online</span></td>
                                 <td>42 days</td>
                                 <td>2 minutes ago</td>
@@ -289,6 +321,8 @@
                                 <td>Switch-T1-A</td>
                                 <td>Switch</td>
                                 <td>192.168.1.2</td>
+                                <td>DC1</td>
+                                <td>161</td>
                                 <td><span class="status-badge online">Online</span></td>
                                 <td>38 days</td>
                                 <td>3 minutes ago</td>
@@ -301,6 +335,8 @@
                                 <td>Firewall-Main</td>
                                 <td>Firewall</td>
                                 <td>192.168.1.3</td>
+                                <td>DC2</td>
+                                <td>161</td>
                                 <td><span class="status-badge warning">Warning</span></td>
                                 <td>15 days</td>
                                 <td>5 minutes ago</td>
@@ -313,6 +349,8 @@
                                 <td>AP-Terminal-B</td>
                                 <td>Access Point</td>
                                 <td>192.168.1.4</td>
+                                <td>DC1</td>
+                                <td>161</td>
                                 <td><span class="status-badge critical">Critical</span></td>
                                 <td>0 days</td>
                                 <td>10 minutes ago</td>
@@ -325,6 +363,8 @@
                                 <td>Router-Gate-A</td>
                                 <td>Router</td>
                                 <td>192.168.1.5</td>
+                                <td>DR</td>
+                                <td>161</td>
                                 <td><span class="status-badge online">Online</span></td>
                                 <td>62 days</td>
                                 <td>1 minute ago</td>
@@ -337,6 +377,8 @@
                                 <td>Switch-Baggage</td>
                                 <td>Switch</td>
                                 <td>192.168.1.6</td>
+                                <td>DC2</td>
+                                <td>161</td>
                                 <td><span class="status-badge warning">Warning</span></td>
                                 <td>27 days</td>
                                 <td>4 minutes ago</td>
@@ -349,6 +391,8 @@
                                 <td>AP-Checkin</td>
                                 <td>Access Point</td>
                                 <td>192.168.1.7</td>
+                                <td>DC1</td>
+                                <td>161</td>
                                 <td><span class="status-badge online">Online</span></td>
                                 <td>33 days</td>
                                 <td>2 minutes ago</td>

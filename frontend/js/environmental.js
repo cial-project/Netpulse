@@ -16,6 +16,7 @@ class EnvironmentalMonitor {
         this.setupEventListeners();
         this.updateDateTime();
         this.setupChartControls(); // Add this line
+        // (no global instantiation here — the page bootstraps the instance at DOMContentLoaded)
     }
 
     // Helper to attach an event listener only once per element/key
@@ -463,7 +464,60 @@ class EnvironmentalMonitor {
 
     async loadZoneData() {
         try {
-            // Simulated zone data with unique IDs
+            // Try to fetch zones from backend API
+            const zonesResp = await apiFetch('/zones/');
+            if (zonesResp && zonesResp.ok) {
+                const zonesData = await zonesResp.json();
+
+                // Map the returned zones to the table structure. If a zone key matches dc1/dc2/dr
+                // we'll try to pull temperature/humidity values from the dashboard KPI endpoint.
+                let kpi = null;
+                try {
+                    const kpiResp = await apiFetch('/dashboard/kpi/');
+                    if (kpiResp && kpiResp.ok) kpi = await kpiResp.json();
+                } catch (e) {
+                    // ignore KPI fetch errors, we'll fallback to defaults
+                }
+
+                this.zones = zonesData.map((z, idx) => {
+                    // Default placeholders
+                    let temp = 22.5, humidity = 45, ups = null, status = 'normal';
+
+                    const key = (z.key || '').toLowerCase();
+                    if (kpi) {
+                        if (key === 'dc1') {
+                            temp = parseFloat(String(kpi.dc1_temperature || '').replace('°C','')) || temp;
+                            humidity = parseInt(String(kpi.dc1_humidity || '').replace('% Humidity','')) || humidity;
+                        } else if (key === 'dc2') {
+                            temp = parseFloat(String(kpi.dc2_temperature || '').replace('°C','')) || temp;
+                            humidity = parseInt(String(kpi.dc2_humidity || '').replace('% Humidity','')) || humidity;
+                        } else if (key === 'dr') {
+                            temp = parseFloat(String(kpi.dr_temperature || '').replace('°C','')) || temp;
+                            humidity = parseInt(String(kpi.dr_humidity || '').replace('% Humidity','')) || humidity;
+                        }
+                    }
+
+                    return {
+                        id: z.id,
+                        name: z.name,
+                        temp: Number(temp),
+                        humidity: Number(humidity),
+                        ups: ups,
+                        status: status,
+                        lastChecked: 'Just now',
+                        type: 'zone',
+                        thresholds: { temp: 28, humidity: 60 }
+                    };
+                });
+
+                this.zoneIdCounter = this.zones.length ? Math.max(...this.zones.map(z => z.id)) + 1 : 1000;
+                this.currentPage = 1;
+                this.renderZoneTable();
+                this.updateStats();
+                return;
+            }
+
+            // Fallback to simulated zone data if API not available
             this.zones = [
                 { id: 1, name: 'Server Room A', temp: 24.2, humidity: 42, ups: 95, status: 'normal', lastChecked: '2 minutes ago', type: 'server', thresholds: { temp: 28, humidity: 60 } },
                 { id: 2, name: 'Check-in Area', temp: 21.8, humidity: 48, ups: null, status: 'normal', lastChecked: '5 minutes ago', type: 'public', thresholds: { temp: 26, humidity: 65 } },
@@ -1104,13 +1158,71 @@ class EnvironmentalMonitor {
             });
         }
     }
+
+    // Accept metric updates pushed from websocket and update charts in-place
+    updateMetrics(metrics = {}) {
+        try {
+            // Temperature updates (prefer explicit keys if present)
+            const tempVal = metrics.temperature || metrics.dc1_temperature || metrics.dc_temperature || null;
+            if (tempVal !== null && this.charts.temperature) {
+                const chart = this.charts.temperature;
+                // slide window: remove first, push new
+                if (Array.isArray(chart.data.datasets[0].data)) {
+                    chart.data.datasets[0].data.shift();
+                    chart.data.datasets[0].data.push(Number(tempVal));
+                }
+                // shift labels and add current time label
+                if (Array.isArray(chart.data.labels)) {
+                    chart.data.labels.shift();
+                    const now = new Date();
+                    chart.data.labels.push(`${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`);
+                }
+                chart.update();
+            }
+
+            // Humidity updates
+            const humVal = metrics.humidity || metrics.dc1_humidity || null;
+            if (humVal !== null && this.charts.humidity) {
+                const chart = this.charts.humidity;
+                if (Array.isArray(chart.data.datasets[0].data)) {
+                    chart.data.datasets[0].data.shift();
+                    chart.data.datasets[0].data.push(Number(humVal));
+                }
+                if (Array.isArray(chart.data.labels)) {
+                    chart.data.labels.shift();
+                    const now = new Date();
+                    chart.data.labels.push(`${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`);
+                }
+                chart.update();
+            }
+
+            // UPS battery
+            const upsVal = metrics.ups_battery || metrics.ups || null;
+            if (upsVal !== null && this.charts.ups) {
+                const chart = this.charts.ups;
+                if (Array.isArray(chart.data.datasets[0].data)) {
+                    chart.data.datasets[0].data.shift();
+                    chart.data.datasets[0].data.push(Number(upsVal));
+                }
+                if (Array.isArray(chart.data.labels)) {
+                    chart.data.labels.shift();
+                    const now = new Date();
+                    chart.data.labels.push(`${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`);
+                }
+                chart.update();
+            }
+
+        } catch (e) {
+            console.error('Failed to apply metric update to environmental charts', e);
+        }
+    }
 }
 
 // Initialize when page loads (robust to late script load)
 (function initEnv() {
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => new EnvironmentalMonitor());
+        document.addEventListener('DOMContentLoaded', () => { window.envApp = new EnvironmentalMonitor(); });
     } else {
-        new EnvironmentalMonitor();
+        window.envApp = new EnvironmentalMonitor();
     }
 })();

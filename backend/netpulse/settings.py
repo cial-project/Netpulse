@@ -98,6 +98,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://127.0.0.1:5500",
     "http://localhost:5500",
+    "http://127.0.0.1:5501",
+    "http://localhost:5501",
 ]
 CORS_ALLOW_CREDENTIALS = True
 
@@ -123,8 +125,75 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # WebSocket configuration
 ASGI_APPLICATION = 'netpulse.asgi.application'
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+# Channel layers: prefer Redis for multi-process deployments but allow
+# an explicit in-memory fallback for local development. Set the
+# environment variable `DEV_USE_INMEM=1` to force the InMemoryChannelLayer
+# (useful when Docker/Redis/WSL are not available on the host).
+if os.environ.get('DEV_USE_INMEM', '0') == '1':
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        },
+    }
+else:
+    # Default to Redis channel layer (production / multi-process)
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                'hosts': [('127.0.0.1', 6379)],
+            },
+        },
+    }
+
+# Logging configuration - include rotating file handlers for poller and errors
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+        },
+        'simple': {
+            'format': '%(levelname)s %(message)s'
+        },
     },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'poller_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'poller.log'),
+            'maxBytes': 5 * 1024 * 1024,  # 5 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+        'error_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'poller_errors.log'),
+            'maxBytes': 2 * 1024 * 1024,
+            'backupCount': 10,
+            'level': 'ERROR',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        '': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+        # For local development on Windows avoid rotating file handlers which
+        # can fail when multiple processes hold file handles (PermissionError).
+        # Keep console output so developers can see poller activity.
+        'poller': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    }
 }
+
+# Optional SIEM webhook URL. If configured, login/logout and forwarded audit events will be POSTed here.
+SIEM_WEBHOOK_URL = os.environ.get('SIEM_WEBHOOK_URL', '')

@@ -1,0 +1,10 @@
+<SOFTPKG NAME="NetSNMP" VERSION="5,5,0,0">
+    <TITLE>Net-SNMP</TITLE>
+    <ABSTRACT>Object Oriented Interface to Net-SNMP</ABSTRACT>
+    <AUTHOR></AUTHOR>
+    <IMPLEMENTATION>
+        <OS NAME="MSWin32" />
+        <ARCHITECTURE NAME="MSWin32-x64-multi-thread-5.10" />
+        <CODEBASE HREF="x86/NetSNMP.tar.gz" />
+    </IMPLEMENTATION>
+</SOFTPKG>

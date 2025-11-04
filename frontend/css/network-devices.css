@@ -1018,7 +1018,9 @@ tr:hover {
     padding: 0;
     border-radius: 10px;
     width: 90%;
-    max-width: 500px;
+    max-width: 700px;
+    max-height: 90vh;
+    overflow-y: auto;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     animation: modalSlideIn 0.3s ease-out;
 }
@@ -1076,20 +1078,40 @@ tr:hover {
 }
 
 .form-group input,
-.form-group select {
+.form-group select,
+.form-group textarea {
     width: 100%;
     padding: 0.75rem;
     border: 1px solid #ced4da;
     border-radius: 6px;
     font-size: 1rem;
     transition: border-color 0.2s ease;
+    box-sizing: border-box;
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
 }
 
 .form-group input:focus,
-.form-group select:focus {
+.form-group select:focus,
+.form-group textarea:focus {
     outline: none;
     border-color: #28a745;
     box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+}
+
+/* Responsive form layout */
+@media (min-width: 600px) {
+    .form-row {
+        display: flex;
+        gap: 1rem;
+    }
+    
+    .form-row .form-group {
+        flex: 1;
+    }
 }
 
 .checkbox-group {
@@ -1305,4 +1327,15 @@ tr:hover {
     border: 1px solid #ced4da;
     border-radius: 4px;
     background: white;
+}
+
+/* New table column widths */
+.devices-table th:nth-child(4),
+.devices-table td:nth-child(4) {
+    width: 80px; /* Zone */
+}
+
+.devices-table th:nth-child(5),
+.devices-table td:nth-child(5) {
+    width: 60px; /* Port */
 }

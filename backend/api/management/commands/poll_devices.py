@@ -4,6 +4,7 @@ import logging
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from api.models import Device, Metric, Alert
+from api.serializers import MetricSerializer
 from devices.snmp_service import poll_device
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
@@ -84,7 +85,7 @@ class Command(BaseCommand):
                     device.sys_name = result.get('sys_name', device.sys_name)
                     device.uptime_days = result.get('uptime_days', device.uptime_days or 0)
 
-                    Metric.objects.create(
+                    metric_instance = Metric.objects.create(
                         device=device,
                         cpu_usage=result.get('cpu_usage', 0),
                         memory_usage=result.get('memory_usage', 0),
@@ -92,6 +93,15 @@ class Command(BaseCommand):
                         network_out=result.get('network_out', 0),
                         temperature=result.get('temperature', None),
                     )
+
+                    try:
+                        payload = MetricSerializer(metric_instance).data
+                        self.send_ws_update({
+                            'type': 'metric_update',
+                            'metrics': [payload]
+                        })
+                    except Exception:
+                        logger.exception('Failed to broadcast metric update for %s', device.name)
 
                     # Check for alerts based on returned metrics
                     self.check_alert_conditions(device, result)

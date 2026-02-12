@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Port Monitoring - NetPulse</title>
+    <link rel="stylesheet" href="./css/dashboard.css">
+    <link rel="stylesheet" href="./css/dashboard_extra.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-container">
+                    <div class="logo-icon">✈</div>
+                    <h1>NetPulse</h1>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="nav-item">
+                        <a href="dashboard.html">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="isp-dashboard.html">
+                            <i class="fas fa-globe"></i>
+                            <span>ISP Monitoring</span>
+                        </a>
+                    </li>
+                    <li class="nav-item active">
+                        <a href="port-dashboard.html">
+                            <i class="fas fa-ethernet"></i>
+                            <span>Port Monitoring</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="network-devices.html">
+                            <i class="fas fa-network-wired"></i>
+                            <span>Network Devices</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="environmental.html">
+                            <i class="fas fa-thermometer-half"></i>
+                            <span>Environmental</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="alerts-and-incidents.html">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>Alerts & Incidents</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="trends-and-forecasts.html">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Trends & Forecasts</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="reports.html">
+                            <i class="fas fa-file-alt"></i>
+                            <span>Reports</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="settings.html">
+                            <i class="fas fa-cog"></i>
+                            <span>Settings</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                    <div class="user-details">
+                        <span class="user-name" id="sidebar-username">Loading...</span>
+                        <span class="user-role" id="sidebar-userrole">Admin</span>
+                    </div>
+                </div>
+                <a href="#" class="logout-btn" id="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <div class="header-title">
+                    <h2>Port Monitoring & Utilization</h2>
+                    <p>Real-time bandwidth and utilization tracking for critical interfaces.</p>
+                </div>
+                <div class="header-actions">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search ports..." id="port-search">
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn primary" onclick="openModal()" style="margin-right: 10px;">
+                            <i class="fas fa-plus"></i> Add Port
+                        </button>
+                        <button class="btn-icon"><i class="fas fa-bell"></i></button>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-wrapper">
+                <div id="portGrid" class="port-grid">
+                    <!-- Port cards will be injected here -->
+                    <div class="loading">Loading Port data...</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Port Modal -->
+    <div id="addPortModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <h2>Add Port to Monitor</h2>
+            <form id="addPortForm">
+                <div class="form-group">
+                    <label for="portName">Port Name</label>
+                    <input type="text" id="portName" required placeholder="e.g., GigabitEthernet0/1">
+                </div>
+                <div class="form-group">
+                    <label for="deviceName">Device Name</label>
+                    <input type="text" id="deviceName" required placeholder="e.g., Core-Router-01">
+                </div>
+                <div class="form-group">
+                    <label for="ipAddress">IP Address (Optional)</label>
+                    <input type="text" id="ipAddress" placeholder="e.g., 192.168.1.1">
+                </div>
+                <div class="form-group">
+                    <label for="capacity">Capacity (Mbps)</label>
+                    <input type="number" id="capacity" required value="1000">
+                </div>
+                <button type="submit" class="btn btn-primary">Add Port</button>
+            </form>
+        </div>
+    </div>
+
+
+
+    <!-- JavaScript Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="./js/config.js"></script>
+    <script src="./js/api.js"></script>
+    <script src="./js/port-dashboard.js"></script>
+</body>
+
+</html>

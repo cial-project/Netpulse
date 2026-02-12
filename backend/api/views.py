@@ -11,9 +11,9 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
 from .models import User, Device, Alert, Metric, Zone
-from .models import ISP
+from .models import ISP, Port
 from .serializers import (UserSerializer, LoginSerializer, SignupSerializer, 
-                         DeviceSerializer, AlertSerializer, MetricSerializer, ISPSerializer)
+                         DeviceSerializer, AlertSerializer, MetricSerializer, ISPSerializer, PortSerializer)
 from .serializers import ZoneSerializer
 from .siem import forward_to_siem
 from .permissions import IsAdminOrOperatorOrReadOnly
@@ -21,6 +21,9 @@ import logging
 from devices.snmp_service import poll_device
 from django.db.models import Avg
 from django.db.models import Q
+from .tasks import poll_single_device
+
+logger = logging.getLogger(__name__)
 
 class AuthViewSet(viewsets.ViewSet):
     permission_classes = [AllowAny]
@@ -102,6 +105,17 @@ class AuditViewSet(viewsets.ReadOnlyModelViewSet):
 class DashboardViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
     
+    def ensure_recent_metrics(self):
+        """Trigger background polling for devices with stale metrics."""
+        stale_cutoff = timezone.now() - timedelta(minutes=2)
+        devices = Device.objects.filter(is_active=True)
+        for device in devices:
+            latest = device.metrics.order_by('-timestamp').first()
+            if latest and latest.timestamp and latest.timestamp >= stale_cutoff:
+                continue
+            # Offload to Celery
+            poll_single_device.delay(device.id)
+
     @action(detail=False)
     def kpi(self, request):
         """Dynamic KPI data with real metrics"""
@@ -363,6 +377,8 @@ class DashboardViewSet(viewsets.ViewSet):
     def real_time_data(self, request):
         """Endpoint for real-time client updates"""
         try:
+            self.ensure_recent_metrics()
+
             # Get very recent data (last 5 minutes)
             recent_time = timezone.now() - timedelta(minutes=5)
 
@@ -473,58 +489,23 @@ class DeviceViewSet(viewsets.ModelViewSet):
         important = self.request.GET.get('important')
         if important in ['1', 'true', 'True', 'yes', 'on']:
             queryset = queryset.filter(is_important=True)
+
+        device_type = self.request.GET.get('type') or self.request.GET.get('device_type')
+        if device_type:
+            queryset = queryset.filter(device_type__iexact=device_type)
         return queryset
     
     @action(detail=True, methods=['post'])
     def poll_now(self, request, pk=None):
-        """Manually poll a specific device"""
+        """Manually poll a specific device asynchronously"""
         try:
             device = self.get_object()
-            result = poll_device(
-                device.ip_address, 
-                device.device_type, 
-                device.snmp_community
-            )
-            
-            # Update device status
-            was_online = device.is_online
-            device.is_online = result.get('reachable', False)
-            
-            if device.is_online:
-                device.last_seen = timezone.now()
-                device.sys_name = result.get('sys_name', device.sys_name)
-                device.uptime_days = result.get('uptime_days', device.uptime_days)
-                
-                # Store metrics
-                Metric.objects.create(
-                    device=device,
-                    cpu_usage=result.get('cpu_usage', 0),
-                    memory_usage=result.get('memory_usage', 0),
-                    network_in=result.get('network_in', 0),
-                    network_out=result.get('network_out', 0),
-                    temperature=result.get('temperature', None),
-                )
-                
-                # Create alert if device came back online
-                if not was_online and device.is_online:
-                    Alert.objects.create(
-                        device=device,
-                        title=f"Device {device.name} is back online",
-                        description=f"Device restored connectivity at {timezone.now()}",
-                        severity='info',
-                        status='open'
-                    )
-            
-            device.save()
-            
-            # Trigger real-time update
-            self.trigger_dashboard_update()
+            poll_single_device.delay(device.id)
             
             return Response({
                 'success': True,
-                'device': device.name,
-                'status': 'online' if device.is_online else 'offline',
-                'metrics': result
+                'message': f'Polling started for {device.name}',
+                'status': 'pending'
             })
             
         except Exception as e:
@@ -792,5 +773,65 @@ class ISPViewSet(viewsets.ModelViewSet):
             isp.downstream_mbps = res.get('downstream_mbps')
             isp.save()
             return Response({'success': True, 'result': res})
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class PortViewSet(viewsets.ModelViewSet):
+    """Port endpoints for monitoring specific interfaces."""
+    queryset = Port.objects.all()
+    serializer_class = PortSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    @action(detail=True, methods=['post'])
+    def simulate(self, request, pk=None):
+        """Simulate traffic for a specific port."""
+        try:
+            port = self.get_object()
+            from devices.port_service import simulate_port_traffic
+            
+            # Run simulation
+            data = simulate_port_traffic(port.capacity_mbps)
+            
+            # Update port
+            port.bps_in = data['bps_in']
+            port.bps_out = data['bps_out']
+            port.utilization_in = data['utilization_in']
+            port.utilization_out = data['utilization_out']
+            port.errors_in = data['errors_in']
+            port.errors_out = data['errors_out']
+            port.status = data['status']
+            port.last_updated = timezone.now()
+            port.save()
+            
+            # Check for alerts
+            if port.status == 'down' or port.utilization_in > 90 or port.utilization_out > 90:
+                device = Device.objects.filter(name=port.device_name).first()
+                if device:
+                    title = f"Port {port.name} Issue"
+                    description = ""
+                    if port.status == 'down':
+                        description = f"Port {port.name} is DOWN."
+                    elif port.utilization_in > 90:
+                        description = f"Port {port.name} inbound utilization is critical ({port.utilization_in}%)."
+                    elif port.utilization_out > 90:
+                        description = f"Port {port.name} outbound utilization is critical ({port.utilization_out}%)."
+                    
+                    # Check if an open alert already exists for this port to avoid spam
+                    existing_alert = Alert.objects.filter(
+                        device=device,
+                        title=title,
+                        status='open'
+                    ).exists()
+                    
+                    if not existing_alert:
+                        Alert.objects.create(
+                            device=device,
+                            title=title,
+                            description=description,
+                            severity='critical',
+                            status='open'
+                        )
+            
+            return Response({'success': True, 'data': data})
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
+
 <body>
     <div class="dashboard-container">
         <!-- Sidebar Navigation -->
@@ -18,13 +20,19 @@
                     <h1>NetPulse</h1>
                 </div>
             </div>
-            
+
             <nav class="sidebar-nav">
                 <ul>
                     <li class="nav-item">
                         <a href="dashboard.html">
-                            <i class="fas fa-home"></i>
+                            <i class="fas fa-tachometer-alt"></i>
                             <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="isp-dashboard.html">
+                            <i class="fas fa-globe"></i>
+                            <span>ISP Monitoring</span>
                         </a>
                     </li>
                     <li class="nav-item active">
@@ -39,7 +47,7 @@
                             <span>Environmental</span>
                         </a>
                     </li>
-                    
+
                     <li class="nav-item">
                         <a href="alerts-and-incidents.html">
                             <i class="fas fa-exclamation-triangle"></i>
@@ -66,7 +74,7 @@
                     </li>
                 </ul>
             </nav>
-            
+
             <div class="sidebar-footer">
                 <div class="user-info">
                     <div class="user-avatar">
@@ -159,7 +167,8 @@
                         <i class="fas fa-chart-line"></i>
                     </div>
                     <div class="insight-text">
-                        <p>Bandwidth usage on Router-02 shows unusual pattern. Predicted to exceed normal thresholds in 4 hours. Check for potential network congestion.</p>
+                        <p>Bandwidth usage on Router-02 shows unusual pattern. Predicted to exceed normal thresholds in
+                            4 hours. Check for potential network congestion.</p>
                     </div>
                 </div>
             </section>
@@ -188,103 +197,110 @@
                         <button class="export-btn">
                             <i class="fas fa-download"></i> Export
                         </button>
-                        <button class="add-device-btn" style="margin-left: 1rem; background: #28a745; color: #fff; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">
+                        <button class="add-device-btn"
+                            style="margin-left: 1rem; background: #28a745; color: #fff; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">
                             <i class="fas fa-plus"></i> Add Device
                         </button>
                     </div>
-    <!-- Add Device Modal -->
-<div id="add-device-modal" class="modal" style="display:none;">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Add New Device</h3>
-            <span class="modal-close">&times;</span>
-        </div>
-        <div class="modal-body">
-            <form id="add-device-form">
-                <div class="form-group">
-                    <label for="device-name">Device Name *</label>
-                    <input type="text" id="device-name" name="device-name" required 
-                           placeholder="e.g., Core-Router-01">
-                </div>
-                
-                <div class="form-group">
-                    <label for="device-type">Device Type *</label>
-                    <select id="device-type" name="device-type" required>
-                        <option value="">Select device type...</option>
-                        <option value="router">Router</option>
-                        <option value="switch">Switch</option>
-                        <option value="firewall">Firewall</option>
-                        <option value="ap">Access Point</option>
-                        <option value="server">Server</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="ip-address">IP Address *</label>
-                    <input type="text" id="ip-address" name="ip-address" required 
-                           placeholder="e.g., 192.168.1.100">
-                </div>
-                
-                <div class="form-group">
-                    <label for="location">Location</label>
-                    <input type="text" id="location" name="location" 
-                           placeholder="e.g., Terminal 1, Server Room A">
-                </div>
-                
-                <div class="form-group">
-                    <label for="snmp-port">SNMP Port</label>
-                    <input type="number" id="snmp-port" name="snmp-port" value="161" min="1" max="65535" placeholder="e.g., 161">
-                    <small class="muted">Port for SNMP communication (default 161).</small>
-                </div>
+                    <!-- Add Device Modal -->
+                    <div id="add-device-modal" class="modal" style="display:none;">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h3>Add New Device</h3>
+                                <span class="modal-close">&times;</span>
+                            </div>
+                            <div class="modal-body">
+                                <form id="add-device-form">
+                                    <div class="form-group">
+                                        <label for="device-name">Device Name *</label>
+                                        <input type="text" id="device-name" name="device-name" required
+                                            placeholder="e.g., Core-Router-01">
+                                    </div>
 
-                <div class="form-group">
-                    <label for="device-zone">Zone</label>
-                    <select id="device-zone" name="device-zone">
-                        <option value="">Select zone...</option>
-                        <!-- Zones will be populated dynamically -->
-                    </select>
-                    <small class="muted">Assign to a location zone (e.g., DC1, DC2, DR).</small>
-                </div>
+                                    <div class="form-group">
+                                        <label for="device-type">Device Type *</label>
+                                        <select id="device-type" name="device-type" required>
+                                            <option value="">Select device type...</option>
+                                            <option value="router">Router</option>
+                                            <option value="switch">Switch</option>
+                                            <option value="firewall">Firewall</option>
+                                            <option value="ap">Access Point</option>
+                                            <option value="server">Server</option>
+                                        </select>
+                                    </div>
 
-                <div class="form-group">
-                    <label for="device-description">Description</label>
-                    <textarea id="device-description" name="device-description" placeholder="Optional description of the device"></textarea>
-                </div>
+                                    <div class="form-group">
+                                        <label for="ip-address">IP Address *</label>
+                                        <input type="text" id="ip-address" name="ip-address" required
+                                            placeholder="e.g., 192.168.1.100">
+                                    </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="poll-interval">Polling Interval (seconds)</label>
-                        <input type="number" id="poll-interval" name="poll-interval" min="10" max="3600" placeholder="e.g., 300">
-                        <small class="muted">How often to poll this device (10-3600 seconds). Leave empty for default.</small>
+                                    <div class="form-group">
+                                        <label for="location">Location</label>
+                                        <input type="text" id="location" name="location"
+                                            placeholder="e.g., Terminal 1, Server Room A">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="snmp-port">SNMP Port</label>
+                                        <input type="number" id="snmp-port" name="snmp-port" value="161" min="1"
+                                            max="65535" placeholder="e.g., 161">
+                                        <small class="muted">Port for SNMP communication (default 161).</small>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="device-zone">Zone</label>
+                                        <select id="device-zone" name="device-zone">
+                                            <option value="">Select zone...</option>
+                                            <!-- Zones will be populated dynamically -->
+                                        </select>
+                                        <small class="muted">Assign to a location zone (e.g., DC1, DC2, DR).</small>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="device-description">Description</label>
+                                        <textarea id="device-description" name="device-description"
+                                            placeholder="Optional description of the device"></textarea>
+                                    </div>
+
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="poll-interval">Polling Interval (seconds)</label>
+                                            <input type="number" id="poll-interval" name="poll-interval" min="10"
+                                                max="3600" placeholder="e.g., 300">
+                                            <small class="muted">How often to poll this device (10-3600 seconds). Leave
+                                                empty for default.</small>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label for="custom-oids">Custom SNMP OIDs</label>
+                                            <textarea id="custom-oids" name="custom-oids"
+                                                placeholder="Optional custom OIDs (one per line)&#10;e.g., 1.3.6.1.4.1.12345.1.1.0=temperature&#10;1.3.6.1.4.1.12345.1.2.0=humidity"></textarea>
+                                            <small class="muted">Custom OIDs to monitor (OID=name format).</small>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group checkbox-group">
+                                        <label>
+                                            <input type="checkbox" id="is-important" name="is-important">
+                                            <span class="checkmark"></span>
+                                            Critical Infrastructure (Display prominently in dashboard)
+                                        </label>
+                                    </div>
+
+                                    <div id="add-device-error" class="error-message"></div>
+
+                                    <div class="form-actions">
+                                        <button type="button" class="btn secondary"
+                                            id="cancel-add-device">Cancel</button>
+                                        <button type="submit" class="btn primary">
+                                            <i class="fas fa-plus"></i> Add Device
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
                     </div>
-
-                    <div class="form-group">
-                        <label for="custom-oids">Custom SNMP OIDs</label>
-                        <textarea id="custom-oids" name="custom-oids" placeholder="Optional custom OIDs (one per line)&#10;e.g., 1.3.6.1.4.1.12345.1.1.0=temperature&#10;1.3.6.1.4.1.12345.1.2.0=humidity"></textarea>
-                        <small class="muted">Custom OIDs to monitor (OID=name format).</small>
-                    </div>
-                </div>
-
-                <div class="form-group checkbox-group">
-                    <label>
-                        <input type="checkbox" id="is-important" name="is-important">
-                        <span class="checkmark"></span>
-                        Critical Infrastructure (Display prominently in dashboard)
-                    </label>
-                </div>
-                
-                <div id="add-device-error" class="error-message"></div>
-                
-                <div class="form-actions">
-                    <button type="button" class="btn secondary" id="cancel-add-device">Cancel</button>
-                    <button type="submit" class="btn primary">
-                        <i class="fas fa-plus"></i> Add Device
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
                 </div>
 
                 <div class="table-container">
@@ -416,28 +432,28 @@
             </section>
 
             <!-- Bandwidth Chart - REAL VERSION -->
-<section class="chart-section">
-    <div class="section-header">
-        <h3>Bandwidth Usage</h3>
-        <div class="chart-controls">
-            <select id="time-range">
-                <option value="1h">Last 1 Hour</option>
-                <option value="6h">Last 6 Hours</option>
-                <option value="12h">Last 12 Hours</option>
-                <option value="24h" selected>Last 24 Hours</option>
-                <option value="7d">Last 7 Days</option>
-            </select>
-            <select id="device-select">
-                <option value="all">All Devices</option>
-                <!-- Devices will be populated dynamically -->
-            </select>
-        </div>
-    </div>
+            <section class="chart-section">
+                <div class="section-header">
+                    <h3>Bandwidth Usage</h3>
+                    <div class="chart-controls">
+                        <select id="time-range">
+                            <option value="1h">Last 1 Hour</option>
+                            <option value="6h">Last 6 Hours</option>
+                            <option value="12h">Last 12 Hours</option>
+                            <option value="24h" selected>Last 24 Hours</option>
+                            <option value="7d">Last 7 Days</option>
+                        </select>
+                        <select id="device-select">
+                            <option value="all">All Devices</option>
+                            <!-- Devices will be populated dynamically -->
+                        </select>
+                    </div>
+                </div>
 
-    <div class="chart-container">
-        <canvas id="bandwidthChart"></canvas>
-    </div>
-</section>
+                <div class="chart-container">
+                    <canvas id="bandwidthChart"></canvas>
+                </div>
+            </section>
         </main>
     </div>
 
@@ -487,6 +503,8 @@
         </div>
     </div>
 
+    <script src="js/config.js"></script>
     <script src="js/network-devices.js"></script>
 </body>
+
 </html>

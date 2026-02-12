@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <link rel="stylesheet" href="./css/dashboard.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
+
 <body>
     <div class="dashboard-container">
         <!-- Sidebar Navigation -->
@@ -23,6 +25,18 @@
                         <a href="dashboard.html">
                             <i class="fas fa-tachometer-alt"></i>
                             <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="isp-dashboard.html">
+                            <i class="fas fa-globe"></i>
+                            <span>ISP Monitoring</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="port-dashboard.html">
+                            <i class="fas fa-ethernet"></i>
+                            <span>Port Monitoring</span>
                         </a>
                     </li>
                     <li class="nav-item">
@@ -103,99 +117,230 @@
                 </div>
             </header>
 
-            <!-- KPI cards: environmental + CPU + device status -->
+            <!-- Data Center Details -->
+            <section class="section-header">
+                <div class="status-indicator"></div>
+                <h3>DATA CENTER DETAILS</h3>
+            </section>
+
             <section class="kpi-section">
-                <div class="kpi-card">
-                    <div class="kpi-icon primary">
-                        <i class="fas fa-building"></i>
-                    </div>
-                    <div class="kpi-content">
-                        <h3>Data Center 1 (DC1)</h3>
-                        <div class="kpi-value" id="kpi-dc1-temp">22.5°C</div>
-                        <div class="kpi-subtitle" id="kpi-dc1-humidity">45% Humidity</div>
-                    </div>
-                </div>
-
-                <div class="kpi-card">
-                    <div class="kpi-icon primary">
-                        <i class="fas fa-building"></i>
-                    </div>
-                    <div class="kpi-content">
-                        <h3>Data Center 2 (DC2)</h3>
-                        <div class="kpi-value" id="kpi-dc2-temp">21.8°C</div>
-                        <div class="kpi-subtitle" id="kpi-dc2-humidity">48% Humidity</div>
-                    </div>
-                </div>
-
-                <div class="kpi-card">
-                    <div class="kpi-icon warning">
-                        <i class="fas fa-shield-alt"></i>
-                    </div>
-                    <div class="kpi-content">
-                        <h3>Disaster Recovery</h3>
-                        <div class="kpi-value" id="kpi-dr-temp">23.1°C</div>
-                        <div class="kpi-subtitle" id="kpi-dr-humidity">42% Humidity</div>
-                    </div>
-                </div>
-
-                <div class="kpi-card">
-                    <div class="kpi-icon danger">
-                        <i class="fas fa-microchip"></i>
-                    </div>
-                    <div class="kpi-content">
-                        <h3>CPU Utilization</h3>
-                        <div class="kpi-value" id="kpi-cpu-utilization">0%</div>
-                        <div class="kpi-subtitle">Average across core devices</div>
-                    </div>
-                </div>
-
-                <div class="kpi-card small kpi-left" id="device-status-card">
-                    <div class="kpi-icon primary">
+                <!-- DC1 -->
+                <div class="kpi-card environmental">
+                    <div class="kpi-icon-square green">
                         <i class="fas fa-server"></i>
                     </div>
                     <div class="kpi-content">
-                        <h3>Device Status</h3>
-                        <div class="kpi-value" id="kpi-devices-status">0/0 Online</div>
-                        <div class="kpi-subtitle">Network Infrastructure</div>
+                        <h4>Data Center 1 (DC1)</h4>
+                        <div class="kpi-value-large" id="kpi-dc1-temp">24.8°C</div>
+                        <div class="kpi-subtitle" id="kpi-dc1-humidity">42% humidity</div>
+                    </div>
+                </div>
+
+                <!-- DC2 -->
+                <div class="kpi-card environmental">
+                    <div class="kpi-icon-square green">
+                        <i class="fas fa-server"></i>
+                    </div>
+                    <div class="kpi-content">
+                        <h4>Data Center 2 (DC2)</h4>
+                        <div class="kpi-value-large" id="kpi-dc2-temp">33.6°C</div>
+                        <div class="kpi-subtitle" id="kpi-dc2-humidity">32% humidity</div>
+                    </div>
+                </div>
+
+                <!-- DR -->
+                <div class="kpi-card environmental">
+                    <div class="kpi-icon-square yellow">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div class="kpi-content">
+                        <h4>Disaster Recovery</h4>
+                        <div class="kpi-value-large" id="kpi-dr-temp">33.6°C</div>
+                        <div class="kpi-subtitle" id="kpi-dr-humidity">32% humidity</div>
+                    </div>
+                </div>
+
+                <!-- DR 2 (Backup) -->
+                <div class="kpi-card environmental">
+                    <div class="kpi-icon-square yellow">
+                        <i class="fas fa-temperature-high"></i>
+                    </div>
+                    <div class="kpi-content">
+                        <h4>Disaster Recovery</h4>
+                        <div class="kpi-value-large" id="kpi-dr2-temp">33.6°C</div>
+                        <div class="kpi-subtitle" id="kpi-dr2-humidity">32% humidity</div>
                     </div>
                 </div>
             </section>
 
-            <!-- Switch KPI cards -->
-            <section class="switch-kpi-row">
-                <div class="kpi-card small" id="kpi-switch-total">
-                    <div class="kpi-icon primary">
-                        <i class="fas fa-exchange-alt"></i>
+            <!-- Core & Distribution Switch Details -->
+            <section class="section-header">
+                <div class="status-indicator"></div>
+                <h3>CORE & DISTRIBUTION SWITCH DETAILS</h3>
+            </section>
+
+            <section class="metrics-row">
+                <!-- Critical Alerts -->
+                <div class="metric-card alert-card">
+                    <div class="metric-icon red">
+                        <i class="fas fa-exclamation-triangle"></i>
                     </div>
-                    <div class="kpi-content">
-                        <h3>Switch Count</h3>
-                        <div class="kpi-value" id="kpi-switch-count">0</div>
-                        <div class="kpi-subtitle">Total switches</div>
+                    <div class="metric-content">
+                        <div class="metric-value red" id="metric-critical-alerts">5 Critical</div>
+                        <div class="metric-label">Alerts</div>
                     </div>
                 </div>
 
-                <div class="kpi-card small" id="kpi-switch-down">
-                    <div class="kpi-icon danger">
-                        <i class="fas fa-network-wired"></i>
+                <!-- Avg Memory -->
+                <div class="metric-card">
+                    <div class="progress-circle" id="metric-memory-circle" data-percent="45">
+                        <span>45%</span>
                     </div>
-                    <div class="kpi-content">
-                        <h3>Switches Down</h3>
-                        <div class="kpi-value" id="kpi-switch-down-count">0</div>
-                        <div class="kpi-subtitle">Offline switches</div>
+                    <div class="metric-content">
+                        <div class="metric-label">Avg. Memory</div>
+                        <div class="metric-value" id="metric-avg-memory">45%</div>
+                    </div>
+                </div>
+
+                <!-- Avg Temp -->
+                <div class="metric-card">
+                    <div class="metric-icon orange">
+                        <i class="fas fa-thermometer-half"></i>
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-label">Avg. Tempera...</div>
+                        <div class="metric-value" id="metric-avg-temp">32°C</div>
+                    </div>
+                </div>
+
+                <!-- Total Bandwidth 1 -->
+                <div class="metric-card">
+                    <div class="metric-icon-circle">
+                        <span>8.2</span>
+                        <small>Gbps</small>
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-label">Total Bandwidth</div>
+                        <div class="metric-value" id="metric-bandwidth-1">8.2 Gbps</div>
+                    </div>
+                </div>
+
+                <!-- Total Bandwidth 2 -->
+                <div class="metric-card">
+                    <div class="metric-icon-circle green">
+                        <span>8.2</span>
+                        <small>Gbps</small>
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-label">Total Bandwidth</div>
+                        <div class="metric-value" id="metric-bandwidth-2">8.2 Gbps</div>
                     </div>
                 </div>
             </section>
 
-            <!-- Real-time charts -->
-            <section class="chart-grid">
-                <div class="chart-card">
-                    <canvas id="bandwidthChart"></canvas>
+            <!-- Device Tables Row -->
+            <section class="tables-row">
+                <!-- Core Devices Table -->
+                <div class="device-table-card">
+                    <div class="card-header">CORE DEVICES</div>
+                    <table class="clean-table" id="table-core-devices">
+                        <thead>
+                            <tr>
+                                <th>Core Devices</th>
+                                <th>CPU</th>
+                                <th>Temp</th>
+                                <th>Uplink</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
                 </div>
-                <div class="chart-card">
-                    <canvas id="cpuTrendChart"></canvas>
+
+                <!-- Distribution Devices Table -->
+                <div class="device-table-card">
+                    <div class="card-header">DISTRIBUTION DEVICES</div>
+                    <table class="clean-table" id="table-dist-devices">
+                        <thead>
+                            <tr>
+                                <th>Dist-1</th>
+                                <th>CPU</th>
+                                <th>Memory</th>
+                                <th>Uplink</th>
+                                <th>PP1 OUT</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
                 </div>
-                <div class="chart-card">
-                    <canvas id="laptopChart"></canvas>
+            </section>
+
+            <!-- Access Switches Status -->
+            <section class="section-header">
+                <div class="status-indicator"></div>
+                <h3>ACCESS SWITCHES STATUS</h3>
+            </section>
+
+            <section class="bottom-panel">
+                <div class="device-table-card grow">
+                    <div class="card-header-flex">
+                        <span>CORE & DISTRIBUTION DEVICES</span>
+                        <div class="toggle-switch">
+                            <span>All Interfaces</span>
+                            <label class="switch">
+                                <input type="checkbox" checked>
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <table class="clean-table" id="table-access-status">
+                        <thead>
+                            <tr>
+                                <th>Hostname</th>
+                                <th>CPU</th>
+                                <th>Temp</th>
+                                <th>Dell-</th>
+                                <th>Uplink</th>
+                                <th>Out</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="chart-container-large">
+                    <div class="chart-header">
+                        <span>Inb/Outb</span>
+                        <div class="chart-legend">
+                            <span class="legend-item"><span class="dot green"></span> Inbound</span>
+                            <span class="legend-item"><span class="dot blue"></span> Outbound</span>
+                        </div>
+                    </div>
+                    <div style="position: relative; flex: 1; min-height: 0; overflow: hidden;">
+                        <canvas id="trafficChartMain"></canvas>
+                    </div>
+                    <div class="chart-summary-table">
+                        <table class="mini-table" id="table-chart-summary">
+                            <thead>
+                                <tr>
+                                    <th>Interface</th>
+                                    <th>Inbound</th>
+                                    <th>Outbound</th>
+                                    <th>Total</th>
+                                    <th>Utilization</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
         </main>
@@ -203,13 +348,14 @@
 
     <!-- JavaScript Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
+
     <!-- Application JavaScript -->
+    <script src="./js/config.js"></script>
     <script src="./js/api.js"></script>
     <script src="./js/websocket.js"></script>
     <script src="./js/charts.js"></script>
     <script src="./js/dashboard.js"></script>
-    
+
     <!-- Initialize Application -->
     <script>
         // Notification dropdown container (will be populated by JS)
@@ -290,7 +436,7 @@
         }
 
         // Initialize when page loads
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             // Start the dashboard application (simplified)
             if (typeof initializeDashboard === 'function') {
                 initializeDashboard();
@@ -300,4 +446,5 @@
         });
     </script>
 </body>
+
 </html>

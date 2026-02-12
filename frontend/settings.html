@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
   <link rel="stylesheet" href="css/settings.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
+
 <body>
   <div class="dashboard-container">
     <!-- Sidebar -->
@@ -19,13 +21,54 @@
       </div>
       <nav class="sidebar-nav">
         <ul>
-          <li class="nav-item"><a href="dashboard.html"><i class="fas fa-home"></i> Dashboard</a></li>
-          <li class="nav-item"><a href="network-devices.html"><i class="fas fa-network-wired"></i> Network Devices</a></li>
-          <li class="nav-item"><a href="environmental.html"><i class="fas fa-temperature-low"></i> Environmental</a></li>
-          <li class="nav-item"><a href="alerts-and-incidents.html"><i class="fas fa-exclamation-triangle"></i> Alerts & Incidents</a></li>
-          <li class="nav-item"><a href="trends-and-forecasts.html"><i class="fas fa-chart-line"></i> Trends & Forecasts</a></li>
-          <li class="nav-item"><a href="reports.html"><i class="fas fa-file-alt"></i> Reports</a></li>
-          <li class="nav-item active"><a href="settings.html"><i class="fas fa-cog"></i> Settings</a></li>
+          <li class="nav-item">
+            <a href="dashboard.html">
+              <i class="fas fa-tachometer-alt"></i>
+              <span>Dashboard</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="isp-dashboard.html">
+              <i class="fas fa-globe"></i>
+              <span>ISP Monitoring</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="network-devices.html">
+              <i class="fas fa-network-wired"></i>
+              <span>Network Devices</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="environmental.html">
+              <i class="fas fa-temperature-low"></i>
+              <span>Environmental</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="alerts-and-incidents.html">
+              <i class="fas fa-exclamation-triangle"></i>
+              <span>Alerts & Incidents</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="trends-and-forecasts.html">
+              <i class="fas fa-chart-line"></i>
+              <span>Trends & Forecasts</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="reports.html">
+              <i class="fas fa-file-alt"></i>
+              <span>Reports</span>
+            </a>
+          </li>
+          <li class="nav-item active">
+            <a href="settings.html">
+              <i class="fas fa-cog"></i>
+              <span>Settings</span>
+            </a>
+          </li>
         </ul>
       </nav>
       <div class="sidebar-footer">
@@ -97,7 +140,7 @@
 
       <!-- Settings Content -->
       <div class="settings-content">
-        
+
         <!-- General Settings -->
         <div class="settings-tab active" id="general-tab">
           <div class="settings-section">
@@ -782,6 +825,8 @@
     </main>
   </div>
 
+  <script src="js/config.js"></script>
   <script src="js/settings.js"></script>
 </body>
+
 </html>

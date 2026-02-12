@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 from .views import AuthViewSet, UserViewSet, DashboardViewSet, DeviceViewSet, AlertViewSet, MetricViewSet
-from .views import ZoneViewSet, ISPViewSet, AuditViewSet
+from .views import ZoneViewSet, ISPViewSet, AuditViewSet, PortViewSet
 
 router = DefaultRouter()
 router.register(r'devices', DeviceViewSet, basename='device')
@@ -10,6 +10,7 @@ router.register(r'alerts', AlertViewSet, basename='alert')
 router.register(r'metrics', MetricViewSet, basename='metric')  # Added basename
 router.register(r'zones', ZoneViewSet, basename='zone')
 router.register(r'isps', ISPViewSet, basename='isp')
+router.register(r'ports', PortViewSet, basename='port')
 router.register(r'audits', AuditViewSet, basename='audit')
 
 urlpatterns = [
@@ -26,6 +27,7 @@ urlpatterns = [
     path('dashboard/ai_insights/', DashboardViewSet.as_view({'get': 'ai_insights'}), name='dashboard-ai-insights'),
     path('dashboard/map/', DashboardViewSet.as_view({'get': 'map'}), name='dashboard-map'),
     path('dashboard/stats/', DashboardViewSet.as_view({'get': 'stats'}), name='dashboard-stats'),
+    path('dashboard/real_time_data/', DashboardViewSet.as_view({'get': 'real_time_data'}), name='dashboard-real-time-data'),
     
     # Include router URLs
     path('', include(router.urls)),

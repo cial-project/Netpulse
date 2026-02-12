@@ -20,28 +20,43 @@ body {
 
 /* Sidebar styles (consistent with other pages) */
 .sidebar {
-    width: 260px;
+    width: 70px; /* Collapsed width */
     background: white;
     box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
     display: flex;
     flex-direction: column;
     z-index: 10;
+    transition: width 0.3s ease;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.sidebar:hover {
+    width: 260px; /* Expanded width */
 }
 
 .sidebar-header {
     padding: 1.5rem 1.25rem;
     border-bottom: 1px solid #e9ecef;
+    display: flex;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.sidebar:hover .sidebar-header {
+    justify-content: flex-start;
 }
 
 .logo-container {
     display: flex;
     align-items: center;
+    width: 100%;
 }
 
 .logo-icon {
     background-color: #28a745;
     color: white;
-    width: 36px;
+    min-width: 36px;
     height: 36px;
     border-radius: 8px;
     display: flex;
@@ -55,6 +70,14 @@ body {
     color: #28a745;
     font-size: 1.5rem;
     font-weight: 700;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    display: none;
+}
+
+.sidebar:hover .sidebar-header h1 {
+    opacity: 1;
+    display: block;
 }
 
 .sidebar-nav {
@@ -77,6 +100,11 @@ body {
     color: #495057;
     text-decoration: none;
     transition: all 0.2s ease;
+    justify-content: center;
+}
+
+.sidebar:hover .nav-item a {
+    justify-content: flex-start;
 }
 
 .nav-item a:hover {
@@ -94,6 +122,18 @@ body {
     width: 24px;
     margin-right: 0.75rem;
     font-size: 1.1rem;
+    text-align: center;
+}
+
+.nav-item span {
+    display: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.sidebar:hover .nav-item span {
+    display: inline;
+    opacity: 1;
 }
 
 .sidebar-footer {

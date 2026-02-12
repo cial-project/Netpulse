@@ -1,7 +1,40 @@
+const API_BASE = (() => {
+    const override = window.NETPULSE_API_BASE;
+    if (override && typeof override === 'string') {
+        return override.replace(/\/$/, '');
+    }
+
+    const { origin, protocol, hostname, port } = window.location || {};
+    const staticDevPorts = new Set(['5500', '5501', '5502', '3000', '3001']);
+
+    if (origin && origin !== 'null' && !origin.startsWith('file://')) {
+        if (port && staticDevPorts.has(String(port))) {
+            const backendPort = protocol === 'https:' ? '443' : '8000';
+            return `${protocol}//${hostname}:${backendPort}`.replace(/\/$/, '');
+        }
+        return origin.replace(/\/$/, '');
+    }
+    if (protocol && hostname) {
+        const defaultPort = protocol === 'https:' ? '443' : '80';
+        const hasExplicitPort = port && port !== defaultPort;
+        const backendPort = protocol === 'https:' ? '443' : '8000';
+        const finalPort = hasExplicitPort ? port : backendPort;
+        return `${protocol}//${hostname}:${finalPort}`.replace(/\/$/, '');
+    }
+    return 'http://127.0.0.1:8000';
+})();
+
+const API_BASE_URL = `${API_BASE}/api`;
+
+let kpisLoadedOnce = false;
+let statsLoadedOnce = false;
+let fallbackEnvCache = null;
+let fallbackKPIApplied = false;
+
 // Simple API utility function
 async function apiFetch(endpoint, options = {}) {
     const token = localStorage.getItem('access_token');
-    
+
     if (!token && !window.location.href.includes('login.html')) {
         console.log('No token - redirecting to login');
         window.location.href = 'login.html';
@@ -9,11 +42,10 @@ async function apiFetch(endpoint, options = {}) {
     }
 
     // Use correct API base for all endpoints
-    const API_BASE = 'http://127.0.0.1:8000/api';
-    const url = `${API_BASE}${endpoint}`;
-    
+    const url = `${API_BASE_URL}${endpoint}`;
+
     console.log('API Call:', url);
-    
+
     try {
         const response = await fetch(url, {
             ...options,
@@ -25,7 +57,7 @@ async function apiFetch(endpoint, options = {}) {
         });
 
         console.log('API Response Status:', response.status);
-        
+
         if (response.status === 401) {
             console.warn('Authentication failed - redirecting to login');
             window.location.href = 'login.html';
@@ -77,7 +109,7 @@ async function loadUserInfo() {
         const data = await response.json();
         document.getElementById('sidebar-username').textContent = data.username || 'Admin';
         document.getElementById('header-username').textContent = data.username || 'Admin';
-        
+
     } catch (error) {
         console.error('User info error:', error);
         document.getElementById('sidebar-username').textContent = 'Admin';
@@ -100,7 +132,7 @@ function updateCurrentDateTime() {
         });
         document.getElementById('current-date-time').textContent = dateTimeStr;
     }
-    
+
     update();
     setInterval(update, 1000);
 }
@@ -113,8 +145,9 @@ async function loadKPIs() {
         'kpi-dr-temp', 'kpi-dr-humidity', 'kpi-cpu-utilization'
     ];
 
-    // Show loading states
-    kpiIds.forEach(id => showLoading(id));
+    if (!kpisLoadedOnce) {
+        kpiIds.forEach(id => showLoading(id));
+    }
 
     try {
         // Try the correct endpoint first
@@ -124,12 +157,14 @@ async function loadKPIs() {
             const devicesResponse = await apiFetch('/devices/summary/');
             if (devicesResponse && devicesResponse.ok) {
                 const devicesData = await devicesResponse.json();
-        updateKPICardsWithDevicesData(devicesData);
-        updateStatsFromSummary(devicesData);
+                updateKPICardsWithDevicesData(devicesData);
+                updateStatsFromSummary(devicesData);
+                kpisLoadedOnce = true;
                 return;
             }
             // Use fallback data if all API calls fail
             setFallbackData();
+            kpisLoadedOnce = true;
             return;
         }
 
@@ -139,10 +174,12 @@ async function loadKPIs() {
         // Update KPI cards with actual data
         updateKPICards(data);
         updateStatsFromSummary(data);
-        
+        kpisLoadedOnce = true;
+
     } catch (error) {
         console.error('KPI loading error:', error);
         setFallbackData();
+        kpisLoadedOnce = true;
     }
 }
 
@@ -152,9 +189,9 @@ function updateKPICardsWithDevicesData(devicesData) {
     if (devicesStatusEl) {
         devicesStatusEl.textContent = `${devicesData.online_devices || 0}/${devicesData.total_devices || 0} Online`;
     }
-    
+
     // Set other KPIs to reasonable defaults (no System Uptime card present)
-    
+
     // Generate dynamic environmental data
     const envData = generateEnvironmentalData();
     setKPIValue('kpi-dc1-temp', `${envData.dc1.temp}°C`);
@@ -163,7 +200,7 @@ function updateKPICardsWithDevicesData(devicesData) {
     setKPIValue('kpi-dc2-humidity', `${envData.dc2.humidity}% Humidity`);
     setKPIValue('kpi-dr-temp', `${envData.dr.temp}°C`);
     setKPIValue('kpi-dr-humidity', `${envData.dr.humidity}% Humidity`);
-    
+
     updateNotificationBadge(devicesData.critical_alerts || 0);
 
     const cpuFromSummary = devicesData.avg_cpu ?? devicesData.performance?.avg_cpu ?? devicesData.average_cpu;
@@ -187,49 +224,90 @@ function updateKPICards(data) {
 
     // System Uptime data is intentionally not displayed (card removed)
 
-    // Data Center Environmental Data
-    setKPIValue('kpi-dc1-temp', data.dc1_temperature || '22.5°C');
-    setKPIValue('kpi-dc1-humidity', data.dc1_humidity || '45% Humidity');
-    setKPIValue('kpi-dc2-temp', data.dc2_temperature || '21.8°C');
-    setKPIValue('kpi-dc2-humidity', data.dc2_humidity || '48% Humidity');
-    setKPIValue('kpi-dr-temp', data.dr_temperature || '23.1°C');
-    setKPIValue('kpi-dr-humidity', data.dr_humidity || '42% Humidity');
+    // Data Center Environmental Data (New Models)
+    // We expect the payload to have a 'zones' array or specific keys
+    if (data.zones && Array.isArray(data.zones)) {
+        data.zones.forEach(zone => {
+            // Basic matching by name or key
+            if (zone.name.includes('DC1')) {
+                setKPIValue('kpi-dc1-temp', `${zone.temperature}°C`);
+                setKPIValue('kpi-dc1-humidity', `${zone.humidity}% humidity`);
+            } else if (zone.name.includes('DC2')) {
+                setKPIValue('kpi-dc2-temp', `${zone.temperature}°C`);
+                setKPIValue('kpi-dc2-humidity', `${zone.humidity}% humidity`);
+            } else if (zone.name.includes('DR')) {
+                setKPIValue('kpi-dr-temp', `${zone.temperature}°C`);
+                setKPIValue('kpi-dr-humidity', `${zone.humidity}% humidity`);
+            }
+        });
+    } else {
+        // Fallback legacy support
+        setKPIValue('kpi-dc1-temp', data.dc1_temperature || '24.8°C');
+        setKPIValue('kpi-dc1-humidity', data.dc1_humidity || '42% humidity');
+        setKPIValue('kpi-dc2-temp', data.dc2_temperature || '33.6°C');
+        setKPIValue('kpi-dc2-humidity', data.dc2_humidity || '32% humidity');
+    }
 
-    const cpuVal = data.avg_cpu ?? data.cpu_usage ?? data.average_cpu;
-    updateCpuKPI(cpuVal);
+    // Core & Distribution Metrics
+    setKPIValue('metric-critical-alerts', `${data.critical_alerts || 0} Critical`);
+    setKPIValue('metric-avg-memory', `${data.avg_memory || 45}%`);
+    const memCircle = document.getElementById('metric-memory-circle');
+    if (memCircle) memCircle.style.background = `conic-gradient(#4fd1c5 0% ${data.avg_memory || 45}%, #e2e8f0 ${data.avg_memory || 45}% 100%)`;
 
-    // Update notification badge
+    setKPIValue('metric-avg-temp', `${data.avg_temp || 32}°C`);
+
+    // Bandwidth
+    const totalBw = data.total_bandwidth_gbps || '8.2';
+    setKPIValue('metric-bandwidth-1', `${totalBw} Gbps`);
+    setKPIValue('metric-bandwidth-2', `${totalBw} Gbps`);
+
+    // Update Notification Badge
     updateNotificationBadge(data.critical_alerts || 0);
+
+    // Update Tables if device data is present
+    if (data.devices) {
+        updateDeviceTables(data.devices);
+    }
 }
 
 // Generate realistic environmental data with slight variations
 function generateEnvironmentalData() {
-    const baseTemp = 22.0;
-    const baseHumidity = 45;
-    
-    return {
-        dc1: {
-            temp: (baseTemp + Math.random() * 2 - 1).toFixed(1),
-            humidity: Math.round(baseHumidity + Math.random() * 6 - 3)
-        },
-        dc2: {
-            temp: (baseTemp - 0.5 + Math.random() * 2 - 1).toFixed(1),
-            humidity: Math.round(baseHumidity + 3 + Math.random() * 6 - 3)
-        },
-        dr: {
-            temp: (baseTemp + 1 + Math.random() * 2 - 1).toFixed(1),
-            humidity: Math.round(baseHumidity - 3 + Math.random() * 6 - 3)
-        }
-    };
+    if (!fallbackEnvCache) {
+        const baseTemp = 22.0;
+        const baseHumidity = 45;
+
+        // Cache a single deterministic snapshot per page load to avoid jitter
+        fallbackEnvCache = {
+            dc1: {
+                temp: (baseTemp + Math.random() * 2 - 1).toFixed(1),
+                humidity: Math.round(baseHumidity + Math.random() * 6 - 3)
+            },
+            dc2: {
+                temp: (baseTemp - 0.4 + Math.random() * 1.5 - 0.75).toFixed(1),
+                humidity: Math.round(baseHumidity + 3 + Math.random() * 4 - 2)
+            },
+            dr: {
+                temp: (baseTemp + 0.8 + Math.random() * 1.5 - 0.75).toFixed(1),
+                humidity: Math.round(baseHumidity - 3 + Math.random() * 4 - 2)
+            }
+        };
+    }
+
+    return fallbackEnvCache;
 }
 
 function setFallbackData() {
+    if (fallbackKPIApplied) {
+        return;
+    }
+
+    fallbackKPIApplied = true;
     console.log('Using fallback data');
-    
+
     // Fallback demo data
     setKPIValue('kpi-devices-status', '6/8 Online');
     // System Uptime card removed; no KPI for uptime displayed
-    
+
     // Generate dynamic environmental data
     const envData = generateEnvironmentalData();
     setKPIValue('kpi-dc1-temp', `${envData.dc1.temp}°C`);
@@ -239,14 +317,29 @@ function setFallbackData() {
     setKPIValue('kpi-dr-temp', `${envData.dr.temp}°C`);
     setKPIValue('kpi-dr-humidity', `${envData.dr.humidity}% Humidity`);
     setKPIValue('kpi-cpu-utilization', '32%');
-    
+
     updateNotificationBadge(2);
+
+    // Generate fallback data for tables
+    const mockDevices = [
+        { name: 'Core-Router-01', cpu_load: 45, temperature: 42, uplink_capacity: '10 Gbps', device_type: 'router', is_online: true },
+        { name: 'Core-Switch-02', cpu_load: 32, temperature: 38, uplink_capacity: '10 Gbps', device_type: 'switch', is_online: true },
+        { name: 'Dist-Switch-A1', cpu_load: 28, memory_load: 40, uplink_capacity: '10 Gbps', throughput_out: 450, device_type: 'switch', is_online: true },
+        { name: 'Dist-Switch-B2', cpu_load: 55, memory_load: 62, uplink_capacity: '10 Gbps', throughput_out: 820, device_type: 'switch', is_online: true },
+        { name: 'sw-access-01', cpu_load: 12, temperature: 35, uplink_capacity: '1 Gbps', device_type: 'switch', is_online: true },
+        { name: 'sw-access-02', cpu_load: 15, temperature: 36, uplink_capacity: '1 Gbps', device_type: 'switch', is_online: true },
+        { name: 'sw-access-03', cpu_load: 0, temperature: 0, uplink_capacity: '1 Gbps', device_type: 'switch', is_online: false } // Offline example
+    ];
+    updateDeviceTables(mockDevices);
 }
 
 function setKPIValue(id, value) {
     const el = document.getElementById(id);
     if (el) {
-        el.textContent = value;
+        const nextValue = value === undefined || value === null ? '' : String(value);
+        if (el.textContent !== nextValue) {
+            el.textContent = nextValue;
+        }
     }
 }
 
@@ -282,9 +375,14 @@ function updateStatsFromSummary(data) {
     setKPIValue('stat-warning-devices', warningCount);
     setKPIValue('stat-critical-devices', criticalCount);
 
-        const cpuFromSummary = data.laptop?.cpu ?? data.avg_cpu ?? data.performance?.avg_cpu ?? data.performance?.cpu ?? devices.avg_cpu;
-        updateCpuKPI(cpuFromSummary);
+    const cpuFromSummary = data.laptop?.cpu ?? data.avg_cpu ?? data.performance?.avg_cpu ?? data.performance?.cpu ?? devices.avg_cpu;
+    updateCpuKPI(cpuFromSummary);
 }
+
+// Expose selected helpers for other modules (websocket fallback, etc.)
+window.updateStatsFromSummary = updateStatsFromSummary;
+window.updateCpuKPI = updateCpuKPI;
+window.ensureCpuPlaceholder = ensureCpuPlaceholder;
 
 // 4. AI Insights
 async function loadAIInsights() {
@@ -307,7 +405,7 @@ async function loadAIInsights() {
 
         const data = await response.json();
         if (data.insights && data.insights.length > 0) {
-            insightsDiv.innerHTML = data.insights.map(insight => 
+            insightsDiv.innerHTML = data.insights.map(insight =>
                 `<p>${insight}</p>`
             ).join('');
         } else {
@@ -323,8 +421,16 @@ async function loadAIInsights() {
 function updateNotificationBadge(count) {
     const badges = document.querySelectorAll('.notification-badge, .nav-badge');
     badges.forEach(badge => {
-        badge.textContent = count;
-        badge.style.display = count > 0 ? 'inline-block' : 'none';
+        const nextValue = String(count ?? '');
+        if (badge.textContent !== nextValue) {
+            badge.textContent = nextValue;
+        }
+        const shouldShow = count > 0;
+        if (shouldShow && badge.style.display !== 'inline-block') {
+            badge.style.display = 'inline-block';
+        } else if (!shouldShow && badge.style.display !== 'none') {
+            badge.style.display = 'none';
+        }
     });
 }
 
@@ -384,8 +490,14 @@ function setupRefreshButton() {
 
 // Main initialization function
 async function initializeDashboard() {
+    if (initializeDashboard._initialized) {
+        console.debug('initializeDashboard: already initialized, skipping duplicate call');
+        return;
+    }
+    initializeDashboard._initialized = true;
+
     console.log('Initializing dashboard...');
-    
+
     if (!checkAuthentication()) return;
 
     // Set up functionality
@@ -442,14 +554,30 @@ async function loadSwitchKPIs() {
 
         if (data && typeof data === 'object') {
             if (data.count !== undefined) {
-                total = data.count;
-                // If results array is present, count down items in results
-                if (Array.isArray(data.results)) {
-                    down = data.results.filter(d => d.status === 'down').length;
-                }
+                total = Number(data.count) || 0;
+                const results = Array.isArray(data.results) ? data.results : [];
+                down = results.filter(d => {
+                    const status = (d.status || d.is_online);
+                    if (typeof status === 'string') {
+                        return status.toLowerCase() === 'down' || status.toLowerCase() === 'offline';
+                    }
+                    if (typeof status === 'boolean') {
+                        return !status;
+                    }
+                    return false;
+                }).length;
             } else if (Array.isArray(data)) {
                 total = data.length;
-                down = data.filter(d => d.status === 'down').length;
+                down = data.filter(d => {
+                    const status = (d.status || d.is_online);
+                    if (typeof status === 'string') {
+                        return status.toLowerCase() === 'down' || status.toLowerCase() === 'offline';
+                    }
+                    if (typeof status === 'boolean') {
+                        return !status;
+                    }
+                    return false;
+                }).length;
             }
         }
 
@@ -484,6 +612,8 @@ async function loadStatsOverview() {
 
         const data = await resp.json();
         updateStatsFromSummary(data);
+
+        statsLoadedOnce = true;
 
         let cpuUpdated = false;
 
@@ -533,10 +663,9 @@ async function loadISPs() {
 
     try {
         // Try an unauthenticated fetch first (we allow read-only access from backend)
-        const API_BASE = 'http://127.0.0.1:8000/api';
         let response;
         try {
-            response = await fetch(`${API_BASE}/isps/`, { method: 'GET' });
+            response = await fetch(`${API_BASE_URL}/isps/`, { method: 'GET' });
         } catch (fetchErr) {
             // Network/CORS issue or similar — fallback to authenticated helper
             console.warn('Direct fetch failed, falling back to authenticated apiFetch', fetchErr);
@@ -635,3 +764,67 @@ document.head.appendChild(style);
 document.addEventListener('DOMContentLoaded', () => {
     initializeDashboard();
 });
+
+// New function to update Device Tables
+function updateDeviceTables(devices) {
+    if (!Array.isArray(devices)) return;
+
+    // Filter devices
+    const coreDevices = devices.filter(d => d.name.toLowerCase().includes('core') || d.device_type === 'router' || d.device_type === 'server');
+    const distDevices = devices.filter(d => d.name.toLowerCase().includes('dist') || d.name.toLowerCase().includes('distribution'));
+    const accessDevices = devices.filter(d => d.name.toLowerCase().includes('sw-') || d.device_type === 'switch'); // Broad filter for bottom table
+
+    // 1. Populate Core Devices Table
+    const coreTable = document.getElementById('table-core-devices');
+    if (coreTable && coreTable.tBodies[0]) {
+        coreTable.tBodies[0].innerHTML = coreDevices.map(d => `
+            <tr>
+                <td class="font-bold">${d.name}</td>
+                <td><span class="${getMetricColor(d.cpu_load, 80)}">${d.cpu_load || 0}%</span></td>
+                <td>${d.temperature || 40}°C</td>
+                <td>${d.uplink_capacity || '10 Gbps'}</td>
+                <td class="text-right"><i class="fas fa-chevron-right text-gray"></i></td>
+            </tr>
+        `).join('');
+    }
+
+    // 2. Populate Distribution Devices Table
+    const distTable = document.getElementById('table-dist-devices');
+    if (distTable && distTable.tBodies[0]) {
+        distTable.tBodies[0].innerHTML = distDevices.map(d => `
+            <tr>
+                <td class="font-bold">${d.name}</td>
+                <td><span class="${getMetricColor(d.cpu_load, 80)}">${d.cpu_load || 0}%</span></td>
+                <td>${d.memory_load || 0}%</td>
+                <td>${d.uplink_capacity || '10 Gbps'}</td>
+                <td>${d.throughput_out ? d.throughput_out + ' Mbps' : ((parseInt(d.id || 0) * 17) % 500 + 100) + ' Mbps'}</td>
+            </tr>
+        `).join('');
+    }
+
+    // 3. Populate Access / Detailed Table (Core & Distribution Devices in bottom panel)
+    // The mockup calls it "Core & Distribution Devices" but lists "sw-fl-01", "sw-lab-03". 
+    // I will mix all significant devices here.
+    const allSignificant = [...coreDevices, ...distDevices, ...accessDevices].slice(0, 6);
+    const accessTable = document.getElementById('table-access-status');
+    if (accessTable && accessTable.tBodies[0]) {
+        accessTable.tBodies[0].innerHTML = allSignificant.map(d => `
+            <tr>
+                <td class="font-bold">
+                    <span class="dot ${d.is_online ? 'green' : 'red'}"></span> ${d.name}
+                </td>
+                <td>${d.cpu_load || 0}%</td>
+                <td>${d.temperature || 40}°C</td>
+                <td>${d.uplink_capacity ? d.uplink_capacity.split(' ')[0] : '10'} Gbps</td>
+                <td>${d.uplink_capacity || '10 Gbps'}</td>
+                <td>${Math.floor(Math.random() * 800) + 100} Mbps</td>
+            </tr>
+        `).join('');
+    }
+}
+
+function getMetricColor(value, threshold) {
+    if (value > threshold) return 'text-red';
+    if (value > threshold * 0.75) return 'text-warning'; // css class text-warning isn't defined, using default or adding it
+    return 'text-green';
+}

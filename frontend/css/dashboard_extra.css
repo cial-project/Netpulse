@@ -1,0 +1,272 @@
+/* Port Dashboard Polished Styles */
+.port-card {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--card-shadow);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    border: 1px solid var(--gray-100);
+    transition: var(--transition);
+}
+
+.port-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--card-shadow-hover);
+    border-color: var(--primary-light);
+}
+
+.port-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.port-name {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--dark-alt);
+    letter-spacing: -0.01em;
+}
+
+.device-name {
+    font-size: 0.85rem;
+    color: var(--gray-500);
+    margin-top: 0.25rem;
+    font-weight: 500;
+}
+
+/* ISP Card Polished */
+.isp-detailed-card {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--card-shadow);
+    padding: 1.5rem;
+    border: 1px solid var(--gray-100);
+    transition: var(--transition);
+}
+
+.isp-detailed-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--card-shadow-hover);
+    border-color: var(--primary-light);
+}
+
+/* ISP Card Internal Layout */
+.isp-card-main {
+    display: flex;
+    gap: 2rem;
+    align-items: stretch;
+}
+
+.isp-info-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.isp-chart-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 300px;
+}
+
+.provider-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.provider-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--primary-light);
+    color: var(--primary-dark);
+    border-radius: 12px;
+    font-size: 1.25rem;
+}
+
+.provider-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--dark);
+    margin: 0;
+}
+
+.plan-info {
+    font-size: 0.85rem;
+    color: var(--secondary);
+    margin: 0.25rem 0 0 0;
+}
+
+.isp-details-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.detail-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--gray-400);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+}
+
+.detail-value {
+    font-size: 1rem;
+    color: var(--dark-alt);
+    font-weight: 600;
+}
+
+.isp-chart-wrapper {
+    flex: 1;
+    min-height: 150px;
+    position: relative;
+    border: 1px solid var(--gray-100);
+    border-radius: 8px;
+    padding: 10px;
+    background: #fafafa;
+}
+
+.chart-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--secondary);
+    margin-bottom: 0.5rem;
+}
+
+
+/* Interactive Elements */
+.status-badge {
+    transition: var(--transition);
+}
+
+.status-badge:hover {
+    transform: scale(1.05);
+}
+
+.btn-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    cursor: pointer;
+    color: var(--gray-500);
+    border: 1px solid transparent;
+    background: transparent;
+}
+
+.btn-icon:hover {
+    background-color: var(--primary-light);
+    color: var(--primary);
+}
+
+/* Port Metrics Grid & Chart Styles */
+.port-metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.metric-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.metric-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+}
+
+.metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+    color: var(--dark);
+    font-weight: 500;
+}
+
+.metric-row.small {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    margin-top: 0.25rem;
+}
+
+.progress-track {
+    width: 100%;
+    height: 6px;
+    background-color: var(--gray-200);
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background-color: var(--primary);
+    border-radius: 99px;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chart-container-port {
+    height: 100px;
+    width: 100%;
+    position: relative;
+    margin-top: auto;
+}
+
+.chart-container-port canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.port-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+/* Header Actions */
+.action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .isp-card-main {
+        flex-direction: column;
+    }
+
+    .isp-chart-col {
+        min-width: 100%;
+        margin-top: 1.5rem;
+    }
+}

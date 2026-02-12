@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
+
 <body>
     <div class="dashboard-container">
         <!-- Sidebar Navigation -->
@@ -18,13 +20,19 @@
                     <h1>NetPulse</h1>
                 </div>
             </div>
-            
+
             <nav class="sidebar-nav">
                 <ul>
                     <li class="nav-item">
                         <a href="dashboard.html">
-                            <i class="fas fa-home"></i>
+                            <i class="fas fa-tachometer-alt"></i>
                             <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="isp-dashboard.html">
+                            <i class="fas fa-globe"></i>
+                            <span>ISP Monitoring</span>
                         </a>
                     </li>
                     <li class="nav-item">
@@ -65,7 +73,7 @@
                     </li>
                 </ul>
             </nav>
-            
+
             <div class="sidebar-footer">
                 <div class="user-info">
                     <div class="user-avatar">
@@ -158,7 +166,9 @@
                         <i class="fas fa-lightbulb"></i>
                     </div>
                     <div class="insight-text">
-                        <p id="ai-insight-text">Multiple temperature alerts in Terminal 1 may be related to HVAC system issue. Network device failures appear to be clustered around Switch-T1-A, suggesting potential hardware failure.</p>
+                        <p id="ai-insight-text">Multiple temperature alerts in Terminal 1 may be related to HVAC system
+                            issue. Network device failures appear to be clustered around Switch-T1-A, suggesting
+                            potential hardware failure.</p>
                     </div>
                 </div>
             </section>
@@ -317,7 +327,9 @@
     </div>
 
     <!-- JavaScript Files -->
+    <script src="./js/config.js"></script>
     <script src="js/api.js"></script>
     <script src="js/alerts-and-incidents.js"></script>
 </body>
+
 </html>

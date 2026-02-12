@@ -32,7 +32,7 @@ def get_device_status(ip: str, community: str = 'public') -> Dict:
         # Determine initial state based on IP (consistent behavior)
         ip_hash = hash(ip) % 100
         _device_states[ip] = {
-            'is_online': ip_hash < 85,  # 85% online initially
+            'is_online': ip == '192.168.1.13' or ip_hash < 85,  # Force user laptop online, else 85% chance
             'last_change': datetime.now(),
             'metrics_history': []
         }

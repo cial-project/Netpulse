@@ -10,15 +10,24 @@ async function loginUser(event) {
     return;
   }
 
+  // Determine API Base URL dynamically
+  const API_BASE = (() => {
+    const override = window.NETPULSE_API_BASE;
+    if (override && typeof override === 'string') {
+      return override.replace(/\/$/, '');
+    }
+    return 'http://127.0.0.1:8000';
+  })();
+
   try {
-    const response = await fetch("http://127.0.0.1:8000/api/auth/login/", {
+    const response = await fetch(`${API_BASE}/api/auth/login/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: username, password: password })
     });
 
     console.log("Response status:", response.status);
-    
+
     const data = await response.json();
     console.log("Response data:", data);
 
@@ -30,7 +39,7 @@ async function loginUser(event) {
       // Since Django doesn't return user data in login response,
       // we need to fetch it separately
       try {
-        const userResponse = await fetch("http://127.0.0.1:8000/api/auth/user/me/", {
+        const userResponse = await fetch(`${API_BASE}/api/auth/user/me/`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -58,16 +67,16 @@ async function loginUser(event) {
 }
 
 // Add event listener
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
   const loginForm = document.querySelector('.login-form');
   if (loginForm) {
     loginForm.addEventListener('submit', loginUser);
   }
-  
+
   // Add enter key support
   const passwordField = document.getElementById("password");
   if (passwordField) {
-    passwordField.addEventListener('keypress', function(event) {
+    passwordField.addEventListener('keypress', function (event) {
       if (event.key === "Enter") {
         event.preventDefault();
         loginUser(event);

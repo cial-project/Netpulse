@@ -1,3 +1,31 @@
+const API_BASE = (() => {
+    const override = window.NETPULSE_API_BASE;
+    if (override && typeof override === 'string') {
+        return override.replace(/\/$/, '');
+    }
+
+    const { origin, protocol, hostname, port } = window.location || {};
+    const staticDevPorts = new Set(['5500', '5501', '5502', '3000', '3001']);
+
+    if (origin && origin !== 'null' && !origin.startsWith('file://')) {
+        if (port && staticDevPorts.has(String(port))) {
+            const backendPort = protocol === 'https:' ? '443' : '8000';
+            return `${protocol}//${hostname}:${backendPort}`.replace(/\/$/, '');
+        }
+        return origin.replace(/\/$/, '');
+    }
+    if (protocol && hostname) {
+        const defaultPort = protocol === 'https:' ? '443' : '80';
+        const hasExplicitPort = port && port !== defaultPort;
+        const backendPort = protocol === 'https:' ? '443' : '8000';
+        const finalPort = hasExplicitPort ? port : backendPort;
+        return `${protocol}//${hostname}:${finalPort}`.replace(/\/$/, '');
+    }
+    return 'http://127.0.0.1:8000';
+})();
+
+const API_BASE_URL = `${API_BASE}/api`;
+
 // API utility function
 async function apiFetch(endpoint, options = {}) {
     const token = localStorage.getItem('access_token');
@@ -6,9 +34,8 @@ async function apiFetch(endpoint, options = {}) {
         return null;
     }
 
-    const API_BASE = 'http://127.0.0.1:8000/api';
-    const url = `${API_BASE}${endpoint}`;
-    
+    const url = `${API_BASE_URL}${endpoint}`;
+
     try {
         const response = await fetch(url, {
             ...options,
@@ -35,7 +62,7 @@ async function apiFetch(endpoint, options = {}) {
 async function loadNetworkDevices() {
     const tableBody = document.querySelector('.devices-table tbody');
     if (!tableBody) return;
-    
+
     tableBody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 2rem;">Loading devices...</td></tr>';
 
     try {
@@ -97,7 +124,7 @@ function renderDevicesTable(devices) {
             </td>
             <td><span class="device-type-badge ${device.device_type}">${device.device_type || 'Unknown'}</span></td>
             <td class="ip-address">${device.ip_address || 'N/A'}</td>
-            <td>${device.zone || 'N/A'}</td>
+            <td>${device.zone_name || device.zone || 'N/A'}</td>
             <td>${device.port || 161}</td>
             <td>
                 <span class="status-badge ${device.is_online ? 'online' : 'offline'}">
@@ -140,7 +167,7 @@ function showDemoDevices() {
         { id: 6, name: "Switch-Baggage", ip_address: "192.168.1.6", device_type: "switch", is_online: false, uptime_days: 27, last_seen: new Date(Date.now() - 240000).toISOString() },
         { id: 7, name: "AP-Checkin", ip_address: "192.168.1.7", device_type: "ap", is_online: true, uptime_days: 45, last_seen: new Date(Date.now() - 120000).toISOString() }
     ];
-    
+
     renderDevicesTable(demoDevices);
     updateDeviceStats(demoDevices);
 }
@@ -148,8 +175,8 @@ function showDemoDevices() {
 function updateDeviceStats(devices) {
     const totalDevices = devices.length;
     const onlineDevices = devices.filter(d => d.is_online).length;
-    const warningDevices = devices.filter(d => !d.is_online).length;
-    const criticalDevices = devices.filter(d => !d.is_online && d.uptime_days === 0).length;
+    const warningDevices = devices.filter(d => !d.is_online && (d.status || '').toLowerCase() !== 'critical').length;
+    const criticalDevices = devices.filter(d => (d.status || '').toLowerCase() === 'critical').length;
 
     const statItems = document.querySelectorAll('.stat-item');
     if (statItems.length >= 4) {
@@ -184,11 +211,11 @@ function formatRelativeTime(dateString) {
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
-    
+
     if (diffMins < 1) return 'Just now';
     if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
     if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    
+
     const diffDays = Math.floor(diffHours / 24);
     return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
 }
@@ -241,7 +268,7 @@ async function refreshDeviceStatus(deviceId) {
         const response = await apiFetch(`/devices/${deviceId}/poll_now/`, {
             method: 'POST'
         });
-        
+
         if (response && response.ok) {
             loadNetworkDevices();
         }
@@ -256,28 +283,28 @@ async function deleteDevice(deviceId, deviceName) {
         console.error('No device ID provided for deletion');
         return;
     }
-    
+
     // Confirmation dialog
     const isConfirmed = confirm(`Are you sure you want to delete device "${deviceName}" (ID: ${deviceId})? This action cannot be undone.`);
-    
+
     if (!isConfirmed) {
         return;
     }
-    
+
     try {
         const response = await apiFetch(`/devices/${deviceId}/`, {
             method: 'DELETE'
         });
-        
+
         if (response && response.ok) {
             // Show success message
             showNotification(`Device "${deviceName}" deleted successfully`, 'success');
-            
+
             // Reload the devices list after a short delay
             setTimeout(() => {
                 loadNetworkDevices();
             }, 1000);
-            
+
         } else if (response && response.status === 404) {
             showNotification(`Device not found. It may have been already deleted.`, 'error');
         } else {
@@ -295,7 +322,7 @@ function showNotification(message, type = 'info') {
     // Remove existing notifications
     const existingNotifications = document.querySelectorAll('.device-notification');
     existingNotifications.forEach(notification => notification.remove());
-    
+
     // Create new notification
     const notification = document.createElement('div');
     notification.className = `device-notification device-notification-${type}`;
@@ -306,15 +333,15 @@ function showNotification(message, type = 'info') {
             <button class="notification-close">&times;</button>
         </div>
     `;
-    
+
     // Add to page
     document.body.appendChild(notification);
-    
+
     // Show notification
     setTimeout(() => {
         notification.classList.add('show');
     }, 100);
-    
+
     // Auto-remove after 5 seconds
     setTimeout(() => {
         notification.classList.remove('show');
@@ -324,7 +351,7 @@ function showNotification(message, type = 'info') {
             }
         }, 300);
     }, 5000);
-    
+
     // Close button functionality
     notification.querySelector('.notification-close').addEventListener('click', () => {
         notification.classList.remove('show');
@@ -352,9 +379,9 @@ function setupFilters() {
 function filterDevices() {
     const statusFilter = document.getElementById('status-filter').value;
     const typeFilter = document.getElementById('type-filter').value;
-    
+
     const rows = document.querySelectorAll('.devices-table tbody tr');
-    
+
     rows.forEach(row => {
         // Determine status robustly
         const status = row.classList.contains('online') ? 'online' : (row.classList.contains('warning') ? 'warning' : (row.classList.contains('critical') ? 'critical' : 'offline'));
@@ -366,7 +393,7 @@ function filterDevices() {
             typeEl = row.children[1] || row.querySelector('td:nth-child(2)');
         }
         const type = (typeEl && typeEl.textContent) ? typeEl.textContent.trim().toLowerCase() : '';
-        
+
         const statusMatch = statusFilter === 'all' || status === statusFilter;
         const typeMatch = typeFilter === 'all' || type === typeFilter;
 
@@ -405,7 +432,7 @@ function exportData() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    const now = new Date().toISOString().slice(0,19).replace(/:/g, '-');
+    const now = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
     a.download = `network_devices_export_${now}.csv`;
     document.body.appendChild(a);
     a.click();
@@ -521,13 +548,13 @@ async function addNewDevice() {
         console.log('Already adding a device, please wait...');
         return;
     }
-    
+
     isAddingDevice = true;
-    
+
     const form = document.getElementById('add-device-form');
     const errorDiv = document.getElementById('add-device-error');
     const submitBtn = form.querySelector('button[type="submit"]');
-    
+
     // Get form data
     const formData = {
         name: document.getElementById('device-name').value.trim(),
@@ -589,11 +616,11 @@ async function addNewDevice() {
             // Success
             const newDevice = await response.json();
             showNotification(`Device "${formData.name}" added successfully`, 'success');
-            
+
             document.getElementById('add-device-modal').style.display = 'none';
             form.reset();
             loadNetworkDevices(); // Refresh the list
-            
+
         } else if (response) {
             // Error handling with robust parsing
             let errorData = null;
@@ -666,12 +693,12 @@ function initializeBandwidthChart() {
         console.log('Bandwidth chart canvas not found');
         return;
     }
-    
+
     // Destroy existing chart if it exists
     if (bandwidthChart) {
         bandwidthChart.destroy();
     }
-    
+
     // Initialize with real data
     bandwidthChart = new Chart(ctx, {
         type: 'line',
@@ -715,7 +742,7 @@ function initializeBandwidthChart() {
                 title: {
                     display: true,
                     text: 'Network Bandwidth Usage - Last 24 Hours',
-                    font: { 
+                    font: {
                         size: 16,
                         weight: 'bold'
                     },
@@ -773,7 +800,7 @@ function initializeBandwidthChart() {
                     },
                     ticks: {
                         color: '#718096',
-                        callback: function(value) {
+                        callback: function (value) {
                             return value + ' Mbps';
                         }
                     }
@@ -790,7 +817,7 @@ function initializeBandwidthChart() {
             }
         }
     });
-    
+
     // Set up chart controls
     setupChartControls();
 }
@@ -798,55 +825,55 @@ function initializeBandwidthChart() {
 function generateTimeLabels(hours = 24) {
     const labels = [];
     const now = new Date();
-    
+
     for (let i = hours; i >= 0; i--) {
         const time = new Date(now);
         time.setHours(time.getHours() - i);
-        
+
         // Format as HH:MM
         const hoursStr = time.getHours().toString().padStart(2, '0');
         const minutesStr = time.getMinutes().toString().padStart(2, '0');
-        
+
         labels.push(`${hoursStr}:${minutesStr}`);
     }
-    
+
     return labels;
 }
 
 function generateBandwidthData(min, max) {
     const data = [];
     const baseVariation = 0.3;
-    
+
     for (let i = 0; i <= 24; i++) {
         // Simulate daily pattern - higher during business hours (9 AM - 5 PM)
         const hour = (new Date().getHours() - (24 - i) + 24) % 24;
         const isBusinessHours = hour >= 9 && hour <= 17;
         const baseLevel = isBusinessHours ? 0.6 : 0.3;
-        
+
         // Add some random variation
         const variation = (Math.random() * 0.4) - 0.2;
         const value = baseLevel + variation;
-        
+
         // Scale to the specified range
         const scaledValue = min + (value * (max - min));
         data.push(Math.max(min, Math.min(max, Math.round(scaledValue))));
     }
-    
+
     return data;
 }
 
 function setupChartControls() {
     const timeRangeSelect = document.getElementById('time-range');
     const deviceSelect = document.getElementById('device-select');
-    
+
     if (timeRangeSelect) {
-        timeRangeSelect.addEventListener('change', function() {
+        timeRangeSelect.addEventListener('change', function () {
             updateChartData(this.value);
         });
     }
-    
+
     if (deviceSelect) {
-        deviceSelect.addEventListener('change', function() {
+        deviceSelect.addEventListener('change', function () {
             updateChartData(timeRangeSelect.value, this.value);
         });
     }
@@ -854,9 +881,9 @@ function setupChartControls() {
 
 function updateChartData(timeRange, device = 'all') {
     if (!bandwidthChart) return;
-    
+
     let hours;
-    switch(timeRange) {
+    switch (timeRange) {
         case '1h': hours = 1; break;
         case '6h': hours = 6; break;
         case '12h': hours = 12; break;
@@ -864,10 +891,10 @@ function updateChartData(timeRange, device = 'all') {
         case '7d': hours = 168; break;
         default: hours = 24;
     }
-    
+
     // Update chart labels
     bandwidthChart.data.labels = generateTimeLabels(hours);
-    
+
     // Update data based on device selection
     let downloadMax = 800, uploadMax = 400;
     if (device !== 'all') {
@@ -875,38 +902,38 @@ function updateChartData(timeRange, device = 'all') {
         downloadMax = 600;
         uploadMax = 300;
     }
-    
+
     bandwidthChart.data.datasets[0].data = generateBandwidthData(300, downloadMax);
     bandwidthChart.data.datasets[1].data = generateBandwidthData(100, uploadMax);
-    
+
     // Update chart title
-    bandwidthChart.options.plugins.title.text = 
+    bandwidthChart.options.plugins.title.text =
         `Network Bandwidth Usage - Last ${timeRange.toUpperCase()}`;
-    
+
     bandwidthChart.update();
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     if (isInitialized) {
         console.log('Network Devices already initialized');
         return;
     }
-    
+
     if (!checkAuth()) return;
-    
+
     isInitialized = true;
-    
+
     loadNetworkDevices();
     setupFilters();
     setupAddDeviceModal();
     setupExportButton();
     startAutoRefresh();
-    
+
     // Initialize bandwidth chart
     setTimeout(() => {
         initializeBandwidthChart();
     }, 500);
-    
+
     console.log('✅ Network Devices page initialized with bandwidth chart');
 });
 
@@ -914,12 +941,12 @@ document.addEventListener('DOMContentLoaded', function() {
 window.addEventListener('load', initializeBandwidthChart);
 
 // Allow websocket bridge to update bandwidth chart in real-time
-window.updateBandwidthChart = function(metrics = {}) {
+window.updateBandwidthChart = function (metrics = {}) {
     try {
         if (!bandwidthChart) return;
 
         const now = new Date();
-        const label = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+        const label = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
 
         // Shift existing labels and push new time
         if (Array.isArray(bandwidthChart.data.labels)) {

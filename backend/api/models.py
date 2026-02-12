@@ -75,6 +75,12 @@ class Device(models.Model):
     # Mark devices that should appear in the concise Device Grid (top 4)
     is_important = models.BooleanField(default=False)
     
+    # Real-time metrics cache (for static/snapshot views)
+    cpu_load = models.FloatField(default=0.0, help_text="Current CPU Load %")
+    memory_load = models.FloatField(default=0.0, help_text="Current Memory Used %")
+    temperature = models.FloatField(null=True, blank=True, help_text="Device Temperature (C)")
+    uplink_capacity = models.CharField(max_length=50, default="10 Gbps", help_text="Uplink Connection Speed")
+    
     def __str__(self):
         status = "Online" if self.is_online else "Offline"
         return f"{self.name} ({self.ip_address}) - {status}"
@@ -124,6 +130,9 @@ class Zone(models.Model):
     name = models.CharField(max_length=100, unique=True)
     key = models.SlugField(max_length=50, unique=True)
     description = models.TextField(blank=True)
+    # Environmental Data
+    temperature = models.FloatField(null=True, blank=True, help_text="Current temperature in Celsius")
+    humidity = models.FloatField(null=True, blank=True, help_text="Current humidity percentage")
 
     def __str__(self):
         return self.name
@@ -139,9 +148,41 @@ class ISP(models.Model):
     packet_loss = models.FloatField(null=True, blank=True)
     upstream_mbps = models.FloatField(null=True, blank=True)
     downstream_mbps = models.FloatField(null=True, blank=True)
+    # Plan Details
+    plan_download_mbps = models.FloatField(default=100.0, help_text="Plan Download Speed Limit")
+    plan_upload_mbps = models.FloatField(default=100.0, help_text="Plan Upload Speed Limit")
+    is_flapping = models.BooleanField(default=False)
+    provider_image = models.CharField(max_length=255, blank=True, help_text="Path to provider logo image")
 
     def __str__(self):
         return f"{self.name} ({self.host})"
+
+
+class Port(models.Model):
+    """Represents a network interface/port on a device for detailed monitoring."""
+    name = models.CharField(max_length=100, help_text="e.g., GigabitEthernet0/1")
+    device_name = models.CharField(max_length=100, help_text="Name of the switch/router")
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    capacity_mbps = models.IntegerField(default=1000, help_text="Port speed in Mbps")
+    is_active = models.BooleanField(default=True)
+    status = models.CharField(max_length=10, default='up')
+    last_checked = models.DateTimeField(null=True, blank=True)
+    
+    # Current Metrics
+    bps_in = models.BigIntegerField(default=0)
+    bps_out = models.BigIntegerField(default=0)
+    utilization_in = models.FloatField(default=0.0) # Percentage
+    utilization_out = models.FloatField(default=0.0) # Percentage
+    errors_in = models.IntegerField(default=0)
+    errors_out = models.IntegerField(default=0)
+    # Advanced Metrics
+    latency_ms = models.FloatField(default=0.0)
+    packet_drops = models.FloatField(default=0.0, help_text="Percentage of packet drops")
+    is_flapping = models.BooleanField(default=False)
+    critical_alert_count = models.IntegerField(default=0)
+
+    def __str__(self):
+        return f"{self.device_name} - {self.name}"
 
 
 class Audit(models.Model):

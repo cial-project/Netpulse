@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from .models import User, Device, Alert, Metric, Zone
-from .models import ISP, Audit
+from .models import ISP, Audit, Port
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -45,17 +45,6 @@ class SignupSerializer(serializers.ModelSerializer):
         )
         return user
 
-class DeviceSerializer(serializers.ModelSerializer):
-    status = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = Device
-        fields = '__all__'
-    
-    def get_status(self, obj):
-        # This would be determined by SNMP polling in real implementation
-        return 'online'  # Placeholder
-
 class AlertSerializer(serializers.ModelSerializer):
     device_name = serializers.CharField(source='device.name', read_only=True)
     
@@ -74,18 +63,25 @@ class MetricSerializer(serializers.ModelSerializer):
 class ZoneSerializer(serializers.ModelSerializer):
     class Meta:
         model = Zone
-        fields = ('id', 'name', 'key', 'description')
+        fields = ('id', 'name', 'key', 'description', 'temperature', 'humidity')
 
 
 class ISPSerializer(serializers.ModelSerializer):
     class Meta:
         model = ISP
-        fields = ('id', 'name', 'host', 'is_active', 'last_checked', 'latency_ms', 'packet_loss', 'upstream_mbps', 'downstream_mbps')
+        fields = ('id', 'name', 'host', 'is_active', 'last_checked', 'latency_ms', 'packet_loss', 'upstream_mbps', 'downstream_mbps', 'plan_download_mbps', 'plan_upload_mbps', 'is_flapping', 'provider_image')
+
+class PortSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Port
+        fields = '__all__'
 
 class DeviceSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     last_metrics = serializers.SerializerMethodField()
-    zone = serializers.CharField(source='zone.name', read_only=True)
+    # Accept ID for writing, return ID for reading (default), but we add zone_name for display
+    zone = serializers.PrimaryKeyRelatedField(queryset=Zone.objects.all(), required=False, allow_null=True)
+    zone_name = serializers.CharField(source='zone.name', read_only=True)
     
     class Meta:
         model = Device

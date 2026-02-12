@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +10,7 @@
     <!-- Add Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
+
 <body>
     <div class="dashboard-container">
         <!-- Sidebar Navigation -->
@@ -19,13 +21,19 @@
                     <h1>NetPulse</h1>
                 </div>
             </div>
-            
+
             <nav class="sidebar-nav">
                 <ul>
                     <li class="nav-item">
                         <a href="dashboard.html">
-                            <i class="fas fa-home"></i>
+                            <i class="fas fa-tachometer-alt"></i>
                             <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="isp-dashboard.html">
+                            <i class="fas fa-globe"></i>
+                            <span>ISP Monitoring</span>
                         </a>
                     </li>
                     <li class="nav-item">
@@ -40,7 +48,7 @@
                             <span>Environmental</span>
                         </a>
                     </li>
-                    
+
                     <li class="nav-item">
                         <a href="alerts-and-incidents.html">
                             <i class="fas fa-exclamation-triangle"></i>
@@ -67,7 +75,7 @@
                     </li>
                 </ul>
             </nav>
-            
+
             <div class="sidebar-footer">
                 <div class="user-info">
                     <div class="user-avatar">
@@ -160,7 +168,8 @@
                         <i class="fas fa-temperature-high"></i>
                     </div>
                     <div class="insight-text">
-                        <p id="ai-insight-text">Temperature rising in Server Room A. Predicted to exceed threshold in 2 hours. Humidity levels stable across all zones.</p>
+                        <p id="ai-insight-text">Temperature rising in Server Room A. Predicted to exceed threshold in 2
+                            hours. Humidity levels stable across all zones.</p>
                     </div>
                 </div>
             </section>
@@ -315,7 +324,9 @@
     </div>
 
     <!-- JavaScript Files -->
+    <script src="./js/config.js"></script>
     <script src="js/api.js"></script>
     <script src="js/environmental.js"></script>
 </body>
+
 </html>

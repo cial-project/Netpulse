@@ -146,16 +146,16 @@ class EnvironmentalMonitor {
                 title: {
                     display: true,
                     text: title,
-                    font: { 
-                        size: 16, 
-                        weight: 'bold' 
+                    font: {
+                        size: 16,
+                        weight: 'bold'
                     },
                     padding: 20,
                     color: '#2d3748'
                 },
                 legend: {
                     position: 'bottom',
-                    labels: { 
+                    labels: {
                         padding: 20,
                         usePointStyle: true,
                         pointStyle: 'circle'
@@ -168,7 +168,7 @@ class EnvironmentalMonitor {
                     padding: 10,
                     cornerRadius: 4,
                     callbacks: {
-                        label: function(context) {
+                        label: function (context) {
                             let label = context.dataset.label || '';
                             if (label) {
                                 label += ': ';
@@ -187,24 +187,24 @@ class EnvironmentalMonitor {
             },
             scales: {
                 x: {
-                    grid: { 
+                    grid: {
                         color: 'rgba(0, 0, 0, 0.1)',
                         drawBorder: false
                     },
-                    ticks: { 
+                    ticks: {
                         color: '#718096',
                         maxTicksLimit: 12
                     }
                 },
                 y: {
                     beginAtZero: type === 'bar',
-                    grid: { 
+                    grid: {
                         color: 'rgba(0, 0, 0, 0.1)',
                         drawBorder: false
                     },
-                    ticks: { 
+                    ticks: {
                         color: '#718096',
-                        callback: function(value) {
+                        callback: function (value) {
                             if (type === 'bar') {
                                 return value + '°C';
                             }
@@ -230,18 +230,18 @@ class EnvironmentalMonitor {
     generateTimeLabels(hours) {
         const labels = [];
         const now = new Date();
-        
+
         for (let i = hours; i >= 0; i--) {
             const time = new Date(now);
             time.setHours(time.getHours() - i);
-            
+
             // Format as HH:MM
             const hoursStr = time.getHours().toString().padStart(2, '0');
             const minutesStr = time.getMinutes().toString().padStart(2, '0');
-            
+
             labels.push(`${hoursStr}:${minutesStr}`);
         }
-        
+
         return labels;
     }
 
@@ -276,14 +276,14 @@ class EnvironmentalMonitor {
         for (let i = 0; i <= 24; i++) {
             // Simulate realistic battery discharge with some recovery
             const hour = (new Date().getHours() - (24 - i) + 24) % 24;
-            
+
             // Discharge faster during business hours (9 AM - 5 PM)
             const isBusinessHours = hour >= 9 && hour <= 17;
             const dischargeRate = isBusinessHours ? 0.3 : 0.1;
-            
+
             // Add some random variation
             const variation = (Math.random() - 0.5) * 0.5;
-            
+
             current = Math.max(80, current - dischargeRate + variation);
             data.push(Number(current.toFixed(1)));
         }
@@ -328,7 +328,7 @@ class EnvironmentalMonitor {
         if (!this.charts.temperature) return;
 
         let hours, title;
-        switch(range) {
+        switch (range) {
             case '1h': hours = 1; title = 'Last 1 Hour'; break;
             case '6h': hours = 6; title = 'Last 6 Hours'; break;
             case '12h': hours = 12; title = 'Last 12 Hours'; break;
@@ -348,7 +348,7 @@ class EnvironmentalMonitor {
         if (!this.charts.humidity) return;
 
         let hours, title;
-        switch(range) {
+        switch (range) {
             case '1h': hours = 1; title = 'Last 1 Hour'; break;
             case '6h': hours = 6; title = 'Last 6 Hours'; break;
             case '12h': hours = 12; title = 'Last 12 Hours'; break;
@@ -368,7 +368,7 @@ class EnvironmentalMonitor {
         if (!this.charts.ups) return;
 
         let hours, title;
-        switch(range) {
+        switch (range) {
             case '1h': hours = 1; title = 'Last 1 Hour'; break;
             case '6h': hours = 6; title = 'Last 6 Hours'; break;
             case '12h': hours = 12; title = 'Last 12 Hours'; break;
@@ -412,7 +412,7 @@ class EnvironmentalMonitor {
             // Simulate discharge based on time range
             const dischargeRate = hours <= 24 ? 0.2 : 0.05;
             const variation = (Math.random() - 0.5) * 0.5;
-            
+
             current = Math.max(75, current - dischargeRate + variation);
             data.push(Number(current.toFixed(1)));
         }
@@ -446,9 +446,9 @@ class EnvironmentalMonitor {
         };
 
         this.charts.zone.options.plugins.title.text = `Zone ${metric === 'temperature' ? 'Temperature' : 'Humidity'} Comparison`;
-        
+
         // Update Y-axis label
-        this.charts.zone.options.scales.y.ticks.callback = function(value) {
+        this.charts.zone.options.scales.y.ticks.callback = function (value) {
             return value + (metric === 'temperature' ? '°C' : '%');
         };
 
@@ -486,14 +486,17 @@ class EnvironmentalMonitor {
                     const key = (z.key || '').toLowerCase();
                     if (kpi) {
                         if (key === 'dc1') {
-                            temp = parseFloat(String(kpi.dc1_temperature || '').replace('°C','')) || temp;
-                            humidity = parseInt(String(kpi.dc1_humidity || '').replace('% Humidity','')) || humidity;
+                            temp = parseFloat(String(kpi.dc1_temperature || '').replace('°C', '')) || temp;
+                            humidity = parseInt(String(kpi.dc1_humidity || '').replace('% Humidity', '')) || humidity;
                         } else if (key === 'dc2') {
-                            temp = parseFloat(String(kpi.dc2_temperature || '').replace('°C','')) || temp;
-                            humidity = parseInt(String(kpi.dc2_humidity || '').replace('% Humidity','')) || humidity;
+                            temp = parseFloat(String(kpi.dc2_temperature || '').replace('°C', '')) || temp;
+                            humidity = parseInt(String(kpi.dc2_humidity || '').replace('% Humidity', '')) || humidity;
                         } else if (key === 'dr') {
-                            temp = parseFloat(String(kpi.dr_temperature || '').replace('°C','')) || temp;
-                            humidity = parseInt(String(kpi.dr_humidity || '').replace('% Humidity','')) || humidity;
+                            temp = parseFloat(String(kpi.dr_temperature || '').replace('°C', '')) || temp;
+                            humidity = parseInt(String(kpi.dr_humidity || '').replace('% Humidity', '')) || humidity;
+                        } else if (key === 'dr2') {
+                            temp = parseFloat(String(kpi.dr2_temperature || '').replace('°C', '')) || temp;
+                            humidity = parseInt(String(kpi.dr2_humidity || '').replace('% Humidity', '')) || humidity;
                         }
                     }
 
@@ -590,11 +593,11 @@ class EnvironmentalMonitor {
         const upsValues = this.zones.map(z => z.ups).filter(Boolean);
         const warnings = this.zones.filter(z => z.status === 'warning' || z.status === 'critical').length;
 
-        document.getElementById('avg-temperature').textContent = 
+        document.getElementById('avg-temperature').textContent =
             `${(temps.reduce((a, b) => a + b, 0) / temps.length).toFixed(1)}°`;
-        document.getElementById('avg-humidity').textContent = 
+        document.getElementById('avg-humidity').textContent =
             `${Math.round(humidities.reduce((a, b) => a + b, 0) / humidities.length)}%`;
-        document.getElementById('ups-capacity').textContent = 
+        document.getElementById('ups-capacity').textContent =
             upsValues.length ? `${Math.round(upsValues.reduce((a, b) => a + b, 0) / upsValues.length)}%` : 'N/A';
         document.getElementById('env-warnings').textContent = warnings;
         document.getElementById('env-alert-count').textContent = warnings;
@@ -694,7 +697,7 @@ class EnvironmentalMonitor {
             }
 
             if (searchTerm) {
-                filteredZones = filteredZones.filter(zone => 
+                filteredZones = filteredZones.filter(zone =>
                     zone.name.toLowerCase().includes(searchTerm)
                 );
             }
@@ -706,20 +709,35 @@ class EnvironmentalMonitor {
         });
     }
 
-    refreshAIInsights() {
-        const insights = [
-            "Temperature rising in Server Room A. Predicted to exceed threshold in 2 hours.",
-            "Humidity levels stable across all zones. Optimal conditions maintained.",
-            "UPS battery in Control Tower showing gradual discharge. Maintenance recommended.",
-            "All environmental parameters within normal operating ranges.",
-            "Baggage handling area temperature approaching warning threshold."
-        ];
-        
-        const randomInsight = insights[Math.floor(Math.random() * insights.length)];
-        document.getElementById('ai-insight-text').textContent = randomInsight;
+    async refreshAIInsights() {
+        const insightText = document.getElementById('ai-insight-text');
+        const btn = document.getElementById('refresh-insights');
+
+        // Show loading state
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+        try {
+            const resp = await apiFetch('/dashboard/ai_insights/');
+            if (resp && resp.ok) {
+                const data = await resp.json();
+                if (data.insights && data.insights.length > 0) {
+                    // Cyclic through insights or just show the first one
+                    insightText.textContent = data.insights[0];
+                }
+            } else {
+                throw new Error('API failed');
+            }
+        } catch (error) {
+            console.error('Failed to fetch AI insights:', error);
+            const fallbackInsights = [
+                "Environmental parameters are stable across all monitored zones.",
+                "No critical threshold violations detected in the last 24 hours.",
+                "System analysis indicates optimal operating conditions."
+            ];
+            insightText.textContent = fallbackInsights[Math.floor(Math.random() * fallbackInsights.length)];
+        }
 
         // Show refresh animation
-        const btn = document.getElementById('refresh-insights');
         btn.innerHTML = '<i class="fas fa-check"></i>';
         setTimeout(() => {
             btn.innerHTML = '<i class="fas fa-sync-alt"></i>';
@@ -728,27 +746,27 @@ class EnvironmentalMonitor {
 
     toggleSelectAllZones(selectAll) {
         const currentPageZones = this.getCurrentPageZoneIds();
-        
+
         if (selectAll) {
             currentPageZones.forEach(id => this.selectedZones.add(id));
         } else {
             currentPageZones.forEach(id => this.selectedZones.delete(id));
         }
-        
+
         this.renderZoneTable();
         this.updateDeleteButton();
     }
 
     toggleZoneSelection(checkbox) {
         const zoneId = parseInt(checkbox.dataset.zoneId);
-        
+
         if (checkbox.checked) {
             this.selectedZones.add(zoneId);
         } else {
             this.selectedZones.delete(zoneId);
             document.getElementById('select-all-zones').checked = false;
         }
-        
+
         this.updateDeleteButton();
     }
 
@@ -762,17 +780,17 @@ class EnvironmentalMonitor {
         const deleteBtn = document.getElementById('delete-zone-btn');
         const selectAllCheckbox = document.getElementById('select-all-zones');
         const currentPageZones = this.getCurrentPageZoneIds();
-        
+
         // Update select all checkbox state
-        const allSelected = currentPageZones.length > 0 && 
-                           currentPageZones.every(id => this.selectedZones.has(id));
+        const allSelected = currentPageZones.length > 0 &&
+            currentPageZones.every(id => this.selectedZones.has(id));
         selectAllCheckbox.checked = allSelected;
         selectAllCheckbox.indeterminate = !allSelected && currentPageZones.some(id => this.selectedZones.has(id));
-        
+
         // Update delete button
         deleteBtn.disabled = this.selectedZones.size === 0;
-        deleteBtn.innerHTML = this.selectedZones.size > 1 ? 
-            `<i class="fas fa-trash"></i> Delete Selected (${this.selectedZones.size})` : 
+        deleteBtn.innerHTML = this.selectedZones.size > 1 ?
+            `<i class="fas fa-trash"></i> Delete Selected (${this.selectedZones.size})` :
             '<i class="fas fa-trash"></i> Delete Selected';
     }
 
@@ -811,7 +829,7 @@ class EnvironmentalMonitor {
         const zoneDetails = document.getElementById('zone-details');
 
         if (modalTitle) modalTitle.textContent = `Zone Details: ${zone.name}`;
-        
+
         if (zoneDetails) {
             zoneDetails.innerHTML = `
                 <div class="detail-row">
@@ -970,15 +988,12 @@ class EnvironmentalMonitor {
         });
     }
 
-    saveNewZone() {
+    async saveNewZone() {
         const name = document.getElementById('zone-name').value.trim();
         const type = document.getElementById('zone-type').value;
+        const description = document.getElementById('zone-location').value.trim();
         const temp = parseFloat(document.getElementById('initial-temp').value) || 22.0;
         const humidity = parseInt(document.getElementById('initial-humidity').value) || 45;
-        const tempWarning = parseInt(document.getElementById('temp-warning').value) || 26;
-        const tempCritical = parseInt(document.getElementById('temp-critical').value) || 28;
-        const humidityWarning = parseInt(document.getElementById('humidity-warning').value) || 60;
-        const humidityCritical = parseInt(document.getElementById('humidity-critical').value) || 70;
 
         // Validation
         if (!name || !type) {
@@ -986,47 +1001,62 @@ class EnvironmentalMonitor {
             return;
         }
 
-        // Check if zone name already exists
-        if (this.zones.some(zone => zone.name.toLowerCase() === name.toLowerCase())) {
-            this.showNotification('Zone name already exists', 'error');
-            return;
-        }
+        // Generate a key from name
+        const key = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '');
 
-        // Create new zone
-        const newZone = {
-            id: this.zoneIdCounter++,
-            name: name,
-            temp: temp,
-            humidity: humidity,
-            ups: type === 'server' ? 95 : null,
-            status: 'normal',
-            lastChecked: 'Just now',
-            type: type,
-            thresholds: {
-                temp: tempCritical,
-                humidity: humidityCritical
+        try {
+            const resp = await apiFetch('/zones/', {
+                method: 'POST',
+                body: JSON.stringify({
+                    name: name,
+                    key: key,
+                    description: description,
+                    zone_type: type,
+                    temperature: temp,
+                    humidity: humidity
+                })
+            });
+
+            if (resp && resp.ok) {
+                const newZoneData = await resp.json();
+
+                // Add to local zones array with UI-specific fields
+                const newUIZone = {
+                    id: newZoneData.id,
+                    name: newZoneData.name,
+                    temp: Number(newZoneData.temperature || temp),
+                    humidity: Number(newZoneData.humidity || humidity),
+                    ups: type === 'server' ? 95 : null,
+                    status: 'normal',
+                    lastChecked: 'Just now',
+                    type: type,
+                    thresholds: {
+                        temp: 28,
+                        humidity: 70
+                    }
+                };
+
+                this.zones.unshift(newUIZone);
+
+                // Close modal
+                document.getElementById('add-zone-modal').style.display = 'none';
+                setTimeout(() => document.getElementById('add-zone-modal').remove(), 300);
+
+                this.showNotification(`Zone "${name}" added successfully`, 'success');
+                this.renderZoneTable();
+                this.updateStats();
+                this.updateZoneChart(document.getElementById('metric-select').value);
+            } else {
+                const err = await resp.json();
+                this.showNotification(`Error: ${err.name || err.key || 'Failed to add zone'}`, 'error');
             }
-        };
-
-        // Add to zones array
-        this.zones.unshift(newZone);
-        
-        // Close modal
-        document.getElementById('add-zone-modal').style.display = 'none';
-        
-        // Show success message
-        this.showNotification(`Zone "${name}" added successfully`, 'success');
-        
-        // Refresh table
-        this.currentPage = 1;
-        this.renderZoneTable();
-        this.updateStats();
-        
-        // Update charts
-        this.updateZoneChart(document.getElementById('metric-select').value);
+        } catch (error) {
+            console.error('Error saving zone:', error);
+            this.showNotification('Failed to save zone connection error', 'error');
+        }
     }
 
-    deleteSelectedZones() {
+    async deleteSelectedZones() {
         if (this.selectedZones.size === 0) return;
 
         const zoneNames = this.zones
@@ -1041,23 +1071,32 @@ class EnvironmentalMonitor {
             return;
         }
 
-        // Delete zones
-        this.zones = this.zones.filter(zone => !this.selectedZones.has(zone.id));
-        this.selectedZones.clear();
-        
-        // Show success message
-        this.showNotification(
-            `Deleted ${zoneNames.length} zone${zoneNames.length > 1 ? 's' : ''} successfully`, 
-            'success'
-        );
-        
-        // Refresh table
-        this.currentPage = 1;
-        this.renderZoneTable();
-        this.updateStats();
+        try {
+            const deletePromises = Array.from(this.selectedZones).map(id =>
+                apiFetch(`/zones/${id}/`, { method: 'DELETE' })
+            );
+
+            await Promise.all(deletePromises);
+
+            // Delete zones locally
+            this.zones = this.zones.filter(zone => !this.selectedZones.has(zone.id));
+            this.selectedZones.clear();
+
+            this.showNotification(
+                `Deleted ${zoneNames.length} zone${zoneNames.length > 1 ? 's' : ''} successfully`,
+                'success'
+            );
+
+            this.currentPage = 1;
+            this.renderZoneTable();
+            this.updateStats();
+        } catch (error) {
+            console.error('Error deleting zones:', error);
+            this.showNotification('Failed to delete some zones', 'error');
+        }
     }
 
-    deleteSingleZone(zoneId) {
+    async deleteSingleZone(zoneId) {
         const zone = this.zones.find(z => z.id === zoneId);
         if (!zone) return;
 
@@ -1065,12 +1104,22 @@ class EnvironmentalMonitor {
             return;
         }
 
-        this.zones = this.zones.filter(z => z.id !== zoneId);
-        this.selectedZones.delete(zoneId);
-        
-        this.showNotification(`Zone "${zone.name}" deleted successfully`, 'success');
-        this.renderZoneTable();
-        this.updateStats();
+        try {
+            const resp = await apiFetch(`/zones/${zoneId}/`, { method: 'DELETE' });
+            if (resp && resp.ok) {
+                this.zones = this.zones.filter(z => z.id !== zoneId);
+                this.selectedZones.delete(zoneId);
+
+                this.showNotification(`Zone "${zone.name}" deleted successfully`, 'success');
+                this.renderZoneTable();
+                this.updateStats();
+            } else {
+                this.showNotification('Failed to delete zone from server', 'error');
+            }
+        } catch (error) {
+            console.error('Error deleting zone:', error);
+            this.showNotification('Connection error while deleting zone', 'error');
+        }
     }
 
     showNotification(message, type = 'info') {
@@ -1150,11 +1199,11 @@ class EnvironmentalMonitor {
         const now = new Date();
         const dateElement = document.getElementById('current-date');
         if (dateElement) {
-            dateElement.textContent = now.toLocaleDateString('en-US', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
+            dateElement.textContent = now.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
             });
         }
     }
@@ -1175,7 +1224,7 @@ class EnvironmentalMonitor {
                 if (Array.isArray(chart.data.labels)) {
                     chart.data.labels.shift();
                     const now = new Date();
-                    chart.data.labels.push(`${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`);
+                    chart.data.labels.push(`${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`);
                 }
                 chart.update();
             }
@@ -1191,7 +1240,7 @@ class EnvironmentalMonitor {
                 if (Array.isArray(chart.data.labels)) {
                     chart.data.labels.shift();
                     const now = new Date();
-                    chart.data.labels.push(`${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`);
+                    chart.data.labels.push(`${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`);
                 }
                 chart.update();
             }
@@ -1207,7 +1256,7 @@ class EnvironmentalMonitor {
                 if (Array.isArray(chart.data.labels)) {
                     chart.data.labels.shift();
                     const now = new Date();
-                    chart.data.labels.push(`${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`);
+                    chart.data.labels.push(`${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`);
                 }
                 chart.update();
             }

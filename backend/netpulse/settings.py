@@ -12,12 +12,23 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-netpulse-secret-key-c
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='*').split(',')
+ALLOWED_HOSTS = config(
+    'ALLOWED_HOSTS',
+    default='localhost,127.0.0.1,netpulse-gkcp.onrender.com'
+).split(',')
 
+# CORS Configuration (single source of truth)
 CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', default=True, cast=bool)
-CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='').split(',') if config('CORS_ALLOWED_ORIGINS', default='') else []
+CORS_ALLOWED_ORIGINS = (
+    config('CORS_ALLOWED_ORIGINS', default='https://cialnetpulse.netlify.app').split(',')
+    if config('CORS_ALLOWED_ORIGINS', default='') else []
+)
+CORS_ALLOW_CREDENTIALS = True
 
-CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='').split(',') if config('CSRF_TRUSTED_ORIGINS', default='') else []
+CSRF_TRUSTED_ORIGINS = (
+    config('CSRF_TRUSTED_ORIGINS', default='https://netpulse-gkcp.onrender.com').split(',')
+    if config('CSRF_TRUSTED_ORIGINS', default='') else []
+)
 
 # Application definition
 INSTALLED_APPS = [
@@ -54,6 +65,10 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Custom middleware
+    'api.middleware.InputSanitizationMiddleware',
+    'api.middleware.RequestLoggingMiddleware',
+    'api.middleware.CentralizedErrorHandlingMiddleware',
 ]
 
 ROOT_URLCONF = 'netpulse.urls'
@@ -75,8 +90,6 @@ TEMPLATES = [
 ]
 
 # Database
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -84,9 +97,10 @@ DATABASES = {
     }
 }
 
-# Parse database configuration from $DATABASE_URL
+# Parse database configuration from $DATABASE_URL (overrides SQLite in production)
 db_from_env = dj_database_url.config(conn_max_age=600)
-DATABASES['default'].update(db_from_env)
+if db_from_env:
+    DATABASES['default'].update(db_from_env)
 
 # REST Framework configuration
 REST_FRAMEWORK = {
@@ -96,6 +110,17 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 50,
+    'EXCEPTION_HANDLER': 'api.exception_handler.custom_exception_handler',
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/hour',
+        'user': '1000/hour',
+    },
 }
 
 # Simple JWT settings
@@ -104,13 +129,9 @@ from datetime import timedelta
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
 }
-
-# CORS settings
-
-# CORS settings for development
-CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOW_CREDENTIALS = True
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'
@@ -128,10 +149,6 @@ if not DEBUG:
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# CORS Settings
-CORS_ALLOW_ALL_ORIGINS = True
-ALLOWED_HOSTS = ['*']
-
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -140,7 +157,7 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # WebSocket configuration
 ASGI_APPLICATION = 'netpulse.asgi.application'
-# Default to In-Memory for local dev (no Redis required) behavior unless overridden
+
 if os.environ.get('DEV_USE_INMEM', '0') == '1':
     CHANNEL_LAYERS = {
         'default': {
@@ -148,7 +165,6 @@ if os.environ.get('DEV_USE_INMEM', '0') == '1':
         },
     }
 else:
-    # Redis channel layer (production / multi-process)
     CHANNEL_LAYERS = {
         'default': {
             'BACKEND': 'channels_redis.core.RedisChannelLayer',
@@ -158,16 +174,33 @@ else:
         },
     }
 
-# Logging configuration - include rotating file handlers for poller and errors
+# ──────────────────────────────────────────────────────────────────────────────
+# Logging Configuration — Structured, Rotating
+# ──────────────────────────────────────────────────────────────────────────────
+LOG_DIR = os.path.join(BASE_DIR, 'logs')
+os.makedirs(LOG_DIR, exist_ok=True)
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+            'format': '%(asctime)s [%(levelname)s] %(name)s (%(filename)s:%(lineno)d): %(message)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
         },
         'simple': {
-            'format': '%(levelname)s %(message)s'
+            'format': '%(levelname)s %(message)s',
+        },
+        'json': {
+            'format': '%(asctime)s %(levelname)s %(name)s %(message)s',
+        },
+    },
+    'filters': {
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse',
+        },
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
         },
     },
     'handlers': {
@@ -175,33 +208,79 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
+        'file_app': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(LOG_DIR, 'netpulse.log'),
+            'maxBytes': 10 * 1024 * 1024,  # 10 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+            'encoding': 'utf-8',
+        },
+        'file_error': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(LOG_DIR, 'errors.log'),
+            'maxBytes': 10 * 1024 * 1024,  # 10 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+            'level': 'ERROR',
+            'encoding': 'utf-8',
+        },
+        'file_poller': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(LOG_DIR, 'poller.log'),
+            'maxBytes': 10 * 1024 * 1024,
+            'backupCount': 5,
+            'formatter': 'verbose',
+            'encoding': 'utf-8',
+        },
     },
     'loggers': {
         '': {
-            'handlers': ['console'],
+            'handlers': ['console', 'file_app', 'file_error'],
             'level': 'INFO',
         },
-        # For local development on Windows avoid rotating file handlers which
-        # can fail when multiple processes hold file handles (PermissionError).
-        # Keep console output so developers can see poller activity.
-        'poller': {
-            'handlers': ['console'],
+        'netpulse': {
+            'handlers': ['console', 'file_app', 'file_error'],
+            'level': 'DEBUG' if DEBUG else 'INFO',
+            'propagate': False,
+        },
+        'netpulse.poller': {
+            'handlers': ['console', 'file_poller', 'file_error'],
             'level': 'INFO',
+            'propagate': False,
+        },
+        'netpulse.views': {
+            'handlers': ['console', 'file_app', 'file_error'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'netpulse.middleware': {
+            'handlers': ['console', 'file_app', 'file_error'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console', 'file_error'],
+            'level': 'ERROR',
             'propagate': False,
         },
     }
 }
 
-# Optional SIEM webhook URL. If configured, login/logout and forwarded audit events will be POSTed here.
+# Optional SIEM webhook URL
 SIEM_WEBHOOK_URL = os.environ.get('SIEM_WEBHOOK_URL', '')
 
+# ──────────────────────────────────────────────────────────────────────────────
 # Celery Configuration
+# ──────────────────────────────────────────────────────────────────────────────
 CELERY_BROKER_URL = config('REDIS_URL', default='redis://localhost:6379/0')
 CELERY_RESULT_BACKEND = config('REDIS_URL', default='redis://localhost:6379/0')
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_SOFT_TIME_LIMIT = 60   # seconds
+CELERY_TASK_TIME_LIMIT = 120       # hard limit
 
 # Celery Beat Schedule
 from celery.schedules import crontab
@@ -209,5 +288,10 @@ CELERY_BEAT_SCHEDULE = {
     'poll-all-devices-every-30-seconds': {
         'task': 'api.tasks.poll_all_devices',
         'schedule': 30.0,
+    },
+    'cleanup-old-metrics-daily': {
+        'task': 'api.tasks.cleanup_old_metrics',
+        'schedule': crontab(hour=2, minute=0),  # 2 AM daily
+        'args': (30,),  # Keep 30 days
     },
 }

@@ -110,6 +110,12 @@ class RealTimeMonitor {
                     window.ensureCpuPlaceholder();
                 }
             }
+
+            // Update device tables from polling data
+            const deviceArray = data.device_list || (Array.isArray(data.devices) ? data.devices : null);
+            if (deviceArray && typeof window.updateDeviceTables === 'function') {
+                try { window.updateDeviceTables(deviceArray); } catch (e) { console.error('updateDeviceTables error', e); }
+            }
         } catch (error) {
             console.error('Polling error:', error);
         }

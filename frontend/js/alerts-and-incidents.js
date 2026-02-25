@@ -99,7 +99,7 @@ class AlertsManager {
         if (!this.charts.trends) return;
 
         let days, title;
-        switch(range) {
+        switch (range) {
             case '7d': days = 7; title = 'Last 7 Days'; break;
             case '30d': days = 30; title = 'Last 30 Days'; break;
             case '90d': days = 90; title = 'Last 90 Days'; break;
@@ -109,7 +109,7 @@ class AlertsManager {
         // Generate new labels and data
         const labels = this.generateChartLabels(days);
         const newData = this.generateTrendData(days);
-        
+
         this.charts.trends.data.labels = labels;
         this.charts.trends.data.datasets[0].data = newData.critical;
         this.charts.trends.data.datasets[1].data = newData.warning;
@@ -121,118 +121,51 @@ class AlertsManager {
     generateChartLabels(days) {
         const labels = [];
         const now = new Date();
-        
+
         for (let i = days - 1; i >= 0; i--) {
             const date = new Date(now);
             date.setDate(date.getDate() - i);
             labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
         }
-        
+
         return labels;
     }
 
     generateTrendData(days) {
         return {
-            critical: Array.from({length: days}, () => Math.floor(Math.random() * 20) + 5),
-            warning: Array.from({length: days}, () => Math.floor(Math.random() * 15) + 3),
-            info: Array.from({length: days}, () => Math.floor(Math.random() * 10) + 1)
+            critical: Array.from({ length: days }, () => Math.floor(Math.random() * 20) + 5),
+            warning: Array.from({ length: days }, () => Math.floor(Math.random() * 15) + 3),
+            info: Array.from({ length: days }, () => Math.floor(Math.random() * 10) + 1)
         };
     }
 
     async loadAlertsData() {
         try {
-            // Simulated alerts data - MORE COMPREHENSIVE DATA
-            this.alerts = [
-                { 
-                    id: 1, 
-                    timestamp: new Date('2023-09-13T13:25:42'), 
-                    type: 'Network', 
-                    severity: 'critical', 
-                    device: 'Switch-T1-A', 
-                    description: 'Network switch offline - affecting multiple cameras in Terminal 1',
-                    status: 'open',
-                    acknowledged: false
-                },
-                { 
-                    id: 2, 
-                    timestamp: new Date('2023-09-13T12:48:15'), 
-                    type: 'Environmental', 
-                    severity: 'critical', 
-                    device: 'Gate A5', 
-                    description: 'Temperature exceeding threshold (26.3°C)',
-                    status: 'in-progress',
-                    acknowledged: true
-                },
-                { 
-                    id: 3, 
-                    timestamp: new Date('2023-09-13T11:32:58'), 
-                    type: 'Security', 
-                    severity: 'warning', 
-                    device: 'CAM-T1-015', 
-                    description: 'Camera offline for 4+ hours',
-                    status: 'open',
-                    acknowledged: false
-                },
-                { 
-                    id: 4, 
-                    timestamp: new Date('2023-09-13T10:15:23'), 
-                    type: 'Environmental', 
-                    severity: 'warning', 
-                    device: 'Control Tower', 
-                    description: 'UPS battery below 90% capacity',
-                    status: 'open',
-                    acknowledged: false
-                },
-                { 
-                    id: 5, 
-                    timestamp: new Date('2023-09-13T09:42:10'), 
-                    type: 'Fire Safety', 
-                    severity: 'warning', 
-                    device: 'Extinguisher BP-08', 
-                    description: 'Maintenance overdue - last checked Jun 15, 2023',
-                    status: 'open',
-                    acknowledged: false
-                },
-                { 
-                    id: 6, 
-                    timestamp: new Date('2023-09-12T16:30:15'), 
-                    type: 'System', 
-                    severity: 'info', 
-                    device: 'Backup Server', 
-                    description: 'Weekly backup completed successfully',
-                    status: 'resolved',
-                    acknowledged: true
-                },
-                { 
-                    id: 7, 
-                    timestamp: new Date('2023-09-12T14:22:33'), 
-                    type: 'Network', 
-                    severity: 'info', 
-                    device: 'Router-Gate-A', 
-                    description: 'Scheduled reboot completed',
-                    status: 'resolved',
-                    acknowledged: true
-                },
-                { 
-                    id: 8, 
-                    timestamp: new Date('2023-09-11T08:15:42'), 
-                    type: 'Environmental', 
-                    severity: 'critical', 
-                    device: 'Server Room A', 
-                    description: 'Air conditioning unit failure detected',
-                    status: 'resolved',
-                    acknowledged: true
-                }
-            ];
+            const response = await apiFetch('/alerts/');
+            if (!response) {
+                console.error('Failed to fetch alerts from API');
+                return;
+            }
 
-            this.alertIdCounter = Math.max(...this.alerts.map(a => a.id)) + 1;
-            this.filteredAlerts = [...this.alerts]; // Initialize filtered alerts
-            this.renderAlertsTable();
-            this.updateStats();
-
+            if (response.ok) {
+                const data = await response.json();
+                this.alerts = (Array.isArray(data) ? data : (data.results || [])).map(a => ({
+                    id: a.id,
+                    timestamp: new Date(a.created_at || a.timestamp),
+                    type: a.type || 'System',
+                    severity: a.severity || 'info',
+                    device: a.device_name || a.device || 'N/A',
+                    description: a.description || a.title || 'No description',
+                    status: a.status || 'open',
+                    acknowledged: a.status !== 'open'
+                }));
+                this.filteredAlerts = [...this.alerts];
+                this.renderAlertsTable();
+                this.updateStats();
+            }
         } catch (error) {
             console.error('Error loading alerts data:', error);
-            this.showNotification('Failed to load alerts data', 'error');
+            this.showNotification('Failed to load alerts data from server', 'error');
         }
     }
 
@@ -298,7 +231,7 @@ class AlertsManager {
     }
 
     formatStatus(status) {
-        return status.replace('-', ' ').split(' ').map(word => 
+        return status.replace('-', ' ').split(' ').map(word =>
             word.charAt(0).toUpperCase() + word.slice(1)
         ).join(' ');
     }
@@ -339,26 +272,26 @@ class AlertsManager {
     isToday(date) {
         const today = new Date();
         return date.getDate() === today.getDate() &&
-               date.getMonth() === today.getMonth() &&
-               date.getFullYear() === today.getFullYear();
+            date.getMonth() === today.getMonth() &&
+            date.getFullYear() === today.getFullYear();
     }
 
     setupEventListeners() {
         // Pagination
         this.setupPagination();
-        
+
         // Filters
         this.setupFilters();
-        
+
         // Action Buttons
         this.setupActionButtons();
-        
+
         // Selection
         this.setupSelection();
-        
+
         // Refresh insights
         this.setupInsights();
-        
+
         // Enter key support
         this.setupKeyboard();
     }
@@ -438,7 +371,7 @@ class AlertsManager {
         const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
         const bulkResolveBtn = document.getElementById('bulk-resolve-btn');
         const applyBulkAction = document.getElementById('apply-bulk-action');
-    const exportAlerts = document.getElementById('export-alerts');
+        const exportAlerts = document.getElementById('export-alerts');
 
         if (bulkDeleteBtn) {
             bulkDeleteBtn.addEventListener('click', () => {
@@ -575,7 +508,7 @@ class AlertsManager {
         }
 
         if (searchTerm) {
-            filteredAlerts = filteredAlerts.filter(alert => 
+            filteredAlerts = filteredAlerts.filter(alert =>
                 alert.description.toLowerCase().includes(searchTerm) ||
                 alert.device.toLowerCase().includes(searchTerm) ||
                 alert.type.toLowerCase().includes(searchTerm)
@@ -591,7 +524,7 @@ class AlertsManager {
 
     filterByDate(alerts, dateFilter) {
         const now = new Date();
-        switch(dateFilter) {
+        switch (dateFilter) {
             case 'today':
                 return alerts.filter(alert => this.isToday(alert.timestamp));
             case '24h':
@@ -620,26 +553,26 @@ class AlertsManager {
         if (typeFilter) typeFilter.value = 'all';
         if (dateFilter) dateFilter.value = '7d';
         if (alertSearch) alertSearch.value = '';
-        
+
         this.filterAlerts();
     }
 
     toggleSelectAllAlerts(selectAll) {
         const currentPageAlerts = this.getCurrentPageAlertIds();
-        
+
         if (selectAll) {
             currentPageAlerts.forEach(id => this.selectedAlerts.add(id));
         } else {
             currentPageAlerts.forEach(id => this.selectedAlerts.delete(id));
         }
-        
+
         this.renderAlertsTable();
         this.updateActionButtons();
     }
 
     toggleAlertSelection(checkbox) {
         const alertId = parseInt(checkbox.dataset.alertId);
-        
+
         if (checkbox.checked) {
             this.selectedAlerts.add(alertId);
         } else {
@@ -647,7 +580,7 @@ class AlertsManager {
             const selectAllCheckbox = document.getElementById('select-all-alerts');
             if (selectAllCheckbox) selectAllCheckbox.checked = false;
         }
-        
+
         this.updateActionButtons();
     }
 
@@ -662,29 +595,29 @@ class AlertsManager {
         const resolveBtn = document.getElementById('bulk-resolve-btn');
         const selectAllCheckbox = document.getElementById('select-all-alerts');
         const currentPageAlerts = this.getCurrentPageAlertIds();
-        
+
         // Update select all checkbox state
         if (selectAllCheckbox) {
-            const allSelected = currentPageAlerts.length > 0 && 
-                               currentPageAlerts.every(id => this.selectedAlerts.has(id));
+            const allSelected = currentPageAlerts.length > 0 &&
+                currentPageAlerts.every(id => this.selectedAlerts.has(id));
             selectAllCheckbox.checked = allSelected;
             selectAllCheckbox.indeterminate = !allSelected && currentPageAlerts.some(id => this.selectedAlerts.has(id));
         }
-        
+
         // Update action buttons
         const hasSelection = this.selectedAlerts.size > 0;
         if (deleteBtn) deleteBtn.disabled = !hasSelection;
         if (resolveBtn) resolveBtn.disabled = !hasSelection;
-        
+
         if (deleteBtn) {
-            deleteBtn.innerHTML = this.selectedAlerts.size > 1 ? 
-                `<i class="fas fa-trash"></i> Delete Selected (${this.selectedAlerts.size})` : 
+            deleteBtn.innerHTML = this.selectedAlerts.size > 1 ?
+                `<i class="fas fa-trash"></i> Delete Selected (${this.selectedAlerts.size})` :
                 '<i class="fas fa-trash"></i> Delete Selected';
         }
-            
+
         if (resolveBtn) {
-            resolveBtn.innerHTML = this.selectedAlerts.size > 1 ? 
-                `<i class="fas fa-check"></i> Resolve Selected (${this.selectedAlerts.size})` : 
+            resolveBtn.innerHTML = this.selectedAlerts.size > 1 ?
+                `<i class="fas fa-check"></i> Resolve Selected (${this.selectedAlerts.size})` :
                 '<i class="fas fa-check"></i> Resolve Selected';
         }
     }
@@ -896,7 +829,7 @@ class AlertsManager {
         }
     }
 
-    saveNewIncident() {
+    async saveNewIncident() {
         const title = document.getElementById('incident-title')?.value.trim() || '';
         const severity = document.getElementById('incident-severity')?.value || '';
         const type = document.getElementById('incident-type')?.value || '';
@@ -912,46 +845,37 @@ class AlertsManager {
             return;
         }
 
-        // Create new incident
-        const newAlert = {
-            id: this.alertIdCounter++,
-            timestamp: new Date(),
-            type: type,
-            severity: severity,
-            device: device || 'N/A',
-            description: description,
-            status: 'open',
-            acknowledged: false,
-            notes: notes,
-            title: title
-        };
+        try {
+            const response = await apiFetch('/alerts/', {
+                method: 'POST',
+                body: JSON.stringify({
+                    title: title,
+                    severity: severity,
+                    type: type,
+                    device_name: device,
+                    description: description,
+                    notes: notes,
+                    status: 'open'
+                })
+            });
 
-        // Add to alerts array
-        this.alerts.unshift(newAlert);
-        
-        // Update filtered alerts
-        this.filteredAlerts.unshift(newAlert);
-        
-        // Close modal
-        this.closeNewIncidentModal();
-        
-        // Show success message
-        this.showNotification(`New incident "${title}" created successfully`, 'success');
-        
-        // Refresh table
-        this.currentPage = 1;
-        this.renderAlertsTable();
-        this.updateStats();
+            if (response && response.ok) {
+                this.closeNewIncidentModal();
+                this.showNotification(`New incident "${title}" created successfully`, 'success');
+                await this.loadAlertsData();
+            } else {
+                this.showError('Failed to create incident on server');
+            }
+        } catch (error) {
+            console.error('Error creating incident:', error);
+            this.showError('Network error while creating incident');
+        }
     }
 
-    deleteSelectedAlerts() {
+    async deleteSelectedAlerts() {
         if (this.selectedAlerts.size === 0) return;
 
         const selectedCount = this.selectedAlerts.size;
-        const alertDescriptions = this.alerts
-            .filter(alert => this.selectedAlerts.has(alert.id))
-            .map(alert => alert.description.substring(0, 50) + '...');
-
         const message = selectedCount === 1 ?
             `Are you sure you want to delete this alert?` :
             `Are you sure you want to delete ${selectedCount} selected alerts?`;
@@ -960,52 +884,53 @@ class AlertsManager {
             return;
         }
 
-        // Delete alerts from both arrays
-        this.alerts = this.alerts.filter(alert => !this.selectedAlerts.has(alert.id));
-        this.filteredAlerts = this.filteredAlerts.filter(alert => !this.selectedAlerts.has(alert.id));
-        
-        // Show success message with stored count
-        this.showNotification(`Deleted ${selectedCount} alert${selectedCount > 1 ? 's' : ''} successfully`, 'success');
-        
-        this.selectedAlerts.clear();
-        this.currentPage = 1;
-        this.renderAlertsTable();
-        this.updateStats();
+        try {
+            const promises = Array.from(this.selectedAlerts).map(id =>
+                apiFetch(`/alerts/${id}/`, { method: 'DELETE' })
+            );
+
+            await Promise.all(promises);
+
+            this.showNotification(`Deleted ${selectedCount} alert${selectedCount > 1 ? 's' : ''} successfully`, 'success');
+            this.selectedAlerts.clear();
+            this.currentPage = 1;
+            await this.loadAlertsData();
+        } catch (error) {
+            console.error('Bulk delete failed:', error);
+            this.showNotification('Failed to delete some alerts', 'error');
+            await this.loadAlertsData();
+        }
     }
 
-    resolveSelectedAlerts() {
+    async resolveSelectedAlerts() {
         if (this.selectedAlerts.size === 0) return;
 
         const selectedCount = this.selectedAlerts.size;
 
-        this.alerts.forEach(alert => {
-            if (this.selectedAlerts.has(alert.id)) {
-                alert.status = 'resolved';
-                alert.acknowledged = true;
-            }
-        });
+        try {
+            const promises = Array.from(this.selectedAlerts).map(id =>
+                apiFetch(`/alerts/${id}/resolve/`, { method: 'POST' })
+            );
 
-        this.filteredAlerts.forEach(alert => {
-            if (this.selectedAlerts.has(alert.id)) {
-                alert.status = 'resolved';
-                alert.acknowledged = true;
-            }
-        });
+            await Promise.all(promises);
 
-        this.showNotification(`Resolved ${selectedCount} alert${selectedCount > 1 ? 's' : ''} successfully`, 'success');
-
-        this.selectedAlerts.clear();
-        this.renderAlertsTable();
-        this.updateStats();
+            this.showNotification(`Resolved ${selectedCount} alert${selectedCount > 1 ? 's' : ''} successfully`, 'success');
+            this.selectedAlerts.clear();
+            await this.loadAlertsData();
+        } catch (error) {
+            console.error('Bulk resolve failed:', error);
+            this.showNotification('Failed to resolve some alerts', 'error');
+            await this.loadAlertsData();
+        }
     }
 
     applyBulkAction() {
         const actionSelect = document.getElementById('bulk-action');
         const action = actionSelect?.value || '';
-        
+
         if (!action || this.selectedAlerts.size === 0) return;
 
-        switch(action) {
+        switch (action) {
             case 'resolve':
                 this.resolveSelectedAlerts();
                 break;
@@ -1020,32 +945,25 @@ class AlertsManager {
         if (actionSelect) actionSelect.value = '';
     }
 
-    acknowledgeSelectedAlerts() {
+    async acknowledgeSelectedAlerts() {
+        if (this.selectedAlerts.size === 0) return;
         const selectedCount = this.selectedAlerts.size;
 
-        this.alerts.forEach(alert => {
-            if (this.selectedAlerts.has(alert.id)) {
-                alert.acknowledged = true;
-                if (alert.status === 'open') {
-                    alert.status = 'in-progress';
-                }
-            }
-        });
+        try {
+            const promises = Array.from(this.selectedAlerts).map(id =>
+                apiFetch(`/alerts/${id}/acknowledge/`, { method: 'POST' })
+            );
 
-        this.filteredAlerts.forEach(alert => {
-            if (this.selectedAlerts.has(alert.id)) {
-                alert.acknowledged = true;
-                if (alert.status === 'open') {
-                    alert.status = 'in-progress';
-                }
-            }
-        });
+            await Promise.all(promises);
 
-        this.showNotification(`Acknowledged ${selectedCount} alert${selectedCount > 1 ? 's' : ''}`, 'success');
-
-        this.selectedAlerts.clear();
-        this.renderAlertsTable();
-        this.updateStats();
+            this.showNotification(`Acknowledged ${selectedCount} alert${selectedCount > 1 ? 's' : ''}`, 'success');
+            this.selectedAlerts.clear();
+            await this.loadAlertsData();
+        } catch (error) {
+            console.error('Bulk acknowledge failed:', error);
+            this.showNotification('Failed to acknowledge some alerts', 'error');
+            await this.loadAlertsData();
+        }
     }
 
     showAlertDetails(alertId) {
@@ -1058,9 +976,9 @@ class AlertsManager {
 
         // Store alert ID in modal for button handlers
         modal.dataset.alertId = alertId;
-        
+
         if (modalTitle) modalTitle.textContent = `Alert Details: ${alert.type} Issue`;
-        
+
         if (alertDetails) {
             alertDetails.innerHTML = `
                 <div class="detail-row">
@@ -1117,31 +1035,43 @@ class AlertsManager {
         }
     }
 
-    acknowledgeAlert(alertId) {
-        const alert = this.alerts.find(a => a.id === alertId);
-        if (alert) {
-            alert.acknowledged = true;
-            if (alert.status === 'open') {
-                alert.status = 'in-progress';
+    async acknowledgeAlert(alertId) {
+        try {
+            const response = await apiFetch(`/alerts/${alertId}/acknowledge/`, {
+                method: 'POST'
+            });
+
+            if (response && response.ok) {
+                this.showNotification('Alert acknowledged successfully', 'success');
+                await this.loadAlertsData();
+            } else {
+                this.showNotification('Failed to acknowledge alert', 'error');
             }
-            this.showNotification('Alert acknowledged successfully', 'success');
-            this.renderAlertsTable();
-            this.updateStats();
+        } catch (error) {
+            console.error('Error acknowledging alert:', error);
+            this.showNotification('Network error', 'error');
         }
     }
 
-    resolveAlert(alertId) {
-        const alert = this.alerts.find(a => a.id === alertId);
-        if (alert) {
-            alert.status = 'resolved';
-            alert.acknowledged = true;
-            this.showNotification('Alert resolved successfully', 'success');
-            this.renderAlertsTable();
-            this.updateStats();
+    async resolveAlert(alertId) {
+        try {
+            const response = await apiFetch(`/alerts/${alertId}/resolve/`, {
+                method: 'POST'
+            });
+
+            if (response && response.ok) {
+                this.showNotification('Alert resolved successfully', 'success');
+                await this.loadAlertsData();
+            } else {
+                this.showNotification('Failed to resolve alert', 'error');
+            }
+        } catch (error) {
+            console.error('Error resolving alert:', error);
+            this.showNotification('Network error', 'error');
         }
     }
 
-    deleteAlert(alertId) {
+    async deleteAlert(alertId) {
         const alert = this.alerts.find(a => a.id === alertId);
         if (!alert) return;
 
@@ -1149,13 +1079,22 @@ class AlertsManager {
             return;
         }
 
-        this.alerts = this.alerts.filter(a => a.id !== alertId);
-        this.filteredAlerts = this.filteredAlerts.filter(a => a.id !== alertId);
-        this.selectedAlerts.delete(alertId);
-        
-        this.showNotification('Alert deleted successfully', 'success');
-        this.renderAlertsTable();
-        this.updateStats();
+        try {
+            const response = await apiFetch(`/alerts/${alertId}/`, {
+                method: 'DELETE'
+            });
+
+            if (response && response.ok) {
+                this.showNotification('Alert deleted successfully', 'success');
+                this.selectedAlerts.delete(alertId);
+                await this.loadAlertsData();
+            } else {
+                this.showNotification('Failed to delete alert', 'error');
+            }
+        } catch (error) {
+            console.error('Error deleting alert:', error);
+            this.showNotification('Network error', 'error');
+        }
     }
 
     exportAlerts() {
@@ -1176,7 +1115,7 @@ class AlertsManager {
             a.click();
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
-            
+
             this.showNotification('Alerts exported successfully', 'success');
         } catch (err) {
             console.error('Export failed:', err);
@@ -1195,7 +1134,7 @@ class AlertsManager {
             alert.status,
             alert.acknowledged ? 'Yes' : 'No'
         ]);
-        
+
         return [headers, ...rows].map(row => row.join(',')).join('\n');
     }
 
@@ -1207,7 +1146,7 @@ class AlertsManager {
             "Most unresolved alerts are related to environmental monitoring.",
             "Alert response time has improved by 15% this month."
         ];
-        
+
         const randomInsight = insights[Math.floor(Math.random() * insights.length)];
         const insightText = document.getElementById('ai-insight-text');
         if (insightText) insightText.textContent = randomInsight;
@@ -1277,11 +1216,11 @@ class AlertsManager {
         const now = new Date();
         const dateElement = document.getElementById('current-date');
         if (dateElement) {
-            dateElement.textContent = now.toLocaleDateString('en-US', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
+            dateElement.textContent = now.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
             });
         }
     }

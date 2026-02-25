@@ -173,22 +173,50 @@ def poll_device(ip: str, device_type: str, community: str = 'public', port: int 
 
                 return result
         except Exception:
-            # SNMP read failed — fall back to simulator below
-            logger.debug('SNMP poll failed for %s, falling back to simulator', ip)
+            # SNMP read failed — fall back to ping below
+            logger.debug('SNMP poll failed for %s', ip)
 
-    # Simulator fallback
-    result = get_device_status(ip, community)
+    # Ping fallback
+    import subprocess
+    import platform
     
-    # Add device-type specific characteristics
-    if result['reachable']:
-        if device_type == 'router':
-            result['cpu_usage'] = min(90, result['cpu_usage'] + random.randint(5, 20))
-        elif device_type == 'firewall':
-            result['network_in'] = min(1000, result['network_in'] + random.randint(100, 300))
-        elif device_type == 'ap':
-            result['temperature'] = result.get('temperature', round(random.uniform(25, 35), 1))
+    param = '-n' if platform.system().lower() == 'windows' else '-c'
+    timeout_param = '-w' if platform.system().lower() == 'windows' else '-W'
+    # Windows timeout is in ms, Linux is in seconds
+    timeout_val = '2000' if platform.system().lower() == 'windows' else '2'
+    command = ['ping', param, '1', timeout_param, timeout_val, ip]
     
-    return result
+    is_pingable = False
+    try:
+        is_pingable = subprocess.call(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0
+    except Exception as e:
+        logger.debug('Ping failed to execute for %s: %s', ip, e)
+        is_pingable = False
+
+    if is_pingable:
+        return {
+            'status': 'up',
+            'reachable': True,
+            'sys_name': f"Device-{ip}",
+            'uptime_days': 0,
+            'cpu_usage': 0.0,
+            'memory_usage': 0.0,
+            'network_in': 0.0,
+            'network_out': 0.0,
+            'temperature': None,
+        }
+    else:
+        return {
+            'status': 'down', 
+            'reachable': False,
+            'error': 'Device not responding - SNMP and Ping failed',
+            'sys_name': f"Device-{ip}",
+            'uptime_days': 0,
+            'cpu_usage': 0,
+            'memory_usage': 0,
+            'network_in': 0,
+            'network_out': 0
+        }
 
 
 def _snmp_poll_basic(ip: str, community: str = 'public', port: int = 161, timeout: int = 2):

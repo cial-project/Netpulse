@@ -136,6 +136,12 @@ body {
     overflow-y: auto;
 }
 
+.sidebar-nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
 .nav-item {
     margin-bottom: 0.5rem;
 }
@@ -181,6 +187,85 @@ body {
     transition-delay: 0.15s;
 }
 
+/* Sidebar Footer - User Info */
+.sidebar-footer {
+    padding: 1.25rem 1rem;
+    border-top: 1px solid var(--gray-200);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-height: 72px;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    overflow: hidden;
+    flex: 1;
+}
+
+.user-avatar {
+    min-width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.sidebar:hover .user-details {
+    opacity: 1;
+    transition-delay: 0.15s;
+}
+
+.user-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.user-role {
+    font-size: 0.75rem;
+    color: var(--secondary);
+    white-space: nowrap;
+}
+
+.logout-btn {
+    min-width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray-400);
+    text-decoration: none;
+    border-radius: 10px;
+    transition: var(--transition);
+    flex-shrink: 0;
+}
+
+.logout-btn:hover {
+    background-color: #fee2e2;
+    color: var(--danger);
+}
+
 /* Main Content */
 .main-content {
     flex: 1;
@@ -219,7 +304,7 @@ body {
 /* Cards & Glassmorphism */
 .kpi-section {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 1.5rem;
     margin-bottom: 2.5rem;
 }
@@ -306,6 +391,71 @@ body {
     font-size: 0.875rem;
     color: var(--secondary);
     font-weight: 500;
+}
+
+/* KPI Card Square Icon Variant (used in dashboard environmental cards) */
+.kpi-icon-square {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    flex-shrink: 0;
+    margin-right: 1.25rem;
+    transition: transform 0.3s ease;
+}
+
+.kpi-card:hover .kpi-icon-square {
+    transform: scale(1.1) rotate(5deg);
+}
+
+.kpi-icon-square.green {
+    background-color: var(--primary-light);
+    color: var(--primary-dark);
+}
+
+.kpi-icon-square.yellow {
+    background-color: #fef3c7;
+    color: #b45309;
+}
+
+.kpi-icon-square.red {
+    background-color: #fee2e2;
+    color: var(--danger);
+}
+
+.kpi-icon-square.blue {
+    background-color: #dbeafe;
+    color: var(--info);
+}
+
+.kpi-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.kpi-content h4 {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.4rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.kpi-value-large {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--dark);
+    line-height: 1.2;
+    margin-bottom: 0.2rem;
 }
 
 /* Charts */
@@ -515,6 +665,21 @@ body {
 
 .text-gray {
     color: var(--gray-400);
+}
+
+.text-red {
+    color: var(--danger);
+    font-weight: 600;
+}
+
+.text-green {
+    color: var(--success);
+    font-weight: 600;
+}
+
+.text-warning {
+    color: var(--warning);
+    font-weight: 600;
 }
 
 .text-right {

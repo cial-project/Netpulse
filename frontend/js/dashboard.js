@@ -215,58 +215,67 @@ function updateKPICards(data) {
         setKPIValue('kpi-devices-status', `${data.online_count || 0}/${data.total_devices || 0} Online`);
     }
 
-    // Active Alerts
-    // Active alerts KPI removed from dashboard; notifications still handled elsewhere
-
-    // Temperature
-    // avg_temperature is available in the payload but there is no single "avg temperature" card.
-    // We display per-site temperatures (DC1/DC2/DR) instead below.
-
-    // System Uptime data is intentionally not displayed (card removed)
-
     // Data Center Environmental Data (New Models)
-    // We expect the payload to have a 'zones' array or specific keys
     if (data.zones && Array.isArray(data.zones)) {
         data.zones.forEach(zone => {
-            // Basic matching by name or key
             if (zone.name.includes('DC1')) {
                 setKPIValue('kpi-dc1-temp', `${zone.temperature}°C`);
                 setKPIValue('kpi-dc1-humidity', `${zone.humidity}% humidity`);
             } else if (zone.name.includes('DC2')) {
                 setKPIValue('kpi-dc2-temp', `${zone.temperature}°C`);
                 setKPIValue('kpi-dc2-humidity', `${zone.humidity}% humidity`);
+            } else if (zone.name.includes('DR2')) {
+                setKPIValue('kpi-dr2-temp', `${zone.temperature}°C`);
+                setKPIValue('kpi-dr2-humidity', `${zone.humidity}% humidity`);
             } else if (zone.name.includes('DR')) {
                 setKPIValue('kpi-dr-temp', `${zone.temperature}°C`);
                 setKPIValue('kpi-dr-humidity', `${zone.humidity}% humidity`);
             }
         });
     } else {
-        // Fallback legacy support
         setKPIValue('kpi-dc1-temp', data.dc1_temperature || '24.8°C');
         setKPIValue('kpi-dc1-humidity', data.dc1_humidity || '42% humidity');
         setKPIValue('kpi-dc2-temp', data.dc2_temperature || '33.6°C');
         setKPIValue('kpi-dc2-humidity', data.dc2_humidity || '32% humidity');
+        setKPIValue('kpi-dr-temp', data.dr_temperature || '22.0°C');
+        setKPIValue('kpi-dr-humidity', data.dr_humidity || '45% humidity');
+        setKPIValue('kpi-dr2-temp', data.dr2_temperature || '22.0°C');
+        setKPIValue('kpi-dr2-humidity', data.dr2_humidity || '45% humidity');
     }
 
     // Core & Distribution Metrics
     setKPIValue('metric-critical-alerts', `${data.critical_alerts || 0} Critical`);
-    setKPIValue('metric-avg-memory', `${data.avg_memory || 45}%`);
+    const memVal = data.avg_memory || 45;
+    setKPIValue('metric-avg-memory', `${Math.round(memVal)}%`);
     const memCircle = document.getElementById('metric-memory-circle');
-    if (memCircle) memCircle.style.background = `conic-gradient(#4fd1c5 0% ${data.avg_memory || 45}%, #e2e8f0 ${data.avg_memory || 45}% 100%)`;
+    if (memCircle) {
+        const pct = Math.round(memVal);
+        memCircle.style.background = `conic-gradient(#4fd1c5 0% ${pct}%, #e2e8f0 ${pct}% 100%)`;
+        const span = memCircle.querySelector('span');
+        if (span) span.textContent = `${pct}%`;
+    }
 
     setKPIValue('metric-avg-temp', `${data.avg_temp || 32}°C`);
 
-    // Bandwidth
-    const totalBw = data.total_bandwidth_gbps || '8.2';
-    setKPIValue('metric-bandwidth-1', `${totalBw} Gbps`);
-    setKPIValue('metric-bandwidth-2', `${totalBw} Gbps`);
+    // Bandwidth - computed from real data
+    const totalBw = data.total_bandwidth_gbps || 0;
+    const bwDisplay = totalBw > 0 ? `${totalBw} Gbps` : `${((data.bandwidth_value || 0) / 1000).toFixed(1)} Gbps`;
+    setKPIValue('metric-bandwidth-1', bwDisplay);
+    setKPIValue('metric-bandwidth-2', bwDisplay);
 
     // Update Notification Badge
     updateNotificationBadge(data.critical_alerts || 0);
 
-    // Update Tables if device data is present
-    if (data.devices) {
-        updateDeviceTables(data.devices);
+    // Update Tables if device data is present (array of device objects)
+    const deviceArray = data.devices || data.device_list;
+    if (Array.isArray(deviceArray) && deviceArray.length > 0) {
+        updateDeviceTables(deviceArray);
+    }
+
+    // Update CPU KPI
+    const cpuVal = data.avg_cpu;
+    if (cpuVal !== undefined && cpuVal !== null) {
+        updateCpuKPI(cpuVal);
     }
 }
 
@@ -382,7 +391,14 @@ function updateStatsFromSummary(data) {
 // Expose selected helpers for other modules (websocket fallback, etc.)
 window.updateStatsFromSummary = updateStatsFromSummary;
 window.updateCpuKPI = updateCpuKPI;
-window.ensureCpuPlaceholder = ensureCpuPlaceholder;
+window.loadKPIs = loadKPIs;
+window.loadStatsOverview = loadStatsOverview;
+window.ensureCpuPlaceholder = function () {
+    const el = document.getElementById('kpi-cpu-utilization');
+    if (el && (el.textContent === '--' || el.textContent === 'Loading...')) {
+        setKPIValue('kpi-cpu-utilization', '0%');
+    }
+};
 
 // 4. AI Insights
 async function loadAIInsights() {
@@ -581,19 +597,7 @@ async function loadSwitchKPIs() {
             }
         }
 
-        // If we couldn't deduce counts from the response, try a direct count endpoint
-        if (!total) {
-            // Try a lightweight count-only request (if backend provides it)
-            try {
-                const countResp = await apiFetch('/devices/count/?type=switch');
-                if (countResp) {
-                    const cdata = await countResp.json();
-                    if (cdata && cdata.count !== undefined) total = cdata.count;
-                }
-            } catch (e) {
-                // ignore
-            }
-        }
+        // No separate count endpoint needed — count derived from list above
 
         const elTotal = document.getElementById('kpi-switch-count');
         const elDown = document.getElementById('kpi-switch-down-count');
@@ -645,6 +649,12 @@ async function loadStatsOverview() {
 
         if (!cpuUpdated) {
             setKPIValue('kpi-cpu-utilization', '--');
+        }
+
+        // Populate device tables from real_time_data device_list
+        const deviceArray = data.device_list || data.devices;
+        if (Array.isArray(deviceArray) && deviceArray.length > 0) {
+            updateDeviceTables(deviceArray);
         }
 
         if (window.netPulseCharts && typeof window.netPulseCharts.ingestMetrics === 'function') {
@@ -765,66 +775,117 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeDashboard();
 });
 
-// New function to update Device Tables
+// Update Device Tables with real device data from API
 function updateDeviceTables(devices) {
-    if (!Array.isArray(devices)) return;
+    if (!Array.isArray(devices) || devices.length === 0) return;
 
-    // Filter devices
-    const coreDevices = devices.filter(d => d.name.toLowerCase().includes('core') || d.device_type === 'router' || d.device_type === 'server');
-    const distDevices = devices.filter(d => d.name.toLowerCase().includes('dist') || d.name.toLowerCase().includes('distribution'));
-    const accessDevices = devices.filter(d => d.name.toLowerCase().includes('sw-') || d.device_type === 'switch'); // Broad filter for bottom table
+    // Classify devices by type and naming convention
+    const coreDevices = devices.filter(d => {
+        const name = (d.name || '').toLowerCase();
+        return name.includes('core') || d.device_type === 'router' || d.device_type === 'firewall' || d.device_type === 'server';
+    });
+    const distDevices = devices.filter(d => {
+        const name = (d.name || '').toLowerCase();
+        return name.includes('dist') || name.includes('distribution');
+    });
+    const switchDevices = devices.filter(d => {
+        const name = (d.name || '').toLowerCase();
+        return d.device_type === 'switch' || name.includes('sw-') || name.includes('switch') || name.includes('access');
+    });
 
-    // 1. Populate Core Devices Table
+    // If no classification matched, distribute all devices across tables
+    const hasClassified = coreDevices.length > 0 || distDevices.length > 0 || switchDevices.length > 0;
+    const allDevices = hasClassified ? null : devices;
+
+    // 1. Core Devices Table
     const coreTable = document.getElementById('table-core-devices');
     if (coreTable && coreTable.tBodies[0]) {
-        coreTable.tBodies[0].innerHTML = coreDevices.map(d => `
-            <tr>
-                <td class="font-bold">${d.name}</td>
-                <td><span class="${getMetricColor(d.cpu_load, 80)}">${d.cpu_load || 0}%</span></td>
-                <td>${d.temperature || 40}°C</td>
-                <td>${d.uplink_capacity || '10 Gbps'}</td>
-                <td class="text-right"><i class="fas fa-chevron-right text-gray"></i></td>
-            </tr>
-        `).join('');
+        const src = coreDevices.length > 0 ? coreDevices : (allDevices ? allDevices.slice(0, Math.ceil(allDevices.length / 3)) : []);
+        if (src.length > 0) {
+            coreTable.tBodies[0].innerHTML = src.map(d => `
+                <tr>
+                    <td class="font-bold">
+                        <span class="dot ${d.is_online ? 'green' : 'red'}"></span>
+                        ${d.name}
+                    </td>
+                    <td><span class="${getMetricColor(d.cpu_load, 80)}">${d.cpu_load || 0}%</span></td>
+                    <td>${d.temperature != null ? d.temperature + '°C' : '—'}</td>
+                    <td>${d.uplink_capacity || '10 Gbps'}</td>
+                    <td class="text-right"><i class="fas fa-chevron-right text-gray"></i></td>
+                </tr>
+            `).join('');
+        }
     }
 
-    // 2. Populate Distribution Devices Table
+    // 2. Distribution Devices Table
     const distTable = document.getElementById('table-dist-devices');
     if (distTable && distTable.tBodies[0]) {
-        distTable.tBodies[0].innerHTML = distDevices.map(d => `
-            <tr>
-                <td class="font-bold">${d.name}</td>
-                <td><span class="${getMetricColor(d.cpu_load, 80)}">${d.cpu_load || 0}%</span></td>
-                <td>${d.memory_load || 0}%</td>
-                <td>${d.uplink_capacity || '10 Gbps'}</td>
-                <td>${d.throughput_out ? d.throughput_out + ' Mbps' : ((parseInt(d.id || 0) * 17) % 500 + 100) + ' Mbps'}</td>
-            </tr>
-        `).join('');
+        const src = distDevices.length > 0 ? distDevices : (allDevices ? allDevices.slice(Math.ceil(allDevices.length / 3), Math.ceil(2 * allDevices.length / 3)) : []);
+        if (src.length > 0) {
+            distTable.tBodies[0].innerHTML = src.map(d => `
+                <tr>
+                    <td class="font-bold">
+                        <span class="dot ${d.is_online ? 'green' : 'red'}"></span>
+                        ${d.name}
+                    </td>
+                    <td><span class="${getMetricColor(d.cpu_load, 80)}">${d.cpu_load || 0}%</span></td>
+                    <td>${d.memory_load || 0}%</td>
+                    <td>${d.uplink_capacity || '10 Gbps'}</td>
+                    <td>${d.throughput_out ? d.throughput_out + ' Mbps' : (d.network_out ? d.network_out + ' Mbps' : '0 Mbps')}</td>
+                </tr>
+            `).join('');
+        }
     }
 
-    // 3. Populate Access / Detailed Table (Core & Distribution Devices in bottom panel)
-    // The mockup calls it "Core & Distribution Devices" but lists "sw-fl-01", "sw-lab-03". 
-    // I will mix all significant devices here.
-    const allSignificant = [...coreDevices, ...distDevices, ...accessDevices].slice(0, 6);
+    // 3. Access / Bottom table - show ALL devices with full details
     const accessTable = document.getElementById('table-access-status');
     if (accessTable && accessTable.tBodies[0]) {
-        accessTable.tBodies[0].innerHTML = allSignificant.map(d => `
-            <tr>
-                <td class="font-bold">
-                    <span class="dot ${d.is_online ? 'green' : 'red'}"></span> ${d.name}
-                </td>
-                <td>${d.cpu_load || 0}%</td>
-                <td>${d.temperature || 40}°C</td>
-                <td>${d.uplink_capacity ? d.uplink_capacity.split(' ')[0] : '10'} Gbps</td>
-                <td>${d.uplink_capacity || '10 Gbps'}</td>
-                <td>${Math.floor(Math.random() * 800) + 100} Mbps</td>
-            </tr>
-        `).join('');
+        // Deduplicate: use all devices, ordered by type priority
+        const seen = new Set();
+        const ordered = [];
+        // Priority: switches first, then others
+        const priority = [...switchDevices, ...coreDevices, ...distDevices];
+        for (const d of priority) {
+            const key = d.id || d.name;
+            if (!seen.has(key)) {
+                seen.add(key);
+                ordered.push(d);
+            }
+        }
+        // Then add any remaining devices
+        for (const d of devices) {
+            const key = d.id || d.name;
+            if (!seen.has(key)) {
+                seen.add(key);
+                ordered.push(d);
+            }
+        }
+
+        accessTable.tBodies[0].innerHTML = ordered.map(d => {
+            const uplinkVal = d.uplink_capacity ? d.uplink_capacity.split(' ')[0] : '10';
+            const outTraffic = d.network_out || d.throughput_out || 0;
+            return `
+                <tr>
+                    <td class="font-bold">
+                        <span class="dot ${d.is_online ? 'green' : 'red'}"></span> ${d.name}
+                    </td>
+                    <td><span class="${getMetricColor(d.cpu_load, 80)}">${d.cpu_load || 0}%</span></td>
+                    <td>${d.temperature != null ? d.temperature + '°C' : '—'}</td>
+                    <td>${uplinkVal} Gbps</td>
+                    <td>${d.uplink_capacity || '10 Gbps'}</td>
+                    <td>${outTraffic} Mbps</td>
+                </tr>
+            `;
+        }).join('');
     }
 }
 
 function getMetricColor(value, threshold) {
+    if (!value || !threshold) return '';
     if (value > threshold) return 'text-red';
-    if (value > threshold * 0.75) return 'text-warning'; // css class text-warning isn't defined, using default or adding it
+    if (value > threshold * 0.75) return 'text-warning';
     return 'text-green';
 }
+
+// Expose updateDeviceTables for websocket/polling modules
+window.updateDeviceTables = updateDeviceTables;

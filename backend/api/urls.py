@@ -1,22 +1,31 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
-from .views import AuthViewSet, UserViewSet, DashboardViewSet, DeviceViewSet, AlertViewSet, MetricViewSet
-from .views import ZoneViewSet, ISPViewSet, AuditViewSet, PortViewSet
+from .views import (
+    AuthViewSet, UserViewSet, DashboardViewSet,
+    DeviceViewSet, AlertViewSet, MetricViewSet,
+    ZoneViewSet, ISPViewSet, AuditViewSet, PortViewSet,
+    AlertThresholdViewSet,
+)
 
 router = DefaultRouter()
 router.register(r'devices', DeviceViewSet, basename='device')
 router.register(r'alerts', AlertViewSet, basename='alert')
-router.register(r'metrics', MetricViewSet, basename='metric')  # Added basename
+router.register(r'metrics', MetricViewSet, basename='metric')
 router.register(r'zones', ZoneViewSet, basename='zone')
 router.register(r'isps', ISPViewSet, basename='isp')
 router.register(r'ports', PortViewSet, basename='port')
 router.register(r'audits', AuditViewSet, basename='audit')
+router.register(r'alert-thresholds', AlertThresholdViewSet, basename='alert-threshold')
 
 urlpatterns = [
     # Authentication endpoints
+    path('auth/login/', AuthViewSet.as_view({'post': 'login'}), name='auth-login-legacy'),
+    path('auth/signup/', AuthViewSet.as_view({'post': 'signup'}), name='auth-signup-legacy'),
+    path('auth/user/me/', UserViewSet.as_view({'get': 'me'}), name='user-me-legacy'),
     path('login/', AuthViewSet.as_view({'post': 'login'}), name='auth-login'),
     path('signup/', AuthViewSet.as_view({'post': 'signup'}), name='auth-signup'),
+    path('logout/', AuthViewSet.as_view({'post': 'logout'}), name='auth-logout'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token-refresh'),
     
     # User endpoints

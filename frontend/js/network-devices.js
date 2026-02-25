@@ -67,21 +67,17 @@ async function loadNetworkDevices() {
 
     try {
         const response = await apiFetch('/devices/');
-        if (!response) {
-            showDemoDevices();
-            return;
-        }
-
-        if (response.ok) {
+        if (response && response.ok) {
             const devices = await response.json();
             renderDevicesTable(devices);
             updateDeviceStats(devices);
         } else {
-            showDemoDevices();
+            console.error('API error loading devices');
+            renderDevicesTable([]); // Show empty table with "No devices found"
         }
     } catch (error) {
         console.error('Error loading devices:', error);
-        showDemoDevices();
+        renderDevicesTable([]);
     }
 }
 
@@ -136,7 +132,7 @@ function renderDevicesTable(devices) {
             <td>${device.last_seen ? formatRelativeTime(device.last_seen) : 'Never'}</td>
             <td>
                 <div class="action-buttons">
-                    <button class="action-btn view-btn" data-device-id="${device.id}" title="View Details">
+                    <button class="action-btn view-btn" data-device-id="${device.id}" data-device-name="${device.name}" title="View Details">
                         <i class="fas fa-eye"></i>
                     </button>
                     <button class="action-btn config-btn" data-device-id="${device.id}" title="Configure">
@@ -363,8 +359,71 @@ function showNotification(message, type = 'info') {
     });
 }
 
-function showDeviceDetails(deviceId) {
-    alert(`View details for device ${deviceId}`);
+async function showDeviceDetails(deviceId) {
+    const modal = document.getElementById('device-modal');
+    if (!modal) return;
+
+    try {
+        const response = await apiFetch(`/devices/${deviceId}/`);
+        if (response && response.ok) {
+            const device = await response.json();
+
+            // Update modal title
+            const modalTitle = modal.querySelector('.modal-header h3');
+            if (modalTitle) modalTitle.textContent = `Device Details: ${device.name}`;
+
+            // Update modal body
+            const body = modal.querySelector('.device-details');
+            if (body) {
+                body.innerHTML = `
+                    <div class="detail-row">
+                        <span class="detail-label">Device Type:</span>
+                        <span class="detail-value" style="text-transform: capitalize;">${device.device_type}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">IP Address:</span>
+                        <span class="detail-value">${device.ip_address}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Zone:</span>
+                        <span class="detail-value">${device.zone_name || 'N/A'}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Status:</span>
+                        <span class="detail-value">
+                            <span class="status-badge ${device.is_online ? 'online' : 'offline'}">
+                                ${device.is_online ? 'Online' : 'Offline'}
+                            </span>
+                        </span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">CPU Load:</span>
+                        <span class="detail-value">${device.cpu_load != null ? device.cpu_load + '%' : 'N/A'}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Memory Usage:</span>
+                        <span class="detail-value">${device.memory_load != null ? device.memory_load + '%' : 'N/A'}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Temperature:</span>
+                        <span class="detail-value">${device.temperature != null ? device.temperature + '°C' : 'N/A'}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Uptime:</span>
+                        <span class="detail-value">${device.uptime_days != null ? Math.round(device.uptime_days) + ' days' : 'N/A'}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Description:</span>
+                        <span class="detail-value">${device.description || 'None'}</span>
+                    </div>
+                `;
+            }
+
+            modal.style.display = 'flex';
+        }
+    } catch (error) {
+        console.error('Error showing device details:', error);
+    }
 }
 
 // Filter functionality

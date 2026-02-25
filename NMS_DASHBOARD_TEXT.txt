@@ -1,0 +1,65 @@
+DATA CENTER DETAILS
+
+
+
+CORE & DISTRIBUTION SWITCH DETAILS
+
+
+
+
+
+ACCESS SWITCHES STATUS
+
+
+
+
+
+
+SWITCH INTERFACE UTILIZATION
+
+
+
+
+
+( ChatGPT file)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ISP MONITORING
+
+
+
+ 	
+
+Add:- 
+
+
+
+
+
+Link Latency, packet drops, flapping, critical alerts
+
+
+
+
+PORT MONITORING 
+
+
+
+
+
+
+Add: - IT Meeting Room switch Ports, Conference & Mini Conference Hall switch ports & Lounges
+
+

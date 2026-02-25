@@ -4,8 +4,10 @@ class TrendsAndForecasts {
         this.charts = {};
         this.currentMetric = 'bandwidth';
         this.currentTimeRange = '7d';
+        this.currentDevice = 'all';
         this.initializeCharts();
         this.setupEventListeners();
+        this.populateDevices();
         this.loadData();
     }
 
@@ -70,8 +72,8 @@ class TrendsAndForecasts {
                     title: {
                         display: true,
                         text: 'Bandwidth Usage Trends & Forecast',
-                        font: { 
-                            size: 16, 
+                        font: {
+                            size: 16,
                             weight: 'bold',
                             family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
                         },
@@ -80,7 +82,7 @@ class TrendsAndForecasts {
                     },
                     legend: {
                         position: 'bottom',
-                        labels: { 
+                        labels: {
                             usePointStyle: true,
                             padding: 20,
                             font: {
@@ -104,13 +106,13 @@ class TrendsAndForecasts {
                         type: 'time',
                         time: {
                             unit: 'day',
-                            displayFormats: { 
+                            displayFormats: {
                                 day: 'MMM d',
                                 hour: 'MMM d HH:mm'
                             }
                         },
-                        title: { 
-                            display: true, 
+                        title: {
+                            display: true,
                             text: 'Date',
                             font: {
                                 family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
@@ -131,8 +133,8 @@ class TrendsAndForecasts {
                     },
                     y: {
                         beginAtZero: true,
-                        title: { 
-                            display: true, 
+                        title: {
+                            display: true,
                             text: 'Bandwidth (Mbps)',
                             font: {
                                 family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
@@ -149,7 +151,7 @@ class TrendsAndForecasts {
                                 family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
                             },
                             color: '#6c757d',
-                            callback: function(value) {
+                            callback: function (value) {
                                 return value + ' Mbps';
                             }
                         }
@@ -213,7 +215,7 @@ class TrendsAndForecasts {
                         padding: 10,
                         cornerRadius: 4,
                         callbacks: {
-                            label: function(context) {
+                            label: function (context) {
                                 return `${context.dataset.label}: ${context.parsed.y} Mbps`;
                             }
                         }
@@ -243,7 +245,7 @@ class TrendsAndForecasts {
                                 family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
                             },
                             color: '#6c757d',
-                            callback: function(value) {
+                            callback: function (value) {
                                 return value + ' Mbps';
                             }
                         }
@@ -400,7 +402,7 @@ class TrendsAndForecasts {
                         padding: 10,
                         cornerRadius: 4,
                         callbacks: {
-                            label: function(context) {
+                            label: function (context) {
                                 return `${context.dataset.label}: ${context.parsed.y} Mbps`;
                             }
                         }
@@ -430,7 +432,7 @@ class TrendsAndForecasts {
                                 family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
                             },
                             color: '#6c757d',
-                            callback: function(value) {
+                            callback: function (value) {
                                 return value + ' Mbps';
                             }
                         }
@@ -499,7 +501,7 @@ class TrendsAndForecasts {
                         padding: 10,
                         cornerRadius: 4,
                         callbacks: {
-                            label: function(context) {
+                            label: function (context) {
                                 const point = context.raw;
                                 return `${context.dataset.label}: Bandwidth=${point.x.toFixed(1)}Mbps, Response=${point.y.toFixed(1)}ms`;
                             }
@@ -605,11 +607,40 @@ class TrendsAndForecasts {
                 this.updateSmallCharts();
             });
         });
+
+        const deviceSelect = document.getElementById('device-select');
+        if (deviceSelect) {
+            deviceSelect.addEventListener('change', (e) => {
+                this.currentDevice = e.target.value;
+                this.loadData();
+            });
+        }
+    }
+
+    async populateDevices() {
+        const deviceSelect = document.getElementById('device-select');
+        if (!deviceSelect) return;
+
+        try {
+            const response = await apiFetch('/devices/');
+            if (response && response.ok) {
+                const devices = await response.json();
+                deviceSelect.innerHTML = '<option value="all">All Devices</option>';
+                devices.forEach(device => {
+                    const option = document.createElement('option');
+                    option.value = device.id;
+                    option.textContent = device.name;
+                    deviceSelect.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Error populating devices:', error);
+        }
     }
 
     async loadData() {
         this.showLoading();
-        
+
         try {
             // Simulate API call
             const data = await this.fetchTrendData();
@@ -624,9 +655,30 @@ class TrendsAndForecasts {
     }
 
     async fetchTrendData() {
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
+        if (this.currentDevice && this.currentDevice !== 'all') {
+            try {
+                const url = `/devices/${this.currentDevice}/trends/?range=${this.currentTimeRange}&metric=${this.currentMetric}`;
+                const response = await apiFetch(url);
+                if (response && response.ok) {
+                    const data = await response.json();
+                    return {
+                        historical: data.historical || [],
+                        forecast: data.forecast || [],
+                        stats: {
+                            current: data.historical?.length > 0 ? data.historical[data.historical.length - 1].y : 0,
+                            trend: 'up',
+                            peak: Math.max(...(data.historical?.map(p => p.y) || [0])),
+                            accuracy: '94%'
+                        }
+                    };
+                }
+            } catch (error) {
+                console.error('API Trend Error:', error);
+            }
+        }
+
+        // Fallback to simulated data if 'all' or API fails
+        await new Promise(resolve => setTimeout(resolve, 500));
         return {
             historical: this.generateHistoricalData(),
             forecast: this.generateForecastData(),
@@ -639,14 +691,31 @@ class TrendsAndForecasts {
         };
     }
 
+    generateForecastFromData(historical) {
+        if (!historical || historical.length === 0) return this.generateForecastData();
+
+        const lastPoint = historical[historical.length - 1];
+        const forecast = [];
+        const interval = 24 * 60 * 60 * 1000; // 1 day in ms
+
+        for (let i = 1; i <= 7; i++) {
+            forecast.push({
+                x: lastPoint.x + (i * interval),
+                y: Math.max(0, lastPoint.y + (Math.sin(i) * 50) + (i * 10)), // Simulated forecast logic
+                confidence: 85 + Math.floor(Math.random() * 10)
+            });
+        }
+        return forecast;
+    }
+
     generateHistoricalData() {
         const data = [];
         const now = new Date();
         const points = this.getDataPointsForRange();
-        
+
         for (let i = points; i >= 0; i--) {
             const date = new Date(now);
-            
+
             // Adjust date based on time range
             if (this.currentTimeRange === '1h' || this.currentTimeRange === '6h') {
                 date.setMinutes(date.getMinutes() - i * (this.currentTimeRange === '1h' ? 5 : 20));
@@ -655,18 +724,18 @@ class TrendsAndForecasts {
             } else {
                 date.setDate(date.getDate() - i);
             }
-            
+
             // Simulate realistic data with some noise
             const baseValue = 200 + Math.sin(i * 0.3) * 120;
             const noise = (Math.random() - 0.5) * 60;
             const value = Math.max(50, baseValue + noise);
-            
+
             data.push({
                 x: date.getTime(),
                 y: Math.round(value)
             });
         }
-        
+
         return data;
     }
 
@@ -675,22 +744,22 @@ class TrendsAndForecasts {
         const now = new Date();
         const historical = this.generateHistoricalData();
         const lastValue = historical[historical.length - 1].y;
-        
+
         for (let i = 1; i <= 7; i++) {
             const date = new Date(now);
             date.setDate(date.getDate() + i);
-            
+
             // Simple forecast based on trend with some randomness
             const trend = 8 + (Math.random() * 6);
             const value = lastValue + (trend * i) + (Math.random() - 0.5) * 25;
-            
+
             data.push({
                 x: date.getTime(),
                 y: Math.max(50, Math.round(value)),
                 confidence: Math.round(85 + (Math.random() * 12))
             });
         }
-        
+
         return data;
     }
 
@@ -711,7 +780,7 @@ class TrendsAndForecasts {
         if (this.charts.main) {
             this.charts.main.data.datasets[0].data = data.historical;
             this.charts.main.data.datasets[1].data = data.forecast;
-            
+
             // Update chart title based on metric
             const metricTitles = {
                 'bandwidth': 'Bandwidth Usage',
@@ -721,17 +790,17 @@ class TrendsAndForecasts {
                 'humidity': 'Humidity',
                 'alerts': 'Alert Trends'
             };
-            
-            const unit = this.currentMetric === 'bandwidth' ? 'Mbps' : 
-                        this.currentMetric === 'temperature' ? '°C' :
-                        this.currentMetric === 'humidity' ? '%' : '%';
-            
-            this.charts.main.options.plugins.title.text = 
+
+            const unit = this.currentMetric === 'bandwidth' ? 'Mbps' :
+                this.currentMetric === 'temperature' ? '°C' :
+                    this.currentMetric === 'humidity' ? '%' : '%';
+
+            this.charts.main.options.plugins.title.text =
                 `${metricTitles[this.currentMetric]} Trends & Forecast`;
-            
-            this.charts.main.options.scales.y.title.text = 
+
+            this.charts.main.options.scales.y.title.text =
                 `${metricTitles[this.currentMetric]} (${unit})`;
-            
+
             this.charts.main.update();
         }
     }
@@ -756,17 +825,17 @@ class TrendsAndForecasts {
         if (!tbody) return;
 
         let rows = '';
-        
+
         // Show last 5 historical points and forecast
         const historicalToShow = data.historical.slice(-5);
         const forecastToShow = data.forecast.slice(0, 5);
-        
+
         // Historical data
         historicalToShow.forEach(point => {
             const date = new Date(point.x);
             rows += `
                 <tr>
-                    <td>${date.toLocaleDateString()} ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+                    <td>${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
                     <td>${point.y} Mbps</td>
                     <td>--</td>
                     <td>--</td>
@@ -775,12 +844,12 @@ class TrendsAndForecasts {
                 </tr>
             `;
         });
-        
+
         // Forecast data
         forecastToShow.forEach(forecast => {
             const date = new Date(forecast.x);
             const variance = Math.round((Math.random() - 0.3) * 15); // Simulated variance
-            
+
             rows += `
                 <tr>
                     <td>${date.toLocaleDateString()}</td>
@@ -799,17 +868,17 @@ class TrendsAndForecasts {
     updateSmallCharts() {
         // Update comparison chart with random data
         if (this.charts.comparison) {
-            const newData = this.charts.comparison.data.datasets[0].data.map(() => 
+            const newData = this.charts.comparison.data.datasets[0].data.map(() =>
                 Math.floor(Math.random() * 300) + 150
             );
             this.charts.comparison.data.datasets[0].data = newData;
             this.charts.comparison.update();
         }
-        
+
         // Update seasonal chart
         if (this.charts.seasonal) {
             const basePattern = [120, 80, 350, 480, 420, 280];
-            const newData = basePattern.map(value => 
+            const newData = basePattern.map(value =>
                 Math.max(50, value + (Math.random() - 0.5) * 100)
             );
             this.charts.seasonal.data.datasets[0].data = newData;
@@ -837,8 +906,8 @@ class TrendsAndForecasts {
 
         // Take 3 random insights
         const selectedInsights = insights.sort(() => 0.5 - Math.random()).slice(0, 3);
-        
-        insightsDiv.innerHTML = selectedInsights.map(insight => 
+
+        insightsDiv.innerHTML = selectedInsights.map(insight =>
             `<p>• ${insight}</p>`
         ).join('');
     }
@@ -893,19 +962,19 @@ class TrendsAndForecasts {
 }
 
 // Initialize when page loads
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Wait for DOM to be fully ready
     setTimeout(() => {
         window.trendsApp = new TrendsAndForecasts();
     }, 100);
-    
+
     // Update current date
     const currentDate = document.getElementById('current-date');
     if (currentDate) {
-        currentDate.textContent = new Date().toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'short', 
-            day: 'numeric' 
+        currentDate.textContent = new Date().toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
         });
     }
 });

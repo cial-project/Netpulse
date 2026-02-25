@@ -9,10 +9,15 @@ dj-database-url==2.1.0
 gunicorn==21.2.0
 daphne==4.0.0
 whitenoise==6.6.0
-# Other
+# Auth & API
 djangorestframework-simplejwt==5.3.0
+# WebSockets / Channels
 channels==4.0.0
 channels-redis==4.1.0
+# Task Queue
 redis==5.0.1
 celery==5.3.4
+# SNMP
 pysnmp==4.4.12
+# HTTP requests (used by SIEM integration)
+requests==2.31.0

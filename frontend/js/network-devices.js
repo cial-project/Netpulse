@@ -68,7 +68,9 @@ async function loadNetworkDevices() {
     try {
         const response = await apiFetch('/devices/');
         if (response && response.ok) {
-            const devices = await response.json();
+            const data = await response.json();
+            // Handle DRF paginated responses: { count, results: [...] }
+            const devices = Array.isArray(data) ? data : (data.results || []);
             renderDevicesTable(devices);
             updateDeviceStats(devices);
         } else {
@@ -86,7 +88,9 @@ async function loadZones() {
     try {
         const response = await apiFetch('/zones/');
         if (response && response.ok) {
-            const zones = await response.json();
+            const data = await response.json();
+            // Handle DRF paginated responses
+            const zones = Array.isArray(data) ? data : (data.results || []);
             const zoneSelect = document.getElementById('device-zone');
             if (zoneSelect) {
                 zoneSelect.innerHTML = '<option value="">Select zone...</option>';

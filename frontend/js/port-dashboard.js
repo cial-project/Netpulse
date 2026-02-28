@@ -61,7 +61,9 @@ async function fetchPorts() {
     try {
         const response = await apiFetch('/ports/');
         if (response && response.ok) {
-            const ports = await response.json();
+            const data = await response.json();
+            // Handle DRF paginated responses
+            const ports = Array.isArray(data) ? data : (data.results || []);
             renderPorts(ports);
             // Start polling (simulation)
             ports.forEach(port => {

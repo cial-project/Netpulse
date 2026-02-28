@@ -79,7 +79,9 @@ async function loadISPs() {
         const response = await apiFetch('/isps/');
         if (!response) return;
 
-        const isps = await response.json();
+        const data = await response.json();
+        // Handle DRF paginated responses
+        const isps = Array.isArray(data) ? data : (data.results || []);
 
         if (isps.length === 0) {
             grid.innerHTML = '<div class="no-data">No ISPs configured. Click "Add ISP" to start monitoring.</div>';

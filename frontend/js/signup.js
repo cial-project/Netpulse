@@ -26,7 +26,7 @@ async function signupUser() {
     })();
 
     try {
-        const response = await fetch(`${API_BASE}/api/auth/auth/signup/`, {
+        const response = await fetch(`${API_BASE}/api/signup/`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ username, email, password })

@@ -20,7 +20,7 @@ async function loginUser(event) {
   })();
 
   try {
-    const response = await fetch(`${API_BASE}/api/auth/login/`, {
+    const response = await fetch(`${API_BASE}/api/login/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: username, password: password })
@@ -39,7 +39,7 @@ async function loginUser(event) {
       // Since Django doesn't return user data in login response,
       // we need to fetch it separately
       try {
-        const userResponse = await fetch(`${API_BASE}/api/auth/user/me/`, {
+        const userResponse = await fetch(`${API_BASE}/api/user/me/`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",

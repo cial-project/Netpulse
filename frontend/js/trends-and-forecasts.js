@@ -624,7 +624,9 @@ class TrendsAndForecasts {
         try {
             const response = await apiFetch('/devices/');
             if (response && response.ok) {
-                const devices = await response.json();
+                const data = await response.json();
+                // Handle DRF paginated responses
+                const devices = Array.isArray(data) ? data : (data.results || []);
                 deviceSelect.innerHTML = '<option value="all">All Devices</option>';
                 devices.forEach(device => {
                     const option = document.createElement('option');

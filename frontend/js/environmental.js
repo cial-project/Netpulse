@@ -467,7 +467,9 @@ class EnvironmentalMonitor {
             // Try to fetch zones from backend API
             const zonesResp = await apiFetch('/zones/');
             if (zonesResp && zonesResp.ok) {
-                const zonesData = await zonesResp.json();
+                const zonesRaw = await zonesResp.json();
+                // Handle DRF paginated responses
+                const zonesData = Array.isArray(zonesRaw) ? zonesRaw : (zonesRaw.results || []);
 
                 // Map the returned zones to the table structure. If a zone key matches dc1/dc2/dr
                 // we'll try to pull temperature/humidity values from the dashboard KPI endpoint.

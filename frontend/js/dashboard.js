@@ -684,7 +684,8 @@ async function loadISPs() {
                 container.innerHTML = '<div class="error">Unable to load ISPs</div>';
                 return;
             }
-            const data = await helperResp.json();
+            const rawData = await helperResp.json();
+            const data = Array.isArray(rawData) ? rawData : (rawData.results || []);
             renderISPs(data);
             return;
         }
@@ -696,7 +697,8 @@ async function loadISPs() {
                 container.innerHTML = '<div class="error">Unauthorized to view ISP list</div>';
                 return;
             }
-            const data = await helperResp.json();
+            const rawData = await helperResp.json();
+            const data = Array.isArray(rawData) ? rawData : (rawData.results || []);
             renderISPs(data);
             return;
         }
@@ -706,7 +708,8 @@ async function loadISPs() {
             return;
         }
 
-        const data = await response.json();
+        const rawData = await response.json();
+        const data = Array.isArray(rawData) ? rawData : (rawData.results || []);
         renderISPs(data);
     } catch (err) {
         console.error('Error loading ISPs', err);

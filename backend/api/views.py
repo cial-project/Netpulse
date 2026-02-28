@@ -1,5 +1,5 @@
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
 from django.contrib.auth import authenticate
@@ -26,6 +26,23 @@ import logging
 import random
 
 logger = logging.getLogger('netpulse.views')
+
+
+@api_view(['GET', 'HEAD']) 
+@permission_classes([AllowAny])
+def api_root(request):
+    """Simple root view for API status and health checks."""
+    return Response({
+        "name": "NetPulse API",
+        "status": "online",
+        "version": "1.0.0",
+        "message": "Welcome to NetPulse Network Monitoring API",
+        "endpoints": {
+            "admin": "/admin/",
+            "api": "/api/",
+            "dashboard_kpi": "/api/dashboard/kpi/"
+        }
+    })
 
 
 # ---------------------------------------------------------------------------

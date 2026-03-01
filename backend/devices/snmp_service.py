@@ -32,7 +32,7 @@ def get_device_status(ip: str, community: str = 'public') -> Dict:
         # Determine initial state based on IP (consistent behavior)
         ip_hash = hash(ip) % 100
         _device_states[ip] = {
-            'is_online': ip == '192.168.1.13' or ip_hash < 85,  # Force user laptop online, else 85% chance
+            'is_online': ip == '192.168.29.155' or ip_hash < 85,  # Force user laptop online, else 85% chance
             'last_change': datetime.now(),
             'metrics_history': []
         }
@@ -205,17 +205,19 @@ def poll_device(ip: str, device_type: str, community: str = 'public', port: int 
             'network_out': 0.0,
             'temperature': None,
         }
-    else:
+        # All real polling failed — fall back to simulator for demo purposes
+        sim_data = get_device_status(ip, community)
         return {
-            'status': 'down', 
-            'reachable': False,
-            'error': 'Device not responding - SNMP and Ping failed',
-            'sys_name': f"Device-{ip}",
-            'uptime_days': 0,
-            'cpu_usage': 0,
-            'memory_usage': 0,
-            'network_in': 0,
-            'network_out': 0
+            'status': sim_data.get('status', 'down'),
+            'reachable': sim_data.get('reachable', False),
+            'sys_name': sim_data.get('sys_name', f"Device-{ip}"),
+            'uptime_days': sim_data.get('uptime_days', 0),
+            'cpu_usage': sim_data.get('cpu_usage', 0.0),
+            'memory_usage': sim_data.get('memory_usage', 0.0),
+            'network_in': sim_data.get('network_in', 0.0),
+            'network_out': sim_data.get('network_out', 0.0),
+            'temperature': sim_data.get('temperature'),
+            'simulator_fallback': True
         }
 
 

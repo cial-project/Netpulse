@@ -205,20 +205,21 @@ def poll_device(ip: str, device_type: str, community: str = 'public', port: int 
             'network_out': 0.0,
             'temperature': None,
         }
-        # All real polling failed — fall back to simulator for demo purposes
-        sim_data = get_device_status(ip, community)
-        return {
-            'status': sim_data.get('status', 'down'),
-            'reachable': sim_data.get('reachable', False),
-            'sys_name': sim_data.get('sys_name', f"Device-{ip}"),
-            'uptime_days': sim_data.get('uptime_days', 0),
-            'cpu_usage': sim_data.get('cpu_usage', 0.0),
-            'memory_usage': sim_data.get('memory_usage', 0.0),
-            'network_in': sim_data.get('network_in', 0.0),
-            'network_out': sim_data.get('network_out', 0.0),
-            'temperature': sim_data.get('temperature'),
-            'simulator_fallback': True
-        }
+
+    # All real polling failed — fall back to simulator for demo purposes
+    sim_data = get_device_status(ip, community)
+    return {
+        'status': sim_data.get('status', 'down'),
+        'reachable': sim_data.get('reachable', False),
+        'sys_name': sim_data.get('sys_name', f"Device-{ip}"),
+        'uptime_days': sim_data.get('uptime_days', 0),
+        'cpu_usage': sim_data.get('cpu_usage', 0.0),
+        'memory_usage': sim_data.get('memory_usage', 0.0),
+        'network_in': sim_data.get('network_in', 0.0),
+        'network_out': sim_data.get('network_out', 0.0),
+        'temperature': sim_data.get('temperature'),
+        'simulator_fallback': True
+    }
 
 
 def _snmp_poll_basic(ip: str, community: str = 'public', port: int = 161, timeout: int = 2):

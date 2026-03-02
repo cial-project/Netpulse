@@ -627,20 +627,61 @@ class DeviceViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def poll_now(self, request, pk=None):
-        """Manually poll a specific device asynchronously"""
+        """Manually poll a specific device synchronously (no Celery needed)"""
         device = self.get_object()
         try:
-            poll_single_device.delay(device.id)
+            result = poll_device(
+                device.ip_address,
+                device.device_type,
+                device.snmp_community,
+                getattr(device, 'port', 161),
+                custom_oids=getattr(device, 'custom_oids', '')
+            )
+
+            was_online = device.is_online
+            device.is_online = result.get('reachable', False)
+
+            if device.is_online:
+                device.last_seen = timezone.now()
+                device.sys_name = result.get('sys_name', device.sys_name)
+                device.uptime_days = result.get('uptime_days', device.uptime_days or 0)
+                device.cpu_load = result.get('cpu_usage', device.cpu_load)
+                device.memory_load = result.get('memory_usage', device.memory_load)
+                if result.get('temperature') is not None:
+                    device.temperature = result['temperature']
+
+                Metric.objects.create(
+                    device=device,
+                    cpu_usage=result.get('cpu_usage', 0),
+                    memory_usage=result.get('memory_usage', 0),
+                    network_in=result.get('network_in', 0),
+                    network_out=result.get('network_out', 0),
+                    temperature=result.get('temperature', None),
+                )
+
+                # Auto-resolve offline alerts if device came back online
+                if not was_online:
+                    Alert.objects.filter(
+                        device=device,
+                        title__icontains='offline',
+                        status__in=['open', 'in-progress']
+                    ).update(status='resolved', resolved_at=timezone.now())
+
+            device.save()
+
             return Response({
                 'success': True,
-                'message': f'Polling started for {device.name}',
-                'status': 'pending'
+                'message': f'Polling complete for {device.name}',
+                'is_online': device.is_online,
+                'cpu_load': device.cpu_load,
+                'memory_load': device.memory_load,
+                'uptime_days': device.uptime_days,
             })
         except Exception as e:
-            logger.exception('Failed to queue poll for device %s: %s', device.id, e)
+            logger.exception('Failed to poll device %s: %s', device.id, e)
             return Response({
                 'success': False,
-                'error': f'Failed to queue poll: {str(e)}'
+                'error': f'Failed to poll device: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     @action(detail=True, methods=['get'])
     def trends(self, request, pk=None):

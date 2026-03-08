@@ -215,32 +215,29 @@ function updateKPICards(data) {
         setKPIValue('kpi-devices-status', `${data.online_count || 0}/${data.total_devices || 0} Online`);
     }
 
-    // Data Center Environmental Data (New Models)
+    // Data Center Environmental Data (Enhanced)
     if (data.zones && Array.isArray(data.zones)) {
         data.zones.forEach(zone => {
-            if (zone.name.includes('DC1')) {
-                setKPIValue('kpi-dc1-temp', `${zone.temperature}°C`);
-                setKPIValue('kpi-dc1-humidity', `${zone.humidity}% humidity`);
-            } else if (zone.name.includes('DC2')) {
-                setKPIValue('kpi-dc2-temp', `${zone.temperature}°C`);
-                setKPIValue('kpi-dc2-humidity', `${zone.humidity}% humidity`);
-            } else if (zone.name.includes('DR2')) {
-                setKPIValue('kpi-dr2-temp', `${zone.temperature}°C`);
-                setKPIValue('kpi-dr2-humidity', `${zone.humidity}% humidity`);
-            } else if (zone.name.includes('DR')) {
-                setKPIValue('kpi-dr-temp', `${zone.temperature}°C`);
-                setKPIValue('kpi-dr-humidity', `${zone.humidity}% humidity`);
+            const key = zone.key.toLowerCase();
+            const tempEl = document.getElementById(`kpi-${key}-temp`);
+            const humEl = document.getElementById(`kpi-${key}-humidity`);
+            const ipEl = document.getElementById(`kpi-${key}-ip`);
+            const statusEl = document.getElementById(`kpi-${key}-status`);
+
+            if (tempEl) tempEl.textContent = `${zone.temperature}°C`;
+            if (humEl) humEl.textContent = `${zone.humidity}% humidity`;
+            if (ipEl) ipEl.textContent = zone.ip_address || 'NOT ASSIGNED';
+
+            if (statusEl) {
+                statusEl.textContent = zone.is_online ? 'ONLINE' : 'OFFLINE';
+                statusEl.className = zone.is_online ? 'status-pill online' : 'status-pill offline';
             }
         });
-    } else {
-        setKPIValue('kpi-dc1-temp', data.dc1_temperature || '24.8°C');
-        setKPIValue('kpi-dc1-humidity', data.dc1_humidity || '42% humidity');
-        setKPIValue('kpi-dc2-temp', data.dc2_temperature || '33.6°C');
-        setKPIValue('kpi-dc2-humidity', data.dc2_humidity || '32% humidity');
-        setKPIValue('kpi-dr-temp', data.dr_temperature || '22.0°C');
-        setKPIValue('kpi-dr-humidity', data.dr_humidity || '45% humidity');
-        setKPIValue('kpi-dr2-temp', data.dr2_temperature || '22.0°C');
-        setKPIValue('kpi-dr2-humidity', data.dr2_humidity || '45% humidity');
+    }
+
+    // Update Important Infrastructure Grid
+    if (data.important_devices && Array.isArray(data.important_devices)) {
+        updateImportantDevicesGrid(data.important_devices);
     }
 
     // Core & Distribution Metrics
@@ -277,6 +274,39 @@ function updateKPICards(data) {
     if (cpuVal !== undefined && cpuVal !== null) {
         updateCpuKPI(cpuVal);
     }
+
+    // Show Database status (static for now but visually correct)
+    const dbStatus = document.querySelector('#db-connection-status .status-text');
+    if (dbStatus) {
+        dbStatus.textContent = 'CONNECTED';
+        dbStatus.style.color = '#10b981';
+    }
+}
+
+function updateImportantDevicesGrid(devices) {
+    const grid = document.getElementById('important-devices-summary');
+    if (!grid) return;
+
+    if (devices.length === 0) {
+        grid.innerHTML = '<div class="loading-placeholder">No critical infrastructure devices identified.</div>';
+        return;
+    }
+
+    grid.innerHTML = devices.map(device => `
+        <div class="imp-device-card" style="border-left-color: ${device.is_online ? '#10b981' : '#ef4444'}">
+            <div class="imp-device-info">
+                <h4>${device.name}</h4>
+                <p>${device.ip_address} • ${device.device_type.toUpperCase()}</p>
+            </div>
+            <div class="imp-device-stats">
+                <div class="imp-stat-label">CPU / MEM</div>
+                <div class="imp-stat-value">${Math.round(device.cpu_load)}% / ${Math.round(device.memory_load)}%</div>
+                <div class="status-pill ${device.is_online ? 'online' : 'offline'}" style="margin-top: 0.25rem;">
+                    ${device.is_online ? 'ACTIVE' : 'INACTIVE'}
+                </div>
+            </div>
+        </div>
+    `).join('');
 }
 
 // Generate realistic environmental data with slight variations

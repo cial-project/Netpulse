@@ -458,6 +458,51 @@ body {
     margin-bottom: 0.2rem;
 }
 
+.kpi-header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.kpi-meta {
+    margin-top: 0.75rem;
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.kpi-meta span {
+    color: var(--dark-alt);
+    font-weight: 600;
+}
+
+.status-pill {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+}
+
+.status-pill.online {
+    background-color: var(--primary-light);
+    color: var(--primary-dark);
+}
+
+.status-pill.offline {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+.status-pill.warning {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
 /* Charts */
 .chart-grid {
     display: grid;
@@ -488,13 +533,79 @@ body {
     margin-bottom: 2.5rem;
 }
 
-.section-header h3 {
-    font-size: 1.25rem;
+/* Important Infrastructure Section */
+.important-infrastructure-section {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--card-shadow);
+    margin-bottom: 2.5rem;
+}
+
+.important-devices-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.imp-device-card {
+    background: var(--gray-100);
+    border-radius: 12px;
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-left: 4px solid var(--primary);
+}
+
+.imp-device-info h4 {
+    font-size: 0.9rem;
     font-weight: 700;
     color: var(--dark);
+    margin-bottom: 0.2rem;
+}
+
+.imp-device-info p {
+    font-size: 0.75rem;
+    color: var(--secondary);
+}
+
+.imp-device-stats {
+    text-align: right;
+}
+
+.imp-stat-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--gray-400);
+    text-transform: uppercase;
+}
+
+.imp-stat-value {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--dark-alt);
+}
+
+.db-status-badge {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--secondary);
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.5rem;
+}
+
+.db-status-badge .status-text {
+    color: var(--success);
+}
+
+.loading-placeholder {
+    padding: 2rem;
+    text-align: center;
+    color: var(--gray-400);
+    font-style: italic;
 }
 
 /* Buttons */

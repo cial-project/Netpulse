@@ -125,51 +125,85 @@
 
             <section class="kpi-section">
                 <!-- DC1 -->
-                <div class="kpi-card environmental">
+                <div class="kpi-card environmental" id="kpi-card-dc1">
                     <div class="kpi-icon-square green">
                         <i class="fas fa-server"></i>
                     </div>
                     <div class="kpi-content">
-                        <h4>Data Center 1 (DC1)</h4>
-                        <div class="kpi-value-large" id="kpi-dc1-temp">24.8°C</div>
-                        <div class="kpi-subtitle" id="kpi-dc1-humidity">42% humidity</div>
+                        <div class="kpi-header-flex">
+                            <h4>Data Center 1 (DC1)</h4>
+                            <span class="status-pill offline" id="kpi-dc1-status">OFFLINE</span>
+                        </div>
+                        <div class="kpi-value-large" id="kpi-dc1-temp">--°C</div>
+                        <div class="kpi-subtitle" id="kpi-dc1-humidity">--% humidity</div>
+                        <div class="kpi-meta">IP: <span id="kpi-dc1-ip">NOT SET</span></div>
                     </div>
                 </div>
 
                 <!-- DC2 -->
-                <div class="kpi-card environmental">
+                <div class="kpi-card environmental" id="kpi-card-dc2">
                     <div class="kpi-icon-square green">
                         <i class="fas fa-server"></i>
                     </div>
                     <div class="kpi-content">
-                        <h4>Data Center 2 (DC2)</h4>
-                        <div class="kpi-value-large" id="kpi-dc2-temp">33.6°C</div>
-                        <div class="kpi-subtitle" id="kpi-dc2-humidity">32% humidity</div>
+                        <div class="kpi-header-flex">
+                            <h4>Data Center 2 (DC2)</h4>
+                            <span class="status-pill offline" id="kpi-dc2-status">OFFLINE</span>
+                        </div>
+                        <div class="kpi-value-large" id="kpi-dc2-temp">--°C</div>
+                        <div class="kpi-subtitle" id="kpi-dc2-humidity">--% humidity</div>
+                        <div class="kpi-meta">IP: <span id="kpi-dc2-ip">NOT SET</span></div>
                     </div>
                 </div>
 
                 <!-- DR -->
-                <div class="kpi-card environmental">
+                <div class="kpi-card environmental" id="kpi-card-dr">
                     <div class="kpi-icon-square yellow">
                         <i class="fas fa-shield-alt"></i>
                     </div>
                     <div class="kpi-content">
-                        <h4>Disaster Recovery</h4>
-                        <div class="kpi-value-large" id="kpi-dr-temp">33.6°C</div>
-                        <div class="kpi-subtitle" id="kpi-dr-humidity">32% humidity</div>
+                        <div class="kpi-header-flex">
+                            <h4>Disaster Recovery</h4>
+                            <span class="status-pill offline" id="kpi-dr-status">OFFLINE</span>
+                        </div>
+                        <div class="kpi-value-large" id="kpi-dr-temp">--°C</div>
+                        <div class="kpi-subtitle" id="kpi-dr-humidity">--% humidity</div>
+                        <div class="kpi-meta">IP: <span id="kpi-dr-ip">NOT SET</span></div>
                     </div>
                 </div>
 
                 <!-- DR 2 (Backup) -->
-                <div class="kpi-card environmental">
+                <div class="kpi-card environmental" id="kpi-card-dr2">
                     <div class="kpi-icon-square yellow">
                         <i class="fas fa-temperature-high"></i>
                     </div>
                     <div class="kpi-content">
-                        <h4>Disaster Recovery</h4>
-                        <div class="kpi-value-large" id="kpi-dr2-temp">33.6°C</div>
-                        <div class="kpi-subtitle" id="kpi-dr2-humidity">32% humidity</div>
+                        <div class="kpi-header-flex">
+                            <h4>Disaster Recovery 2</h4>
+                            <span class="status-pill offline" id="kpi-dr2-status">OFFLINE</span>
+                        </div>
+                        <div class="kpi-value-large" id="kpi-dr2-temp">--°C</div>
+                        <div class="kpi-subtitle" id="kpi-dr2-humidity">--% humidity</div>
+                        <div class="kpi-meta">IP: <span id="kpi-dr2-ip">NOT SET</span></div>
                     </div>
+                </div>
+            </section>
+
+            <!-- Critical Infrastructure Summary Section -->
+            <section class="important-infrastructure-section">
+                <div class="header-flex-row"
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <div class="section-header" style="margin-bottom: 0;">
+                        <h3><i class="fas fa-shield-alt"></i> CRITICAL INFRASTRUCTURE STATUS</h3>
+                    </div>
+                    <div class="db-status-badge" id="db-connection-status">
+                        <i class="fas fa-database"></i> Database: <span class="status-text"
+                            style="color: #10b981;">CONNECTED</span>
+                    </div>
+                </div>
+                <div class="important-devices-grid" id="important-devices-summary">
+                    <!-- Loaded dynamically via dashboard.js -->
+                    <div class="loading-placeholder">Searching for critical devices...</div>
                 </div>
             </section>
 

@@ -254,10 +254,29 @@ class DashboardViewSet(viewsets.ViewSet):
                     'throughput_out': net_out,
                     'uptime_days': round(dev.uptime_days, 1) if dev.uptime_days else 0,
                     'sys_name': dev.sys_name or dev.name,
+                    'is_important': dev.is_important,
                 })
 
             avg_temp = round(sum(temp_values) / len(temp_values), 1) if temp_values else current_temp
             total_bw_gbps = round((total_bw_in + total_bw_out) / 1000, 1) if (total_bw_in + total_bw_out) > 0 else 0
+
+            # Enhanced Zone Data
+            zone_details = []
+            for k in ['dc1', 'dc2', 'dr', 'dr2']:
+                z = zones.get(k)
+                if z:
+                    # Find the most important or first device in this zone
+                    core_dev = z.devices.filter(is_important=True).first() or z.devices.first()
+                    zone_details.append({
+                        'name': z.name,
+                        'key': z.key,
+                        'temperature': z.temperature if z.temperature else temp_for_zone_key(k),
+                        'humidity': z.humidity if z.humidity else estimate_humidity(temp_for_zone_key(k)),
+                        'ip_address': core_dev.ip_address if core_dev else None,
+                        'is_online': core_dev.is_online if core_dev else False,
+                    })
+
+            important_devices = [d for d in device_list if d.get('is_important')]
 
             data = {
                 'devices_status': f"{online_devices}/{total_devices} Online",
@@ -292,6 +311,8 @@ class DashboardViewSet(viewsets.ViewSet):
                 'avg_temp': avg_temp,
                 'total_bandwidth_gbps': total_bw_gbps,
                 'devices': device_list,
+                'zones': zone_details,
+                'important_devices': important_devices,
             }
             return Response(data)
             

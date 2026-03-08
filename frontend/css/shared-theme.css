@@ -918,35 +918,118 @@ input:checked+.slider:before {
     border-bottom: 1px dashed var(--gray-200);
 }
 
-/* Responsive adjustments */
-@media (max-width: 1200px) {
-    .sidebar {
-        width: 220px;
-    }
+/* ==========================================================
+   MOBILE SIDEBAR TOGGLE BUTTON
+   ========================================================== */
+.sidebar-mobile-toggle {
+    display: none;
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 200;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    width: 42px;
+    height: 42px;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+    transition: var(--transition);
+}
 
+.sidebar-mobile-toggle:hover {
+    background: var(--primary-dark);
+    transform: scale(1.05);
+}
+
+/* Overlay that dims the content when sidebar is open on mobile */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    z-index: 99;
+    backdrop-filter: blur(2px);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.sidebar-overlay.active {
+    opacity: 1;
+}
+
+/* ==========================================================
+   RESPONSIVE ADJUSTMENTS
+   ========================================================== */
+@media (max-width: 1200px) {
     .charts-grid {
         grid-template-columns: repeat(2, 1fr);
     }
 }
 
 @media (max-width: 992px) {
-    .dashboard-container {
-        flex-direction: column;
-    }
 
-    .sidebar {
-        width: 100%;
-        height: auto;
-    }
-
-    .charts-grid {
+    .tables-row,
+    .bottom-panel {
         grid-template-columns: 1fr;
     }
 }
 
 @media (max-width: 768px) {
+
+    /* Show the hamburger button */
+    .sidebar-mobile-toggle {
+        display: flex;
+    }
+
+    /* Show the overlay as a block (opacity handled by class) */
+    .sidebar-overlay {
+        display: block;
+    }
+
+    /* Hide the sidebar off-screen by default on mobile */
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: -290px;
+        height: 100vh;
+        width: 260px !important;
+        z-index: 150;
+        transition: left 0.35s cubic-bezier(0.2, 0, 0, 1), width 0s;
+        box-shadow: none;
+        overflow-y: auto;
+    }
+
+    /* When sidebar is open on mobile */
+    .sidebar.open {
+        left: 0;
+        box-shadow: 6px 0 40px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Sidebar items always fully visible when open on mobile */
+    .sidebar.open .nav-item span,
+    .sidebar.open .user-details,
+    .sidebar.open .sidebar-header h1 {
+        opacity: 1 !important;
+        transform: translateX(0) !important;
+        transition-delay: 0s;
+    }
+
+    /* Dashboard container takes full width */
+    .dashboard-container {
+        display: block;
+    }
+
     .main-content {
         padding: 1rem;
+        padding-top: 4rem;
+        /* leave room for hamburger button */
+        width: 100%;
+        max-width: 100%;
     }
 
     .content-header {
@@ -957,6 +1040,34 @@ input:checked+.slider:before {
 
     .header-actions {
         width: 100%;
-        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: flex-start;
+    }
+
+    /* Port dashboard "Add Port" button alignment */
+    .action-buttons {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .kpi-section {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .kpi-section {
+        grid-template-columns: 1fr;
+    }
+
+    .metrics-row {
+        grid-template-columns: 1fr 1fr;
     }
 }

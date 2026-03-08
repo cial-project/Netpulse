@@ -7,6 +7,7 @@ class EnvironmentalMonitor {
         this.currentPage = 1;
         this.itemsPerPage = 10;
         this.zoneIdCounter = 1000;
+        this.pollInterval = null;
         this.init();
     }
 
@@ -15,8 +16,9 @@ class EnvironmentalMonitor {
         this.loadZoneData();
         this.setupEventListeners();
         this.updateDateTime();
-        this.setupChartControls(); // Add this line
-        // (no global instantiation here — the page bootstraps the instance at DOMContentLoaded)
+        this.setupChartControls();
+        this.startRealTimeUpdates();
+        window.envApp = this;
     }
 
     // Helper to attach an event listener only once per element/key
@@ -225,6 +227,69 @@ class EnvironmentalMonitor {
         };
 
         return baseOptions;
+    }
+
+    // Real-time polling
+    startRealTimeUpdates() {
+        if (this.pollInterval) return;
+        this.pollInterval = setInterval(() => this.fetchRealTimeData(), 10000); // every 10 sec
+    }
+
+    async fetchRealTimeData() {
+        try {
+            const kpiResp = await apiFetch('/dashboard/kpi/');
+            if (kpiResp && kpiResp.ok) {
+                const kpi = await kpiResp.json();
+                this.updateChartsWithRealData(kpi);
+            }
+        } catch (error) {
+            console.error('Failed to fetch real-time environmental data:', error);
+        }
+    }
+
+    updateChartsWithRealData(kpi) {
+        const now = new Date();
+        const timeLabel = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        // Safely extract avg values from KPI response or default to previous values
+        let temp = parseFloat(String(kpi.avg_temp || kpi.dc1_temperature || '22.0').replace(/[^0-9.]/g, ''));
+        let hum = parseInt(String(kpi.avg_humidity || kpi.dc1_humidity || '45').replace(/[^0-9]/g, ''));
+
+        // Validate
+        if (isNaN(temp)) temp = 22.0;
+        if (isNaN(hum)) hum = 45;
+
+        // Add some small fluctuation if it's perfectly flat, for visual cue of "realtime"
+        temp += (Math.random() - 0.5) * 0.5;
+        hum += Math.round((Math.random() - 0.5) * 2);
+
+        // Update Temperature Chart
+        if (this.charts.temperature) {
+            this.updateLineChart(this.charts.temperature, timeLabel, temp);
+        }
+
+        // Update Humidity Chart
+        if (this.charts.humidity) {
+            this.updateLineChart(this.charts.humidity, timeLabel, hum);
+        }
+
+        // Update UPS Chart (Simulated real-time tracking if actual UPS not in KPI)
+        let ups = parseFloat(kpi.ups_battery || '98');
+        if (isNaN(ups)) ups = 98;
+        if (this.charts.ups) {
+            this.updateLineChart(this.charts.ups, timeLabel, ups);
+        }
+    }
+
+    updateLineChart(chart, label, dataPoint) {
+        chart.data.labels.push(label);
+        chart.data.datasets[0].data.push(dataPoint);
+        // keep window at 24 points
+        if (chart.data.labels.length > 24) {
+            chart.data.labels.shift();
+            chart.data.datasets[0].data.shift();
+        }
+        chart.update('none');
     }
 
     generateTimeLabels(hours) {

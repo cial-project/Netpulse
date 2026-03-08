@@ -1,4 +1,3 @@
-// trends-and-forecasts.js
 class TrendsAndForecasts {
     constructor() {
         this.charts = {};
@@ -9,6 +8,9 @@ class TrendsAndForecasts {
         this.setupEventListeners();
         this.populateDevices();
         this.loadData();
+
+        // Auto-refresh data every 60 seconds
+        setInterval(() => this.loadData(), 60000);
     }
 
     initializeCharts() {

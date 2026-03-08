@@ -65,10 +65,8 @@ async function fetchPorts() {
             // Handle DRF paginated responses
             const ports = Array.isArray(data) ? data : (data.results || []);
             renderPorts(ports);
-            // Start polling (simulation)
-            ports.forEach(port => {
-                simulateTraffic(port.id);
-            });
+            // Start polling real data exactly once
+            startRealTimeTrafficPolling();
             return;
         }
         throw new Error('Response not ok');
@@ -210,23 +208,28 @@ function initChart(portId) {
     });
 }
 
-async function simulateTraffic(portId) {
-    // If we have a backend simulation endpoint, use it. Otherwise, mock locally or poll.
-    // The previous code polled `/ports/${portId}/simulate/`. We'll keep that if it exists.
-
-    setInterval(async () => {
+let trafficPollInterval = null;
+function startRealTimeTrafficPolling() {
+    if (trafficPollInterval) return;
+    trafficPollInterval = setInterval(async () => {
         try {
-            const response = await apiFetch(`/ports/${portId}/simulate/`, { method: 'POST' });
+            // Fetch real up-to-date port traffic
+            const response = await apiFetch('/ports/');
             if (response && response.ok) {
-                const result = await response.json();
-                if (result.data) {
-                    updateCard(portId, result.data);
-                }
+                const data = await response.json();
+                const updatedPorts = Array.isArray(data) ? data : (data.results || []);
+                updatedPorts.forEach(port => {
+                    const elData = {
+                        utilization_in: parseInt(port.utilization_in) || 0,
+                        utilization_out: parseInt(port.utilization_out) || 0
+                    };
+                    updateCard(port.id, elData);
+                });
             }
         } catch (error) {
-            // console.error('Sim error', error);
+            console.error('Real-time Port Traffic Error:', error);
         }
-    }, 3000);
+    }, 10000); // 10s poll
 }
 
 function updateCard(portId, data) {

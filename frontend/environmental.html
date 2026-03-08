@@ -13,6 +13,11 @@
 </head>
 
 <body>
+    <!-- Mobile Sidebar Toggle -->
+    <button class="sidebar-mobile-toggle" id="sidebar-mobile-toggle" aria-label="Toggle Navigation">
+        <i class="fas fa-bars"></i>
+    </button>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <div class="dashboard-container">
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
@@ -35,6 +40,12 @@
                         <a href="isp-dashboard.html">
                             <i class="fas fa-globe"></i>
                             <span>ISP Monitoring</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="port-dashboard.html">
+                            <i class="fas fa-ethernet"></i>
+                            <span>Port Monitoring</span>
                         </a>
                     </li>
                     <li class="nav-item">
@@ -328,6 +339,7 @@
     <script src="./js/config.js"></script>
     <script src="js/api.js"></script>
     <script src="js/environmental.js"></script>
+    <script src="js/sidebar.js"></script>
 </body>
 
 </html>

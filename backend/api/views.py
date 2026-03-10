@@ -1131,6 +1131,36 @@ class PortViewSet(viewsets.ModelViewSet):
     serializer_class = PortSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
+    @action(detail=False, methods=['get'])
+    def trigger_update(self, request):
+        """Manually trigger simulation for all ports (useful for demo)."""
+        ports = Port.objects.filter(is_active=True)
+        for port in ports:
+            try:
+                from devices.port_service import simulate_port_traffic
+                data = simulate_port_traffic(port.capacity_mbps)
+                port.bps_in = data['bps_in']
+                port.bps_out = data['bps_out']
+                port.utilization_in = data['utilization_in']
+                port.utilization_out = data['utilization_out']
+                port.status = data['status']
+                port.last_checked = timezone.now()
+                port.save()
+            except Exception:
+                pass
+        return Response({'success': True, 'count': ports.count()})
+
+    def list(self, request, *args, **kwargs):
+        # Auto-trigger update if data is stale (demo mode helper)
+        stale_cutoff = timezone.now() - (timedelta(seconds=30))
+        recent_port = Port.objects.filter(last_checked__gte=stale_cutoff).first()
+        if not recent_port:
+            # Trigger background-like update synchronously for demo visibility
+            self.trigger_update(request)
+            
+        return super().list(request, *args, **kwargs)
+
+
     @action(detail=True, methods=['post'])
     def simulate(self, request, pk=None):
         """Simulate traffic for a specific port."""

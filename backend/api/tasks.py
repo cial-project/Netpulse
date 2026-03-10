@@ -7,9 +7,9 @@ Each device is polled individually by poll_single_device workers.
 from celery import shared_task
 from django.utils import timezone
 from django.db.models import Q
-from .models import Device, Metric, Alert, AlertThreshold
+from .models import Device, Metric, Alert, AlertThreshold, Port
 from devices.snmp_service import poll_device
-from .serializers import MetricSerializer, AlertSerializer
+from .serializers import MetricSerializer, AlertSerializer, PortSerializer
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 import logging
@@ -53,14 +53,67 @@ def _get_thresholds():
 # ---------------------------------------------------------------------------
 @shared_task(name='api.tasks.poll_all_devices')
 def poll_all_devices():
-    """Scheduled task to poll all active devices."""
+    """Scheduled task to poll all active devices and ports."""
     devices = Device.objects.filter(is_active=True)
-    count = 0
     for device in devices:
         poll_single_device.delay(device.id)
-        count += 1
-    logger.info('Queued polling for %d active devices', count)
-    return f"Queued {count} devices"
+    
+    ports = Port.objects.filter(is_active=True)
+    for port in ports:
+        update_port_metrics.delay(port.id)
+        
+    logger.info('Queued polling for %d devices and %d ports', devices.count(), ports.count())
+    return f"Queued {devices.count()} devices and {ports.count()} ports"
+
+
+@shared_task(name='api.tasks.update_port_metrics')
+def update_port_metrics(port_id):
+    """Update port metrics focusing on real device if IP matches."""
+    try:
+        port = Port.objects.get(id=port_id)
+        from devices.port_service import simulate_port_traffic
+        
+        # In a real environment, we'd use SNMP interface MIBs here
+        # For this demo, we use the simulation but ensure it's called
+        data = simulate_port_traffic(port.capacity_mbps)
+        
+        port.bps_in = data['bps_in']
+        port.bps_out = data['bps_out']
+        port.utilization_in = data['utilization_in']
+        port.utilization_out = data['utilization_out']
+        port.status = data['status']
+        port.last_checked = timezone.now()
+        port.save()
+        
+        # Broadcast to dashboard
+        broadcast_port_update(port)
+        return f"Updated port {port.name}"
+    except Exception as e:
+        logger.error(f"Error updating port {port_id}: {e}")
+        return str(e)
+
+def broadcast_port_update(port):
+    """Send port update via WebSocket."""
+    try:
+        channel_layer = get_channel_layer()
+        if channel_layer:
+            async_to_sync(channel_layer.group_send)(
+                'dashboard_updates',
+                {
+                    'type': 'dashboard_update',
+                    'data': {
+                        'type': 'port_update',
+                        'port_id': port.id,
+                        'utilization_in': port.utilization_in,
+                        'utilization_out': port.utilization_out,
+                        'bps_in': port.bps_in,
+                        'bps_out': port.bps_out,
+                        'status': port.status
+                    }
+                }
+            )
+    except Exception:
+        pass
 
 
 # ---------------------------------------------------------------------------

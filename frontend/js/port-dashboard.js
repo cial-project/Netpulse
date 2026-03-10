@@ -14,6 +14,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize
     fetchPorts();
     updateDateTime();
+    updateAlertCount(); // Add alert count update
+
+    // Periodic Refresh
+    setInterval(updateAlertCount, 30000);
 
     // Event Listeners
     document.getElementById('logout-btn').addEventListener('click', (e) => {
@@ -229,7 +233,23 @@ function startRealTimeTrafficPolling() {
         } catch (error) {
             console.error('Real-time Port Traffic Error:', error);
         }
-    }, 10000); // 10s poll
+    }, 5000); // 5s poll for more real-time feel
+}
+
+async function updateAlertCount() {
+    try {
+        const response = await apiFetch('/alerts/summary/');
+        if (response && response.ok) {
+            const data = await response.json();
+            const badge = document.getElementById('port-alert-count');
+            if (badge) {
+                badge.innerText = data.critical_alerts || 0;
+                badge.style.display = data.critical_alerts > 0 ? 'flex' : 'none';
+            }
+        }
+    } catch (e) {
+        console.error('Error updating alert count:', e);
+    }
 }
 
 function updateCard(portId, data) {

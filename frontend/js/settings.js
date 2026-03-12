@@ -153,11 +153,12 @@ class SettingsManager {
                 this.applySettings(settings);
             }
         } catch (error) {
-            console.error('Error loading settings:', error);
-        }
+            console.error('Error loading settings:', error);}
         
         this.unsavedChanges = false;
-        this.updateSaveButton();
+        // Always keep save button enabled so user can save at any time
+        const saveBtn = document.getElementById('save-settings');
+        if (saveBtn) saveBtn.disabled = false;
     }
 
     applySettings(settings) {
@@ -260,13 +261,14 @@ class SettingsManager {
     updateSaveButton() {
         const saveBtn = document.getElementById('save-settings');
         if (!saveBtn) return;
-
+        // Always keep save button enabled
+        saveBtn.disabled = false;
         if (this.unsavedChanges) {
-            saveBtn.disabled = false;
             saveBtn.classList.add('primary');
+            saveBtn.style.opacity = '1';
         } else {
-            saveBtn.disabled = true;
-            saveBtn.classList.remove('primary');
+            saveBtn.classList.add('primary');
+            saveBtn.style.opacity = '0.85';
         }
     }
 

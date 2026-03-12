@@ -253,6 +253,52 @@
     margin-bottom: 2rem;
 }
 
+/* Port Section Header */
+.port-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--white);
+    border-radius: var(--border-radius);
+    padding: 1.25rem 1.5rem;
+    box-shadow: var(--card-shadow);
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--gray-100);
+}
+
+.port-section-title {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.port-section-title h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--dark);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin: 0;
+}
+
+.port-section-title h3 i {
+    color: var(--primary);
+}
+
+.port-count {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--secondary);
+    background: var(--gray-100);
+    border-radius: 6px;
+    padding: 0.2rem 0.6rem;
+}
+
+.port-add-btn {
+    white-space: nowrap;
+}
+
 /* Header Actions */
 .action-buttons {
     display: flex;

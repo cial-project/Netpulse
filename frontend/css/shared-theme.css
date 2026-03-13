@@ -65,11 +65,13 @@ body {
 .dashboard-container {
     display: flex;
     min-height: 100vh;
+    align-items: stretch;
 }
 
 /* Sidebar styles - sleek & modern */
 .sidebar {
     width: 80px;
+    min-width: 80px;
     background: var(--white);
     border-right: 1px solid var(--gray-200);
     display: flex;
@@ -81,6 +83,8 @@ body {
     position: sticky;
     top: 0;
     height: 100vh;
+    align-self: flex-start;
+    flex-shrink: 0;
 }
 
 .sidebar:hover {

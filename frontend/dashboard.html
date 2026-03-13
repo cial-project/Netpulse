@@ -137,7 +137,10 @@
                     <div class="kpi-content">
                         <div class="kpi-header-flex">
                             <h4>Data Center 1 (DC1)</h4>
-                            <span class="status-pill offline" id="kpi-dc1-status">OFFLINE</span>
+                            <div style="display:flex;align-items:center;gap:0.5rem;">
+                                <span class="status-pill offline" id="kpi-dc1-status">OFFLINE</span>
+                                <button class="kpi-config-btn" onclick="openZoneConfig('dc1','Data Center 1')" title="Configure Zone IP"><i class="fas fa-cog"></i></button>
+                            </div>
                         </div>
                         <div class="kpi-value-large" id="kpi-dc1-temp">--°C</div>
                         <div class="kpi-subtitle" id="kpi-dc1-humidity">--% humidity</div>
@@ -153,7 +156,10 @@
                     <div class="kpi-content">
                         <div class="kpi-header-flex">
                             <h4>Data Center 2 (DC2)</h4>
-                            <span class="status-pill offline" id="kpi-dc2-status">OFFLINE</span>
+                            <div style="display:flex;align-items:center;gap:0.5rem;">
+                                <span class="status-pill offline" id="kpi-dc2-status">OFFLINE</span>
+                                <button class="kpi-config-btn" onclick="openZoneConfig('dc2','Data Center 2')" title="Configure Zone IP"><i class="fas fa-cog"></i></button>
+                            </div>
                         </div>
                         <div class="kpi-value-large" id="kpi-dc2-temp">--°C</div>
                         <div class="kpi-subtitle" id="kpi-dc2-humidity">--% humidity</div>
@@ -169,7 +175,10 @@
                     <div class="kpi-content">
                         <div class="kpi-header-flex">
                             <h4>Disaster Recovery</h4>
-                            <span class="status-pill offline" id="kpi-dr-status">OFFLINE</span>
+                            <div style="display:flex;align-items:center;gap:0.5rem;">
+                                <span class="status-pill offline" id="kpi-dr-status">OFFLINE</span>
+                                <button class="kpi-config-btn" onclick="openZoneConfig('dr','Disaster Recovery')" title="Configure Zone IP"><i class="fas fa-cog"></i></button>
+                            </div>
                         </div>
                         <div class="kpi-value-large" id="kpi-dr-temp">--°C</div>
                         <div class="kpi-subtitle" id="kpi-dr-humidity">--% humidity</div>
@@ -185,7 +194,10 @@
                     <div class="kpi-content">
                         <div class="kpi-header-flex">
                             <h4>Disaster Recovery 2</h4>
-                            <span class="status-pill offline" id="kpi-dr2-status">OFFLINE</span>
+                            <div style="display:flex;align-items:center;gap:0.5rem;">
+                                <span class="status-pill offline" id="kpi-dr2-status">OFFLINE</span>
+                                <button class="kpi-config-btn" onclick="openZoneConfig('dr2','Disaster Recovery 2')" title="Configure Zone IP"><i class="fas fa-cog"></i></button>
+                            </div>
                         </div>
                         <div class="kpi-value-large" id="kpi-dr2-temp">--°C</div>
                         <div class="kpi-subtitle" id="kpi-dr2-humidity">--% humidity</div>
@@ -388,6 +400,29 @@
     <!-- JavaScript Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+    <!-- Zone Config Modal -->
+    <div id="zone-config-modal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.5); z-index:9999; align-items:center; justify-content:center;">
+        <div style="background:#fff; border-radius:16px; padding:2rem; width:420px; max-width:95vw; box-shadow:0 20px 60px rgba(0,0,0,0.2); animation: fadeIn 0.2s ease;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                <h3 style="font-size:1.1rem; font-weight:700; color:#0f172a; display:flex; align-items:center; gap:0.5rem;"><i class="fas fa-cog" style="color:#10b981;"></i> <span id="zone-config-title">Configure Zone</span></h3>
+                <button onclick="closeZoneConfig()" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:#64748b; line-height:1;">&times;</button>
+            </div>
+            <p style="color:#64748b; font-size:0.9rem; margin-bottom:1.5rem;">Enter the IP address and name for this monitoring zone. This will be used to fetch live environmental data.</p>
+            <div style="margin-bottom:1rem;">
+                <label style="display:block; font-size:0.85rem; font-weight:600; color:#374151; margin-bottom:0.4rem;">Zone Name</label>
+                <input id="zone-config-name" type="text" placeholder="e.g., Data Center 1" style="width:100%; padding:0.65rem 0.9rem; border:1px solid #e2e8f0; border-radius:10px; font-size:0.95rem; outline:none; transition:border 0.2s;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e2e8f0'">
+            </div>
+            <div style="margin-bottom:1.5rem;">
+                <label style="display:block; font-size:0.85rem; font-weight:600; color:#374151; margin-bottom:0.4rem;">IP Address / Hostname</label>
+                <input id="zone-config-ip" type="text" placeholder="e.g., 192.168.1.100" style="width:100%; padding:0.65rem 0.9rem; border:1px solid #e2e8f0; border-radius:10px; font-size:0.95rem; outline:none; transition:border 0.2s;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e2e8f0'">
+            </div>
+            <div style="display:flex; gap:0.75rem; justify-content:flex-end;">
+                <button onclick="closeZoneConfig()" style="padding:0.65rem 1.5rem; border-radius:10px; border:1px solid #e2e8f0; background:#f8fafc; color:#374151; font-weight:600; cursor:pointer;">Cancel</button>
+                <button onclick="saveZoneConfig()" style="padding:0.65rem 1.5rem; border-radius:10px; border:none; background:linear-gradient(135deg,#10b981,#059669); color:#fff; font-weight:600; cursor:pointer; box-shadow:0 4px 6px -1px rgba(16,185,129,0.3);"><i class="fas fa-save"></i> Save Zone</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Application JavaScript -->
     <script src="./js/config.js"></script>
     <script src="./js/api.js"></script>
@@ -483,8 +518,95 @@
             }
 
             console.log('NetPulse Dashboard initialized successfully');
+
+            // Load saved zone IPs on startup
+            ['dc1','dc2','dr','dr2'].forEach(zone => {
+                const saved = JSON.parse(localStorage.getItem(`zone-config-${zone}`) || 'null');
+                if (saved) {
+                    const ipEl = document.getElementById(`kpi-${zone}-ip`);
+                    if (ipEl) ipEl.textContent = saved.ip || 'NOT SET';
+                }
+            });
+        });
+
+        // Zone Config Modal Logic
+        let _currentZoneId = null;
+
+        function openZoneConfig(zoneId, zoneName) {
+            _currentZoneId = zoneId;
+            document.getElementById('zone-config-title').textContent = 'Configure: ' + zoneName;
+            const saved = JSON.parse(localStorage.getItem(`zone-config-${zoneId}`) || 'null');
+            document.getElementById('zone-config-name').value = saved ? saved.name : zoneName;
+            document.getElementById('zone-config-ip').value = saved ? saved.ip : '';
+            const modal = document.getElementById('zone-config-modal');
+            modal.style.display = 'flex';
+            // Add keyboard close
+            document.addEventListener('keydown', _handleZoneEsc);
+        }
+
+        function closeZoneConfig() {
+            document.getElementById('zone-config-modal').style.display = 'none';
+            document.removeEventListener('keydown', _handleZoneEsc);
+            _currentZoneId = null;
+        }
+
+        function _handleZoneEsc(e) {
+            if (e.key === 'Escape') closeZoneConfig();
+        }
+
+        function saveZoneConfig() {
+            if (!_currentZoneId) return;
+            const name = document.getElementById('zone-config-name').value.trim();
+            const ip = document.getElementById('zone-config-ip').value.trim();
+            if (!ip) { alert('Please enter an IP address or hostname.'); return; }
+
+            localStorage.setItem(`zone-config-${_currentZoneId}`, JSON.stringify({ name, ip }));
+
+            // Update the IP display on the card
+            const ipEl = document.getElementById(`kpi-${_currentZoneId}-ip`);
+            if (ipEl) ipEl.textContent = ip;
+
+            // Show success toast
+            const toast = document.createElement('div');
+            toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#10b981;color:#fff;padding:0.75rem 1.5rem;border-radius:10px;font-weight:600;z-index:99999;box-shadow:0 4px 12px rgba(16,185,129,0.4);transition:opacity 0.3s;';
+            toast.textContent = '✓ Zone IP saved successfully';
+            document.body.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+
+            closeZoneConfig();
+        }
+
+        // Close modal when clicking backdrop
+        document.getElementById('zone-config-modal').addEventListener('click', function(e) {
+            if (e.target === this) closeZoneConfig();
         });
     </script>
+
+    <style>
+        /* KPI Config Button */
+        .kpi-config-btn {
+            width: 26px;
+            height: 26px;
+            border-radius: 7px;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            color: #64748b;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+        .kpi-config-btn:hover {
+            background: #d1fae5;
+            border-color: #10b981;
+            color: #059669;
+            transform: rotate(45deg);
+        }
+    </style>
+
 </body>
 
 </html>

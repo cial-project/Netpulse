@@ -105,6 +105,12 @@ function renderPorts(ports) {
     const grid = document.getElementById('portGrid');
     grid.innerHTML = '';
 
+    // Update the port count label
+    const portCountLabel = document.getElementById('port-count-label');
+    if (portCountLabel) {
+        portCountLabel.textContent = `${ports.length} port${ports.length !== 1 ? 's' : ''} monitored`;
+    }
+
     ports.forEach(port => {
         const card = document.createElement('div');
         card.className = 'port-card'; // We'll style this in dashboard.css

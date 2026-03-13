@@ -111,15 +111,23 @@
                         <i class="fas fa-search"></i>
                         <input type="text" placeholder="Search ports..." id="port-search">
                     </div>
-                    <button class="btn primary" onclick="openModal()">
-                        <i class="fas fa-plus"></i> Add Port
-                    </button>
                     <div class="notifications">
                         <i class="fas fa-bell"></i>
                         <span class="notification-badge" id="port-alert-count">0</span>
                     </div>
                 </div>
             </header>
+
+            <!-- Port Grid Section with Add Port button at top -->
+            <div class="port-section-header">
+                <div class="port-section-title">
+                    <h3><i class="fas fa-ethernet"></i> Monitored Ports</h3>
+                    <span class="port-count" id="port-count-label">Loading...</span>
+                </div>
+                <button class="btn primary port-add-btn" onclick="openModal()" id="add-port-btn">
+                    <i class="fas fa-plus"></i> Add Port to Monitor
+                </button>
+            </div>
 
             <div class="content-wrapper">
                 <div id="portGrid" class="port-grid">

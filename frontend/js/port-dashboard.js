@@ -102,8 +102,15 @@ async function fetchPorts() {
 }
 
 function renderPorts(ports) {
-    const grid = document.getElementById('portGrid');
-    grid.innerHTML = '';
+    const gridIt = document.getElementById('portGrid-it');
+    const gridConf = document.getElementById('portGrid-conf');
+    const gridLounges = document.getElementById('portGrid-lounges');
+    const gridOther = document.getElementById('portGrid-other');
+    
+    if (gridIt) gridIt.innerHTML = '';
+    if (gridConf) gridConf.innerHTML = '';
+    if (gridLounges) gridLounges.innerHTML = '';
+    if (gridOther) gridOther.innerHTML = '';
 
     // Update the port count label
     const portCountLabel = document.getElementById('port-count-label');
@@ -143,7 +150,7 @@ function renderPorts(ports) {
                         <div class="progress-fill" id="bar-in-${port.id}" style="width: ${port.utilization_in}%"></div>
                     </div>
                     <div class="metric-row small">
-                        <span>${formatBps(port.bps_in)}</span>
+                        <span id="bps-in-${port.id}">${formatBps(port.bps_in)}</span>
                         <span class="text-gray">Traffic</span>
                     </div>
                 </div>
@@ -159,7 +166,7 @@ function renderPorts(ports) {
                         <div class="progress-fill" id="bar-out-${port.id}" style="width: ${port.utilization_out}%"></div>
                     </div>
                     <div class="metric-row small">
-                        <span>${formatBps(port.bps_out)}</span>
+                        <span id="bps-out-${port.id}">${formatBps(port.bps_out)}</span>
                         <span class="text-gray">Traffic</span>
                     </div>
                 </div>
@@ -169,7 +176,18 @@ function renderPorts(ports) {
                 <canvas id="chart-${port.id}"></canvas>
             </div>
         `;
-        grid.appendChild(card);
+        
+        const lowerName = port.name.toLowerCase();
+        if (lowerName.includes('meeting') || lowerName.includes('it room') || lowerName.includes('it m')) {
+            if (gridIt) gridIt.appendChild(card);
+        } else if (lowerName.includes('conference') || lowerName.includes('hall')) {
+            if (gridConf) gridConf.appendChild(card);
+        } else if (lowerName.includes('lounge')) {
+            if (gridLounges) gridLounges.appendChild(card);
+        } else {
+            if (gridOther) gridOther.appendChild(card);
+        }
+        
         initChart(port.id);
     });
 }

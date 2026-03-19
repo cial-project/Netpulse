@@ -1075,3 +1075,102 @@ input:checked+.slider:before {
         grid-template-columns: 1fr 1fr;
     }
 }
+
+/* ==========================================================================
+   Dark Theme Overrides
+   Applied via settings.js -> config.js parsing localStorage
+   ========================================================================== */
+html.dark-theme body {
+    background-color: #0f172a;
+    color: #f1f5f9;
+}
+html.dark-theme .dashboard-container {
+    background-color: #0f172a;
+}
+html.dark-theme .sidebar {
+    background: #1e293b;
+    border-right-color: #334155;
+}
+html.dark-theme .sidebar-header h1,
+html.dark-theme .user-name {
+    color: #f1f5f9;
+}
+html.dark-theme .nav-item a {
+    color: #94a3b8;
+}
+html.dark-theme .nav-item a:hover,
+html.dark-theme .nav-item.active a {
+    background-color: #334155;
+    color: #10b981;
+}
+html.dark-theme .kpi-card, 
+html.dark-theme .chart-card, 
+html.dark-theme .device-item, 
+html.dark-theme .device-table-card,
+html.dark-theme .isp-section,
+html.dark-theme .device-grid-section,
+html.dark-theme .metric-card,
+html.dark-theme .settings-content,
+html.dark-theme .settings-tab,
+html.dark-theme .settings-section {
+    background: #1e293b;
+    border-color: #334155;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+    color: #f8fafc;
+}
+html.dark-theme .kpi-value, 
+html.dark-theme .header-title h2,
+html.dark-theme h3, html.dark-theme h4,
+html.dark-theme .card-header,
+html.dark-theme th, html.dark-theme td,
+html.dark-theme .metric-value,
+html.dark-theme .kpi-subtitle,
+html.dark-theme .section-header h3 {
+    color: #f8fafc;
+}
+html.dark-theme .clean-table th,
+html.dark-theme .clean-table td {
+    border-bottom-color: #334155;
+    color: #cbd5e1;
+}
+html.dark-theme .clean-table tr:hover td {
+    background-color: #334155;
+}
+html.dark-theme input, html.dark-theme select, html.dark-theme textarea {
+    background-color: #0f172a;
+    color: #f8fafc;
+    border: 1px solid #334155;
+}
+html.dark-theme .settings-nav {
+    background: #1e293b;
+    border-bottom: 1px solid #334155;
+}
+html.dark-theme .nav-btn {
+    color: #94a3b8;
+}
+html.dark-theme .nav-btn.active {
+    color: #10b981;
+    border-bottom-color: #10b981;
+}
+html.dark-theme .header-actions .search-box input {
+    background: #1e293b;
+    color: #f1f5f9;
+    border: 1px solid #334155;
+}
+
+/* ==========================================================================
+   Dashboard Layout Combinations
+   ========================================================================== */
+html[data-layout="compact"] .main-content {
+    padding: 1rem;
+}
+html[data-layout="compact"] .kpi-card,
+html[data-layout="compact"] .metric-card {
+    padding: 1rem;
+}
+html[data-layout="compact"] .kpi-value {
+    font-size: 1.4rem;
+}
+html[data-layout="list"] .kpi-section {
+    grid-template-columns: 1fr;
+}

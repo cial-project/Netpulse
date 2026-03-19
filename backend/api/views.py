@@ -988,6 +988,45 @@ class ZoneViewSet(viewsets.ModelViewSet):
             'online_count': zone_devices.filter(is_online=True).count(),
         })
 
+    @action(detail=False, methods=['post'])
+    def set_ip(self, request):
+        """Configure the core IP and name for a specific zone based on its key"""
+        key = request.data.get('key')
+
+        ip_address = request.data.get('ip_address')
+        name = request.data.get('name')
+        
+        if not key or not ip_address:
+            return Response({'success': False, 'error': 'Key and ip_address are required.'}, status=400)
+            
+        zone, created = Zone.objects.get_or_create(key=key, defaults={'name': name or key, 'zone_type': 'critical'})
+        if name and zone.name != name:
+            zone.name = name
+            zone.save()
+
+        core_dev = zone.devices.filter(is_important=True).first()
+        if core_dev:
+            core_dev.ip_address = ip_address
+            core_dev.name = f"{zone.name} Core Switch"
+            core_dev.save()
+        else:
+            existing_dev = Device.objects.filter(ip_address=ip_address).first()
+            if existing_dev:
+                existing_dev.zone = zone
+                existing_dev.is_important = True
+                existing_dev.save()
+            else:
+                Device.objects.create(
+                    name=f"{zone.name} Core Switch",
+                    ip_address=ip_address,
+                    zone=zone,
+                    device_type='switch',
+                    is_important=True,
+                    is_active=True
+                )
+        return Response({'success': True, 'message': 'Zone configured.'})
+
+
 
 # ---------------------------------------------------------------------------
 # Metrics — Read-only + Trends

@@ -566,6 +566,16 @@
             const ipEl = document.getElementById(`kpi-${_currentZoneId}-ip`);
             if (ipEl) ipEl.textContent = ip;
 
+            // Send to backend
+            apiFetch(`/zones/set_ip/`, {
+                method: 'POST',
+                body: JSON.stringify({ key: _currentZoneId, ip_address: ip, name: name })
+            }).then(resp => {
+                if(resp && resp.ok) {
+                    console.log('Zone IP mapped in backend successfully.');
+                }
+            }).catch(e => console.error('Error saving zone IP:', e));
+
             // Show success toast
             const toast = document.createElement('div');
             toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#10b981;color:#fff;padding:0.75rem 1.5rem;border-radius:10px;font-weight:600;z-index:99999;box-shadow:0 4px 12px rgba(16,185,129,0.4);transition:opacity 0.3s;';

@@ -161,6 +161,90 @@
     transform: scale(1.05);
 }
 
+/* Modal form alignment */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(15, 23, 42, 0.5); /* backdrop blur */
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: #ffffff;
+    margin: 10% auto;
+    padding: 2.5rem;
+    border: 1px solid var(--gray-200);
+    width: 90%;
+    max-width: 480px;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    animation: fadeIn 0.2s ease;
+}
+
+.modal-content h2 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: var(--dark-alt);
+    font-size: 1.5rem;
+}
+
+.close-modal {
+    color: var(--gray-400);
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.close-modal:hover,
+.close-modal:focus {
+    color: var(--dark);
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--gray-500);
+    font-size: 0.85rem;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 0.65rem 0.9rem;
+    border: 1px solid var(--gray-200);
+    border-radius: 10px;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border 0.2s;
+    box-sizing: border-box;
+}
+
+.form-group input:focus {
+    border-color: var(--primary);
+}
+
+.modal-content .btn {
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.75rem;
+    font-size: 1rem;
+}
+
 .btn-icon {
     width: 36px;
     height: 36px;
@@ -315,4 +399,45 @@
         min-width: 100%;
         margin-top: 1.5rem;
     }
+}
+
+/* ==========================================================================
+   Dark Theme Overrides for Dashboard Extra
+   ========================================================================== */
+html.dark-theme .port-card,
+html.dark-theme .isp-detailed-card,
+html.dark-theme .modal-content,
+html.dark-theme .port-section-header {
+    background: #1e293b;
+    border-color: #334155;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+    color: #f8fafc;
+}
+
+html.dark-theme .port-name,
+html.dark-theme .provider-title,
+html.dark-theme .detail-value,
+html.dark-theme .modal-content h2,
+html.dark-theme .port-section-title h3,
+html.dark-theme .metric-row {
+    color: #f8fafc;
+}
+
+html.dark-theme .isp-chart-wrapper {
+    background: #0f172a;
+    border-color: #334155;
+}
+
+html.dark-theme .progress-track {
+    background-color: #334155;
+}
+
+html.dark-theme .port-count {
+    background: #334155;
+    color: #cbd5e1;
+}
+
+html.dark-theme .close-modal:hover,
+html.dark-theme .close-modal:focus {
+    color: #f8fafc;
 }

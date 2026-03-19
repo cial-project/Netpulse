@@ -196,6 +196,10 @@ class SettingsManager {
                 // Save to localStorage (in real app, this would be an API call)
                 localStorage.setItem('netpulse-settings', JSON.stringify(settings));
                 
+                if (typeof window.applyNetpulseSettings === 'function') {
+                    window.applyNetpulseSettings();
+                }
+                
                 this.unsavedChanges = false;
                 this.updateSaveButton();
                 

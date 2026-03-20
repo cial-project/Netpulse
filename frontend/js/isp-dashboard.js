@@ -172,26 +172,30 @@ function createISPCard(isp) {
                     <div class="provider-icon"><i class="fas ${logoIcon}"></i></div>
                     <div>
                         <h3 class="provider-title">${isp.name}</h3>
-                        <p class="plan-info">${isp.plan_upload_mbps || 100}Mbps Upload / ${isp.plan_download_mbps || 100}Mbps Download</p>
+                        <p class="plan-info">Plan: ${isp.plan_upload_mbps || 100} Mbps Up / ${isp.plan_download_mbps || 100} Mbps Down</p>
                     </div>
                 </div>
                 
-                <div class="isp-details-grid" style="grid-template-columns: repeat(3, 1fr);">
+                <div class="isp-details-grid" style="grid-template-columns: repeat(4, 1fr);">
                     <div class="detail-item">
                         <span class="detail-label">Static IP</span>
                         <span class="detail-value">${isp.host}</span>
                     </div>
                     <div class="detail-item">
-                        <span class="detail-label">Gateway</span>
-                        <span class="detail-value">${gateway}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Interface</span>
-                        <span class="detail-value">${iface}</span>
-                    </div>
-                    <div class="detail-item">
                         <span class="detail-label">Latency</span>
                         <span class="detail-value" id="latency-${isp.id}">${isp.latency_ms !== undefined && isp.latency_ms !== null ? isp.latency_ms + ' ms' : '--'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Used Up</span>
+                        <span class="detail-value" id="up-${isp.id}">${isp.upstream_mbps !== undefined && isp.upstream_mbps !== null ? isp.upstream_mbps + ' Mbps' : '--'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Used Down</span>
+                        <span class="detail-value" id="down-${isp.id}">${isp.downstream_mbps !== undefined && isp.downstream_mbps !== null ? isp.downstream_mbps + ' Mbps' : '--'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Pkt Loss</span>
+                        <span class="detail-value" id="loss-${isp.id}">${isp.packet_loss !== undefined && isp.packet_loss !== null ? isp.packet_loss + ' %' : '--'}</span>
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Alerts</span>
@@ -199,7 +203,7 @@ function createISPCard(isp) {
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Status</span>
-                        <span class="status-pill ${isp.status === 'online' ? 'online' : 'offline'}">${isp.status.toUpperCase()}</span>
+                        <span class="status-pill ${isp.status === 'online' ? 'online' : 'offline'}" id="status-${isp.id}">${isp.status.toUpperCase()}</span>
                     </div>
                 </div>
                 <div class="detail-item" style="margin-top: 10px;">
@@ -279,7 +283,11 @@ async function probeISP(id) {
                     id: id,
                     ...data.result
                 });
+            } else {
+                console.warn(`Probe failed structure for ISP ${id}`);
             }
+        } else {
+            console.warn(`Failed to probe ISP ${id}: HTTP Status ${response ? response.status : 'Network Error'}`);
         }
     } catch (e) {
         console.error(`Error probing ISP ${id}:`, e);

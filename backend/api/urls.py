@@ -5,7 +5,7 @@ from .views import (
     AuthViewSet, UserViewSet, DashboardViewSet,
     DeviceViewSet, AlertViewSet, MetricViewSet,
     ZoneViewSet, ISPViewSet, AuditViewSet, PortViewSet,
-    AlertThresholdViewSet,
+    AlertThresholdViewSet, update_global_settings
 )
 
 router = DefaultRouter()
@@ -37,6 +37,9 @@ urlpatterns = [
     path('dashboard/map/', DashboardViewSet.as_view({'get': 'map'}), name='dashboard-map'),
     path('dashboard/stats/', DashboardViewSet.as_view({'get': 'stats'}), name='dashboard-stats'),
     path('dashboard/real_time_data/', DashboardViewSet.as_view({'get': 'real_time_data'}), name='dashboard-real-time-data'),
+    
+    # Settings
+    path('settings/global/', update_global_settings, name='settings-global'),
     
     # Include router URLs
     path('', include(router.urls)),

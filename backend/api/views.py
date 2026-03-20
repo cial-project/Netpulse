@@ -155,6 +155,7 @@ class DashboardViewSet(viewsets.ViewSet):
     def kpi(self, request):
         """Dynamic KPI data with real metrics"""
         try:
+            self._ensure_recent_metrics()
             total_devices = Device.objects.count()
             online_devices = Device.objects.filter(is_online=True).count()
             offline_devices = total_devices - online_devices
@@ -277,6 +278,9 @@ class DashboardViewSet(viewsets.ViewSet):
                     })
 
             important_devices = [d for d in device_list if d.get('is_important')]
+            if not important_devices:
+                # Fallback to core devices if none marked explicitly important
+                important_devices = [d for d in device_list if d.get('device_type', '').lower() in ['router', 'firewall', 'core-switch'] or 'core' in d.get('name', '').lower()][:4]
 
             data = {
                 'devices_status': f"{online_devices}/{total_devices} Online",
@@ -1182,6 +1186,9 @@ class PortViewSet(viewsets.ModelViewSet):
                 port.bps_out = data['bps_out']
                 port.utilization_in = data['utilization_in']
                 port.utilization_out = data['utilization_out']
+                port.latency_ms = data.get('latency_ms', 0.0) or 0.0
+                port.packet_drops = data.get('packet_drops', 0.0) or 0.0
+                port.is_flapping = data.get('is_flapping', False)
                 port.status = data['status']
                 port.last_checked = timezone.now()
                 port.save()
@@ -1214,6 +1221,9 @@ class PortViewSet(viewsets.ModelViewSet):
             port.utilization_out = data['utilization_out']
             port.errors_in = data['errors_in']
             port.errors_out = data['errors_out']
+            port.latency_ms = data.get('latency_ms', 0.0) or 0.0
+            port.packet_drops = data.get('packet_drops', 0.0) or 0.0
+            port.is_flapping = data.get('is_flapping', False)
             port.status = data['status']
             port.last_checked = timezone.now()
             port.save()
@@ -1250,3 +1260,21 @@ class PortViewSet(viewsets.ModelViewSet):
                 'success': False,
                 'error': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# ---------------------------------------------------------------------------
+# Settings
+# ---------------------------------------------------------------------------
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def update_global_settings(request):
+    """Sync monitoring settings from frontend to backend database."""
+    poll_interval = request.data.get('polling_interval')
+    if poll_interval is not None:
+        try:
+            val = int(poll_interval)
+            # Update all devices to use the new polling interval
+            Device.objects.update(poll_interval_seconds=val)
+            return Response({'success': True, 'polling_interval': val})
+        except ValueError:
+            return Response({'error': 'Invalid polling interval'}, status=status.HTTP_400_BAD_REQUEST)
+    return Response({'success': True, 'message': 'No applicable settings updated.'})

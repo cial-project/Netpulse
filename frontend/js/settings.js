@@ -191,10 +191,24 @@ class SettingsManager {
         saveBtn.disabled = true;
 
         // Simulate API call
-        setTimeout(() => {
+        setTimeout(async () => {
             try {
-                // Save to localStorage (in real app, this would be an API call)
+                // Save to localStorage 
                 localStorage.setItem('netpulse-settings', JSON.stringify(settings));
+                
+                // Real API call to update backend config
+                if (settings['polling-interval']) {
+                    try {
+                        await apiFetch('/settings/global/', {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                polling_interval: settings['polling-interval']
+                            })
+                        });
+                    } catch (err) {
+                        console.error("Could not sync polling interval to backend", err);
+                    }
+                }
                 
                 if (typeof window.applyNetpulseSettings === 'function') {
                     window.applyNetpulseSettings();

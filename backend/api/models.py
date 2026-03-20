@@ -241,6 +241,8 @@ class Port(models.Model):
     name = models.CharField(max_length=100, help_text="e.g., GigabitEthernet0/1")
     device_name = models.CharField(max_length=100, help_text="Name of the switch/router")
     ip_address = models.GenericIPAddressField(null=True, blank=True)
+    device_ip = models.GenericIPAddressField(null=True, blank=True)
+    port_ip = models.GenericIPAddressField(null=True, blank=True)
     capacity_mbps = models.IntegerField(default=1000, help_text="Port speed in Mbps")
     is_active = models.BooleanField(default=True)
     status = models.CharField(max_length=10, default='up')

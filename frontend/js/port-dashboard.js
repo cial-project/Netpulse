@@ -130,7 +130,8 @@ function renderPorts(ports) {
                     <div class="port-name">${port.name}</div>
                     <div class="device-name">
                         ${port.device_name} 
-                        ${port.ip_address ? `<small>(${port.ip_address})</small>` : ''}
+                        ${port.device_ip ? `<small>(${port.device_ip})</small>` : ''}
+                        ${port.port_ip ? `<small>[Port: ${port.port_ip}]</small>` : ''}
                     </div>
                 </div>
                 <span class="status-badge status-${port.status === 'up' ? 'success' : 'danger'}">
@@ -138,6 +139,21 @@ function renderPorts(ports) {
                 </span>
             </div>
             
+            <div class="port-metrics-grid" style="grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-top: 0.5rem; margin-bottom: 0.5rem;">
+                <div class="metric-block" style="padding: 0.5rem; text-align: center;">
+                    <span style="font-size: 0.75rem; color: #64748b;">Latency</span>
+                    <div id="lat-${port.id}" style="font-weight: 600;">${port.latency_ms !== null && port.latency_ms !== undefined ? port.latency_ms + ' ms' : '--'}</div>
+                </div>
+                <div class="metric-block" style="padding: 0.5rem; text-align: center;">
+                    <span style="font-size: 0.75rem; color: #64748b;">Drops</span>
+                    <div id="drop-${port.id}" style="font-weight: 600;">${port.packet_drops !== null && port.packet_drops !== undefined ? port.packet_drops + ' %' : '--'}</div>
+                </div>
+                <div class="metric-block" style="padding: 0.5rem; text-align: center;">
+                    <span style="font-size: 0.75rem; color: #64748b;">Flapping</span>
+                    <div id="flap-${port.id}" style="font-weight: 600; color: ${port.is_flapping ? 'var(--warning)' : 'var(--success)'};">${port.is_flapping ? 'YES' : 'NO'}</div>
+                </div>
+            </div>
+
             <div class="port-metrics-grid">
                 <!-- Inbound -->
                 <div class="metric-block">
@@ -249,7 +265,10 @@ function startRealTimeTrafficPolling() {
                 updatedPorts.forEach(port => {
                     const elData = {
                         utilization_in: parseInt(port.utilization_in) || 0,
-                        utilization_out: parseInt(port.utilization_out) || 0
+                        utilization_out: parseInt(port.utilization_out) || 0,
+                        latency_ms: port.latency_ms,
+                        packet_drops: port.packet_drops,
+                        is_flapping: port.is_flapping
                     };
                     updateCard(port.id, elData);
                 });
@@ -290,6 +309,17 @@ function updateCard(portId, data) {
     if (barIn) barIn.style.width = data.utilization_in + '%';
     if (barOut) barOut.style.width = data.utilization_out + '%';
 
+    const elLat = document.getElementById(`lat-${portId}`);
+    const elDrop = document.getElementById(`drop-${portId}`);
+    const elFlap = document.getElementById(`flap-${portId}`);
+
+    if (elLat) elLat.innerText = data.latency_ms !== undefined && data.latency_ms !== null ? data.latency_ms + ' ms' : '--';
+    if (elDrop) elDrop.innerText = data.packet_drops !== undefined && data.packet_drops !== null ? data.packet_drops + ' %' : '--';
+    if (elFlap) {
+        elFlap.innerText = data.is_flapping ? 'YES' : 'NO';
+        elFlap.style.color = data.is_flapping ? 'var(--warning)' : 'var(--success)';
+    }
+
     // Chart
     const chart = charts[portId];
     if (chart) {
@@ -312,7 +342,8 @@ async function handleAddPort(e) {
     e.preventDefault();
     const name = document.getElementById('portName').value;
     const deviceName = document.getElementById('deviceName').value;
-    const ipAddress = document.getElementById('ipAddress').value;
+    const deviceIp = document.getElementById('deviceIp').value;
+    const portIp = document.getElementById('portIp').value;
     const capacity = document.getElementById('capacity').value;
 
     try {
@@ -321,7 +352,8 @@ async function handleAddPort(e) {
             body: JSON.stringify({
                 name,
                 device_name: deviceName,
-                ip_address: ipAddress,
+                device_ip: deviceIp,
+                port_ip: portIp,
                 capacity_mbps: capacity,
                 status: 'up'
             })

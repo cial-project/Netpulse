@@ -89,18 +89,19 @@ TEMPLATES = [
     },
 ]
 
-# Database
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Database — use Supabase PostgreSQL via DATABASE_URL from .env
+_database_url = config('DATABASE_URL', default='')
+if _database_url:
+    DATABASES = {
+        'default': dj_database_url.parse(_database_url, conn_max_age=600)
     }
-}
-
-# Parse database configuration from $DATABASE_URL (overrides SQLite in production)
-db_from_env = dj_database_url.config(conn_max_age=600)
-if db_from_env:
-    DATABASES['default'].update(db_from_env)
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # REST Framework configuration
 REST_FRAMEWORK = {

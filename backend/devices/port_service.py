@@ -16,6 +16,7 @@ def simulate_port_traffic(capacity_mbps):
     
     # Simulate errors (low probability)
     errors_in = 0
+    errors_out = 0
     packet_drops = 0
     is_flapping = False
     

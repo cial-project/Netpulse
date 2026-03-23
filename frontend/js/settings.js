@@ -187,47 +187,50 @@ class SettingsManager {
         if (!saveBtn) return;
 
         const originalText = saveBtn.innerHTML;
-        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving & Polling...';
         saveBtn.disabled = true;
 
-        // Simulate API call
-        setTimeout(async () => {
+        // Save to localStorage first
+        localStorage.setItem('netpulse-settings', JSON.stringify(settings));
+
+        // Always call backend to save settings AND trigger an immediate poll
+        (async () => {
             try {
-                // Save to localStorage 
-                localStorage.setItem('netpulse-settings', JSON.stringify(settings));
-                
-                // Real API call to update backend config
+                const payload = {};
                 if (settings['polling-interval']) {
-                    try {
-                        await apiFetch('/settings/global/', {
-                            method: 'POST',
-                            body: JSON.stringify({
-                                polling_interval: settings['polling-interval']
-                            })
-                        });
-                    } catch (err) {
-                        console.error("Could not sync polling interval to backend", err);
-                    }
+                    payload.polling_interval = settings['polling-interval'];
                 }
-                
+
+                const resp = await apiFetch('/settings/global/', {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+
+                let pollMsg = '';
+                if (resp) {
+                    try {
+                        const result = await resp.json();
+                        const pd = result.polled_devices || 0;
+                        const pp = result.polled_ports || 0;
+                        pollMsg = ` Polled ${pd} device(s) and ${pp} port(s).`;
+                    } catch (_) { /* ignore parse errors */ }
+                }
+
                 if (typeof window.applyNetpulseSettings === 'function') {
                     window.applyNetpulseSettings();
                 }
-                
+
                 this.unsavedChanges = false;
                 this.updateSaveButton();
-                
-                // Show success message
-                this.showNotification('Settings saved successfully!', 'success');
+                this.showNotification('Settings saved successfully!' + pollMsg, 'success');
             } catch (error) {
                 console.error('Error saving settings:', error);
-                this.showNotification('Error saving settings', 'error');
+                this.showNotification('Settings saved locally. Could not reach backend.', 'warning');
             } finally {
-                // Restore button
                 saveBtn.innerHTML = originalText;
                 saveBtn.disabled = false;
             }
-        }, 1000);
+        })();
     }
 
     collectSettings() {

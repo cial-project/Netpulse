@@ -1267,14 +1267,74 @@ class PortViewSet(viewsets.ModelViewSet):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def update_global_settings(request):
-    """Sync monitoring settings from frontend to backend database."""
+    """Sync monitoring settings from frontend to backend database and trigger an immediate poll."""
     poll_interval = request.data.get('polling_interval')
+    updated_fields = {}
+
     if poll_interval is not None:
         try:
             val = int(poll_interval)
-            # Update all devices to use the new polling interval
             Device.objects.update(poll_interval_seconds=val)
-            return Response({'success': True, 'polling_interval': val})
+            updated_fields['polling_interval'] = val
         except ValueError:
             return Response({'error': 'Invalid polling interval'}, status=status.HTTP_400_BAD_REQUEST)
-    return Response({'success': True, 'message': 'No applicable settings updated.'})
+
+    # --- Trigger an immediate poll of all devices and ports ---
+    polled_devices = 0
+    polled_ports = 0
+
+    for device in Device.objects.filter(is_active=True):
+        try:
+            result = poll_device(
+                device.ip_address,
+                device.device_type,
+                device.snmp_community,
+                getattr(device, 'port', 161),
+                custom_oids=getattr(device, 'custom_oids', ''),
+            )
+            device.is_online = result.get('reachable', False)
+            if device.is_online:
+                device.last_seen = timezone.now()
+                device.sys_name = result.get('sys_name', device.sys_name)
+                device.uptime_days = result.get('uptime_days', device.uptime_days or 0)
+                device.cpu_load = result.get('cpu_usage', device.cpu_load)
+                device.memory_load = result.get('memory_usage', device.memory_load)
+                if result.get('temperature') is not None:
+                    device.temperature = result['temperature']
+                Metric.objects.create(
+                    device=device,
+                    cpu_usage=result.get('cpu_usage', 0),
+                    memory_usage=result.get('memory_usage', 0),
+                    network_in=result.get('network_in', 0),
+                    network_out=result.get('network_out', 0),
+                    temperature=result.get('temperature', None),
+                )
+            device.save()
+            polled_devices += 1
+        except Exception as exc:
+            logger.warning('Settings-triggered poll failed for device %s: %s', device.id, exc)
+
+    for port in Port.objects.filter(is_active=True):
+        try:
+            from devices.port_service import simulate_port_traffic
+            data = simulate_port_traffic(port.capacity_mbps)
+            port.bps_in = data['bps_in']
+            port.bps_out = data['bps_out']
+            port.utilization_in = data['utilization_in']
+            port.utilization_out = data['utilization_out']
+            port.latency_ms = data.get('latency_ms', 0.0) or 0.0
+            port.packet_drops = data.get('packet_drops', 0.0) or 0.0
+            port.is_flapping = data.get('is_flapping', False)
+            port.status = data['status']
+            port.last_checked = timezone.now()
+            port.save()
+            polled_ports += 1
+        except Exception as exc:
+            logger.warning('Settings-triggered port refresh failed for port %s: %s', port.id, exc)
+
+    return Response({
+        'success': True,
+        **updated_fields,
+        'polled_devices': polled_devices,
+        'polled_ports': polled_ports,
+    })

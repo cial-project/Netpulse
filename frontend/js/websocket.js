@@ -22,13 +22,8 @@ class RealTimeMonitor {
                 if (override && typeof override === 'string') {
                     return override.replace(/\/$/, '');
                 }
-                const { origin, protocol, hostname, port } = window.location || {};
-                const staticDevPorts = new Set(['5500', '5501', '5502', '3000', '3001']);
+                const { origin } = window.location || {};
                 if (origin && origin !== 'null' && !origin.startsWith('file://')) {
-                    if (port && staticDevPorts.has(String(port))) {
-                        const backendPort = protocol === 'https:' ? '443' : '8000';
-                        return `${protocol}//${hostname}:${backendPort}`.replace(/\/$/, '');
-                    }
                     return origin.replace(/\/$/, '');
                 }
                 return 'http://127.0.0.1:8000';
@@ -135,7 +130,7 @@ class RealTimeMonitor {
                     this.updateDeviceInGrid(data.device);
                 }
                 // append to notification panel if open (prefer alert payload if present)
-                if (window.showNotifications) {
+                if (typeof window.showNotifications === 'function') {
                     // refresh the panel contents
                     window.showNotifications().catch(() => { });
                 }
@@ -166,6 +161,13 @@ class RealTimeMonitor {
             case 'metric_update':
                 this.updateCharts(data.metrics);
                 break;
+
+            case 'isp_update':
+                this.showNotification(`ISP ${data.name} updated`, 'info');
+                if (typeof window.updateISPUI === 'function') {
+                    window.updateISPUI(data);
+                }
+                break;
         }
     }
 
@@ -191,7 +193,7 @@ class RealTimeMonitor {
                 }
             } else {
                 // If device not present in the compact grid, refresh device grid
-                if (window.loadDeviceGrid) loadDeviceGrid();
+                if (typeof window.loadDeviceGrid === 'function') window.loadDeviceGrid();
             }
         } catch (e) {
             console.error('Failed to update device in grid', e);
@@ -402,9 +404,9 @@ class RealTimeMonitor {
         const runRefresh = () => {
             this.refreshTimer = null;
             this.lastFullRefresh = Date.now();
-            if (window.loadKPIs) loadKPIs();
-            if (window.loadAIInsights) loadAIInsights();
-            if (window.loadStatsOverview) loadStatsOverview();
+            if (typeof window.loadKPIs === 'function') try { window.loadKPIs(); } catch(e) {}
+            if (typeof window.loadAIInsights === 'function') try { window.loadAIInsights(); } catch(e) {}
+            if (typeof window.loadStatsOverview === 'function') try { window.loadStatsOverview(); } catch(e) {}
         };
 
         if (elapsed >= this.refreshCooldownMs) {
@@ -420,7 +422,7 @@ class RealTimeMonitor {
 
     refreshAlerts() {
         // Refresh alerts data
-        if (window.updateNotificationBadge) updateNotificationBadge();
+        if (typeof window.updateNotificationBadge === 'function') window.updateNotificationBadge();
     }
 }
 

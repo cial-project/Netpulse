@@ -536,6 +536,10 @@ class EnvironmentalMonitor {
                 // Handle DRF paginated responses
                 const zonesData = Array.isArray(zonesRaw) ? zonesRaw : (zonesRaw.results || []);
 
+                // If API returned empty data, skip to fallback
+                if (zonesData.length === 0) {
+                    console.log('No zones from API, using fallback data');
+                } else {
                 // Map the returned zones to the table structure. If a zone key matches dc1/dc2/dr
                 // we'll try to pull temperature/humidity values from the dashboard KPI endpoint.
                 let kpi = null;
@@ -585,6 +589,7 @@ class EnvironmentalMonitor {
                 this.renderZoneTable();
                 this.updateStats();
                 return;
+                }
             }
 
             // Fallback to simulated zone data if API not available

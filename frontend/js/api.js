@@ -15,23 +15,11 @@ async function apiFetch(endpoint, options = {}) {
             return override.replace(/\/$/, '');
         }
 
-        const { origin, protocol, hostname, port } = window.location || {};
-        const staticDevPorts = new Set(['5500', '5501', '5502', '3000', '3001']);
-
+        const { origin } = window.location || {};
         if (origin && origin !== 'null' && !origin.startsWith('file://')) {
-            if (port && staticDevPorts.has(String(port))) {
-                const backendPort = protocol === 'https:' ? '443' : '8000';
-                return `${protocol}//${hostname}:${backendPort}`.replace(/\/$/, '');
-            }
             return origin.replace(/\/$/, '');
         }
-        if (protocol && hostname) {
-            const defaultPort = protocol === 'https:' ? '443' : '80';
-            const hasExplicitPort = port && port !== defaultPort;
-            const backendPort = protocol === 'https:' ? '443' : '8000';
-            const finalPort = hasExplicitPort ? port : backendPort;
-            return `${protocol}//${hostname}:${finalPort}`.replace(/\/$/, '');
-        }
+        
         return 'http://127.0.0.1:8000';
     })();
 

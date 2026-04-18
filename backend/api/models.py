@@ -103,6 +103,7 @@ class Device(models.Model):
     cpu_load = models.FloatField(default=0.0, help_text="Current CPU Load %")
     memory_load = models.FloatField(default=0.0, help_text="Current Memory Used %")
     temperature = models.FloatField(null=True, blank=True, help_text="Device Temperature (C)")
+    ups_battery_level = models.FloatField(null=True, blank=True, help_text="UPS Battery Level %")
     uplink_capacity = models.CharField(max_length=50, default="10 Gbps", help_text="Uplink Connection Speed")
 
     class Meta:
@@ -164,11 +165,13 @@ class Alert(models.Model):
 
 
 class Metric(models.Model):
-    device = models.ForeignKey(Device, on_delete=models.CASCADE, related_name='metrics')
-    cpu_usage = models.FloatField()  # percentage
-    memory_usage = models.FloatField()  # percentage
-    network_in = models.FloatField()  # Mbps
-    network_out = models.FloatField()  # Mbps
+    device = models.ForeignKey('Device', on_delete=models.CASCADE, related_name='metrics', null=True, blank=True)
+    isp = models.ForeignKey('ISP', on_delete=models.CASCADE, related_name='metrics', null=True, blank=True)
+    
+    cpu_usage = models.FloatField(default=0.0)  # percentage
+    memory_usage = models.FloatField(default=0.0)  # percentage
+    network_in = models.FloatField(default=0.0)  # Mbps (or Latency for ISP)
+    network_out = models.FloatField(default=0.0)  # Mbps (or Loss for ISP)
     temperature = models.FloatField(null=True, blank=True)  # Celsius
     timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
     
@@ -176,12 +179,15 @@ class Metric(models.Model):
         ordering = ['-timestamp']
         indexes = [
             models.Index(fields=['device', '-timestamp'], name='idx_metric_device_time'),
+            models.Index(fields=['isp', '-timestamp'], name='idx_metric_isp_time'),
             models.Index(fields=['-timestamp'], name='idx_metric_timestamp'),
             models.Index(fields=['device', 'timestamp'], name='idx_metric_dev_ts_asc'),
+            models.Index(fields=['isp', 'timestamp'], name='idx_metric_isp_ts_asc'),
         ]
 
     def __str__(self):
-        return f"Metric({self.device.name} @ {self.timestamp})"
+        owner = self.device.name if self.device else (self.isp.name if self.isp else "Unknown")
+        return f"Metric({owner} @ {self.timestamp})"
 
 
 class AlertThreshold(models.Model):
@@ -238,11 +244,10 @@ class ISP(models.Model):
 
 class Port(models.Model):
     """Represents a network interface/port on a device for detailed monitoring."""
+    device = models.ForeignKey(Device, on_delete=models.CASCADE, related_name='ports', null=True, blank=True)
     name = models.CharField(max_length=100, help_text="e.g., GigabitEthernet0/1")
-    device_name = models.CharField(max_length=100, help_text="Name of the switch/router")
+    port_number = models.IntegerField(default=0)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
-    device_ip = models.GenericIPAddressField(null=True, blank=True)
-    port_ip = models.GenericIPAddressField(null=True, blank=True)
     capacity_mbps = models.IntegerField(default=1000, help_text="Port speed in Mbps")
     is_active = models.BooleanField(default=True)
     status = models.CharField(max_length=10, default='up')
@@ -262,10 +267,10 @@ class Port(models.Model):
     critical_alert_count = models.IntegerField(default=0)
 
     class Meta:
-        ordering = ['device_name', 'name']
+        ordering = ['device', 'name']
 
     def __str__(self):
-        return f"{self.device_name} - {self.name}"
+        return f"{self.device.name if self.device else 'Unknown'} - {self.name}"
 
 
 class Audit(models.Model):

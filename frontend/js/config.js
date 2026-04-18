@@ -1,6 +1,6 @@
 // Backend API Configuration
-// Set this to your production backend URL when deploying
-window.NETPULSE_API_BASE = "https://netpulse-gkcp.onrender.com";
+// Set this to your local backend URL for offline desktop app
+window.NETPULSE_API_BASE = "http://127.0.0.1:8000";
 
 window.applyNetpulseSettings = function() {
     try {

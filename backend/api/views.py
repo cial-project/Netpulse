@@ -20,7 +20,6 @@ from .serializers import ZoneSerializer, AuditSerializer
 from .siem import forward_to_siem
 from .permissions import IsAdminOrOperatorOrReadOnly
 from .validators import safe_int, safe_float, safe_bool
-from devices.snmp_service import poll_device
 from .tasks import poll_single_device
 import logging
 import random
@@ -138,24 +137,11 @@ class AuditViewSet(viewsets.ReadOnlyModelViewSet):
 class DashboardViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
     
-    def _ensure_recent_metrics(self):
-        """Trigger background polling for devices with stale metrics."""
-        stale_cutoff = timezone.now() - timedelta(minutes=2)
-        devices = Device.objects.filter(is_active=True)
-        for device in devices:
-            latest = device.metrics.order_by('-timestamp').first()
-            if latest and latest.timestamp and latest.timestamp >= stale_cutoff:
-                continue
-            try:
-                poll_single_device.delay(device.id)
-            except Exception:
-                pass
-
     @action(detail=False)
     def kpi(self, request):
-        """Dynamic KPI data with real metrics"""
+        """Dynamic KPI data — Optimized to read only from Device stats and Alert counts."""
         try:
-            self._ensure_recent_metrics()
+            # 1. Base counts (Fast)
             total_devices = Device.objects.count()
             online_devices = Device.objects.filter(is_online=True).count()
             offline_devices = total_devices - online_devices
@@ -164,81 +150,38 @@ class DashboardViewSet(viewsets.ViewSet):
             warning_alerts = Alert.objects.filter(severity='warning', status='open').count()
             info_alerts = Alert.objects.filter(severity='info', status='open').count()
             
-            last_hour = timezone.now() - timedelta(hours=1)
-            recent_metrics = Metric.objects.filter(timestamp__gte=last_hour)
-            avg_metrics = recent_metrics.aggregate(
-                avg_network_in=Avg('network_in'),
-                avg_network_out=Avg('network_out'),
-                avg_cpu=Avg('cpu_usage'),
-                avg_memory=Avg('memory_usage')
+            # 2. Process device list once (Fast)
+            # Pull everything in one query using cached fields
+            all_devices = Device.objects.filter(is_active=True).select_related('zone').only(
+                'id', 'name', 'ip_address', 'device_type', 'is_online', 'zone',
+                'cpu_load', 'memory_load', 'temperature', 'uplink_capacity',
+                'uptime_days', 'sys_name', 'is_important',
             )
             
-            temp_metric = Metric.objects.filter(temperature__isnull=False).order_by('-timestamp').first()
-            current_temp = temp_metric.temperature if temp_metric else 22.5
-            
-            health_percentage = round((online_devices / total_devices) * 100, 1) if total_devices > 0 else 0
-            
-            latest_metric = Metric.objects.order_by('-timestamp').first()
-            current_bandwidth = latest_metric.network_in if latest_metric else 0
-            current_throughput = latest_metric.network_out if latest_metric else 0
-
-            def avg_temp_for_devices(qs_devices):
-                try:
-                    if not qs_devices.exists():
-                        return None
-                    avg = Metric.objects.filter(
-                        device__in=qs_devices, temperature__isnull=False
-                    ).aggregate(Avg('temperature'))['temperature__avg']
-                    return round(avg, 1) if avg is not None else None
-                except Exception:
-                    return None
-
-            def estimate_humidity(temp):
-                try:
-                    t = float(temp)
-                    hum = 45 + (22.5 - t) * 1.2
-                    return max(20, min(80, round(hum)))
-                except Exception:
-                    return 45
-
-            try:
-                zones = {z.key.lower(): z for z in Zone.objects.filter(key__in=['dc1', 'dc2', 'dr', 'dr2'])}
-            except Exception:
-                zones = {}
-
-            def temp_for_zone_key(key):
-                z = zones.get(key)
-                if z:
-                    return avg_temp_for_devices(z.devices.all())
-                qs_devices = Device.objects.filter(Q(name__icontains=key) | Q(location__icontains=key))
-                return avg_temp_for_devices(qs_devices)
-
-            dc1_temp = temp_for_zone_key('dc1') or current_temp
-            dc2_temp = temp_for_zone_key('dc2') or current_temp
-            dr_temp = temp_for_zone_key('dr') or current_temp
-            dr2_temp = temp_for_zone_key('dr2') or current_temp
-
-            dc1_hum = estimate_humidity(dc1_temp)
-            dc2_hum = estimate_humidity(dc2_temp)
-            dr_hum = estimate_humidity(dr_temp)
-            dr2_hum = estimate_humidity(dr2_temp)
-            
             device_list = []
-            all_devices = Device.objects.filter(is_active=True).select_related('zone')
-            total_bw_in = 0
-            total_bw_out = 0
+            cpu_values = []
+            mem_values = []
             temp_values = []
+            
+            # Zone aggregation buckets
+            zone_temps = {'dc1': [], 'dc2': [], 'dr': [], 'dr2': []}
+            
             for dev in all_devices:
-                latest_m = dev.metrics.order_by('-timestamp').first()
-                cpu_val = round(latest_m.cpu_usage, 1) if latest_m and latest_m.cpu_usage is not None else round(dev.cpu_load, 1)
-                mem_val = round(latest_m.memory_usage, 1) if latest_m and latest_m.memory_usage is not None else round(dev.memory_load, 1)
-                temp_val = round(latest_m.temperature, 1) if latest_m and latest_m.temperature is not None else (round(dev.temperature, 1) if dev.temperature else None)
-                net_in = round(latest_m.network_in, 1) if latest_m and latest_m.network_in is not None else 0
-                net_out = round(latest_m.network_out, 1) if latest_m and latest_m.network_out is not None else 0
-                total_bw_in += net_in
-                total_bw_out += net_out
+                cpu_val = round(dev.cpu_load or 0, 1)
+                mem_val = round(dev.memory_load or 0, 1)
+                temp_val = round(dev.temperature, 1) if dev.temperature else None
+                
+                # Global stats
+                cpu_values.append(cpu_val)
+                mem_values.append(mem_val)
                 if temp_val is not None:
                     temp_values.append(temp_val)
+                
+                # Zone stats
+                if dev.zone and dev.zone.key in zone_temps:
+                    if temp_val is not None:
+                        zone_temps[dev.zone.key].append(temp_val)
+                
                 device_list.append({
                     'id': dev.id,
                     'name': dev.name,
@@ -250,73 +193,63 @@ class DashboardViewSet(viewsets.ViewSet):
                     'memory_load': mem_val,
                     'temperature': temp_val,
                     'uplink_capacity': dev.uplink_capacity or '10 Gbps',
-                    'network_in': net_in,
-                    'network_out': net_out,
-                    'throughput_out': net_out,
+                    'network_in': 0.0, # Will be updated by task signals or separate metric read if needed
+                    'network_out': 0.0,
                     'uptime_days': round(dev.uptime_days, 1) if dev.uptime_days else 0,
                     'sys_name': dev.sys_name or dev.name,
                     'is_important': dev.is_important,
                 })
 
-            avg_temp = round(sum(temp_values) / len(temp_values), 1) if temp_values else current_temp
-            total_bw_gbps = round((total_bw_in + total_bw_out) / 1000, 1) if (total_bw_in + total_bw_out) > 0 else 0
+            # 3. Calculate Averages (In-memory)
+            avg_cpu = round(sum(cpu_values) / len(cpu_values), 1) if cpu_values else 0
+            avg_mem = round(sum(mem_values) / len(mem_values), 1) if mem_values else 0
+            avg_temp = round(sum(temp_values) / len(temp_values), 1) if temp_values else 22.5
+            
+            # 4. Zone Helpers
+            def get_zone_avg(key):
+                vals = zone_temps.get(key, [])
+                return round(sum(vals) / len(vals), 1) if vals else avg_temp
 
-            # Enhanced Zone Data
+            def estimate_humidity(temp):
+                hum = 45 + (22.5 - float(temp)) * 1.2
+                return max(20, min(80, round(hum)))
+
+            # Pre-calc zone details
+            zones = {z.key.lower(): z for z in Zone.objects.filter(key__in=['dc1', 'dc2', 'dr', 'dr2'])}
             zone_details = []
             for k in ['dc1', 'dc2', 'dr', 'dr2']:
                 z = zones.get(k)
-                if z:
-                    # Find the most important or first device in this zone
-                    core_dev = z.devices.filter(is_important=True).first() or z.devices.first()
-                    zone_details.append({
-                        'name': z.name,
-                        'key': z.key,
-                        'temperature': z.temperature if z.temperature else temp_for_zone_key(k),
-                        'humidity': z.humidity if z.humidity else estimate_humidity(temp_for_zone_key(k)),
-                        'ip_address': core_dev.ip_address if core_dev else None,
-                        'is_online': core_dev.is_online if core_dev else False,
-                    })
+                z_temp = get_zone_avg(k)
+                core_dev = z.devices.filter(is_important=True).first() if z else None
+                zone_details.append({
+                    'name': z.name if z else k.upper(),
+                    'key': k,
+                    'temperature': z_temp,
+                    'humidity': estimate_humidity(z_temp),
+                    'ip_address': core_dev.ip_address if core_dev else None,
+                    'is_online': core_dev.is_online if core_dev else False,
+                })
 
             important_devices = [d for d in device_list if d.get('is_important')]
             if not important_devices:
-                # Fallback to core devices if none marked explicitly important
-                important_devices = [d for d in device_list if d.get('device_type', '').lower() in ['router', 'firewall', 'core-switch'] or 'core' in d.get('name', '').lower()][:4]
+                important_devices = [d for d in device_list if d.get('device_type', '').lower() in ['router', 'firewall', 'server']][:4]
 
             data = {
                 'devices_status': f"{online_devices}/{total_devices} Online",
                 'online_count': online_devices,
-                'online_devices': online_devices,
-                'offline_count': offline_devices,
                 'total_devices': total_devices,
                 'active_alerts': f"{critical_alerts} Critical, {warning_alerts} Warning",
                 'critical_alerts': critical_alerts,
                 'warning_alerts': warning_alerts,
                 'info_alerts': info_alerts,
-                'avg_temperature': f"{current_temp}°C",
-                'temperature_value': current_temp,
-                'ups_status': f"{health_percentage}% Healthy",
-                'health_percentage': health_percentage,
-                'bandwidth': f"{current_bandwidth:.1f} Mbps",
-                'throughput': f"{current_throughput:.1f} Mbps",
-                'latency': '23 ms',
-                'jitter': '2 ms',
-                'dc1_temperature': f"{dc1_temp}°C",
-                'dc1_humidity': f"{dc1_hum}% Humidity",
-                'dc2_temperature': f"{dc2_temp}°C",
-                'dc2_humidity': f"{dc2_hum}% Humidity",
-                'dr_temperature': f"{dr_temp}°C",
-                'dr_humidity': f"{dr_hum}% Humidity",
-                'dr2_temperature': f"{dr2_temp}°C",
-                'dr2_humidity': f"{dr2_hum}% Humidity",
-                'bandwidth_value': current_bandwidth,
-                'throughput_value': current_throughput,
-                'avg_cpu': avg_metrics['avg_cpu'] or 0,
-                'avg_memory': avg_metrics['avg_memory'] or 0,
                 'avg_temp': avg_temp,
-                'total_bandwidth_gbps': total_bw_gbps,
+                'avg_cpu': avg_cpu,
+                'avg_memory': avg_mem,
+                'health_percentage': round((online_devices / total_devices) * 100, 1) if total_devices > 0 else 100,
                 'devices': device_list,
                 'zones': zone_details,
                 'important_devices': important_devices,
+                'timestamp': timezone.now().isoformat()
             }
             return Response(data)
             
@@ -467,89 +400,51 @@ class DashboardViewSet(viewsets.ViewSet):
     
     @action(detail=False)
     def real_time_data(self, request):
-        """Endpoint for real-time client updates including full device list for tables"""
+        """Optimized real-time endpoint using cached device fields."""
         try:
-            self._ensure_recent_metrics()
-            recent_time = timezone.now() - timedelta(minutes=5)
-
-            metrics_queryset = Metric.objects.filter(
-                timestamp__gte=recent_time
-            ).select_related('device')
-            if not metrics_queryset.exists():
-                metrics_queryset = Metric.objects.all().select_related('device')
-
-            latest_metrics = list(metrics_queryset.order_by('-timestamp')[:50])
-            metrics_data = MetricSerializer(latest_metrics, many=True).data
-
-            laptop_metric = Metric.objects.filter(
-                device__name__icontains='laptop'
-            ).select_related('device').order_by('-timestamp').first()
-            laptop_payload = None
-            if laptop_metric:
-                laptop_payload = {
-                    'device_id': laptop_metric.device_id,
-                    'name': laptop_metric.device.name,
-                    'cpu': round(laptop_metric.cpu_usage, 1) if laptop_metric.cpu_usage is not None else None,
-                    'memory': round(laptop_metric.memory_usage, 1) if laptop_metric.memory_usage is not None else None,
-                    'timestamp': laptop_metric.timestamp.isoformat() if laptop_metric.timestamp else None,
-                }
-
-            cpu_values = [m.cpu_usage for m in latest_metrics if m.cpu_usage is not None]
-            mem_values = [m.memory_usage for m in latest_metrics if m.memory_usage is not None]
-            avg_cpu = round(sum(cpu_values) / len(cpu_values), 1) if cpu_values else None
-            avg_memory = round(sum(mem_values) / len(mem_values), 1) if mem_values else None
-            
-            current_alerts = Alert.objects.filter(status='open').order_by('-created_at')[:5]
+            # 1. Fetch small set of recent alerts
+            current_alerts = Alert.objects.filter(status='open').order_by('-created_at')[:10]
             alerts_data = AlertSerializer(current_alerts, many=True).data
+
+            # 2. Get device stats from cached fields
+            all_devices = Device.objects.filter(is_active=True).select_related('zone').only(
+                'id', 'name', 'ip_address', 'device_type', 'is_online', 'zone',
+                'cpu_load', 'memory_load', 'temperature', 'uplink_capacity', 'uptime_days', 'sys_name',
+            )
             
-            total_devices = Device.objects.count()
-            online_devices = Device.objects.filter(is_online=True).count()
-            warning_alerts = Alert.objects.filter(severity='warning', status='open').count()
-            critical_alerts = Alert.objects.filter(severity='critical', status='open').count()
-
-            devices_status = {
-                'online': online_devices,
-                'total': total_devices,
-                'recent_changes': Device.objects.filter(last_seen__gte=recent_time).count()
-            }
-
+            cpu_vals = []
+            mem_vals = []
             device_list = []
-            all_devices = Device.objects.filter(is_active=True).select_related('zone')
+            online_count = 0
+            
             for dev in all_devices:
-                latest = dev.metrics.order_by('-timestamp').first()
+                if dev.is_online: online_count += 1
+                cpu = round(dev.cpu_load or 0, 1)
+                mem = round(dev.memory_load or 0, 1)
+                cpu_vals.append(cpu)
+                mem_vals.append(mem)
+                
                 device_list.append({
                     'id': dev.id,
                     'name': dev.name,
                     'ip_address': dev.ip_address,
-                    'device_type': dev.device_type,
                     'is_online': dev.is_online,
-                    'zone': dev.zone.name if dev.zone else '',
-                    'cpu_load': round(latest.cpu_usage, 1) if latest and latest.cpu_usage is not None else round(dev.cpu_load, 1),
-                    'memory_load': round(latest.memory_usage, 1) if latest and latest.memory_usage is not None else round(dev.memory_load, 1),
-                    'temperature': round(latest.temperature, 1) if latest and latest.temperature is not None else (round(dev.temperature, 1) if dev.temperature else None),
-                    'uplink_capacity': dev.uplink_capacity or '10 Gbps',
-                    'network_in': round(latest.network_in, 1) if latest and latest.network_in is not None else 0,
-                    'network_out': round(latest.network_out, 1) if latest and latest.network_out is not None else 0,
-                    'throughput_out': round(latest.network_out, 1) if latest and latest.network_out is not None else 0,
-                    'uptime_days': round(dev.uptime_days, 1) if dev.uptime_days else 0,
-                    'sys_name': dev.sys_name or dev.name,
+                    'cpu_load': cpu,
+                    'memory_load': mem,
+                    'temperature': round(dev.temperature, 1) if dev.temperature else None,
                 })
-            
+
+            avg_cpu = round(sum(cpu_vals) / len(cpu_vals), 1) if cpu_vals else 0
+            avg_mem = round(sum(mem_vals) / len(mem_vals), 1) if mem_vals else 0
+
             return Response({
                 'timestamp': timezone.now().isoformat(),
-                'metrics': metrics_data,
-                'alerts': alerts_data,
-                'devices': devices_status,
-                'device_list': device_list,
-                'system_health': self._calculate_system_health(),
                 'avg_cpu': avg_cpu,
-                'avg_memory': avg_memory,
-                'total_devices': total_devices,
-                'online_devices': online_devices,
-                'online_count': online_devices,
-                'warning_alerts': warning_alerts,
-                'critical_alerts': critical_alerts,
-                'laptop': laptop_payload
+                'avg_memory': avg_mem,
+                'total_devices': all_devices.count(),
+                'online_count': online_count,
+                'alerts': alerts_data,
+                'device_list': device_list[:20], # limit for UI performance
             })
             
         except Exception as e:
@@ -589,43 +484,14 @@ class DeviceViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         device = serializer.save()
 
-        try:
-            result = poll_device(device.ip_address, device.device_type, device.snmp_community)
-            device.is_online = result.get('reachable', False)
-            if device.is_online:
-                device.last_seen = timezone.now()
-                device.sys_name = result.get('sys_name', device.sys_name)
-                device.uptime_days = result.get('uptime_days', device.uptime_days)
-                device.cpu_load = result.get('cpu_usage', 0)
-                device.memory_load = result.get('memory_usage', 0)
-                if result.get('temperature') is not None:
-                    device.temperature = result['temperature']
-                Metric.objects.create(
-                    device=device,
-                    cpu_usage=result.get('cpu_usage', 0),
-                    memory_usage=result.get('memory_usage', 0),
-                    network_in=result.get('network_in', 0),
-                    network_out=result.get('network_out', 0),
-                    temperature=result.get('temperature', None),
-                )
-            else:
-                # Device is offline — generate alert
-                Alert.objects.create(
-                    device=device,
-                    title=f"Device {device.name} is offline",
-                    description=f"Device at {device.ip_address} did not respond to initial SNMP poll.",
-                    severity='warning',
-                    status='open',
-                )
-            device.save()
-        except Exception as e:
-            logger.exception("Initial poll failed for %s: %s", device.ip_address, e)
+        # Immediately queue a background poll; respond with 201 right away
+        poll_single_device.delay(device.id)
 
         headers = self.get_success_headers(serializer.data)
         return Response(
             DeviceSerializer(device, context={'request': request}).data,
             status=status.HTTP_201_CREATED,
-            headers=headers
+            headers=headers,
         )
 
     def get_queryset(self):
@@ -652,61 +518,19 @@ class DeviceViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def poll_now(self, request, pk=None):
-        """Manually poll a specific device synchronously (no Celery needed)"""
+        """Queue an immediate background poll for a specific device."""
         device = self.get_object()
         try:
-            result = poll_device(
-                device.ip_address,
-                device.device_type,
-                device.snmp_community,
-                getattr(device, 'port', 161),
-                custom_oids=getattr(device, 'custom_oids', '')
-            )
-
-            was_online = device.is_online
-            device.is_online = result.get('reachable', False)
-
-            if device.is_online:
-                device.last_seen = timezone.now()
-                device.sys_name = result.get('sys_name', device.sys_name)
-                device.uptime_days = result.get('uptime_days', device.uptime_days or 0)
-                device.cpu_load = result.get('cpu_usage', device.cpu_load)
-                device.memory_load = result.get('memory_usage', device.memory_load)
-                if result.get('temperature') is not None:
-                    device.temperature = result['temperature']
-
-                Metric.objects.create(
-                    device=device,
-                    cpu_usage=result.get('cpu_usage', 0),
-                    memory_usage=result.get('memory_usage', 0),
-                    network_in=result.get('network_in', 0),
-                    network_out=result.get('network_out', 0),
-                    temperature=result.get('temperature', None),
-                )
-
-                # Auto-resolve offline alerts if device came back online
-                if not was_online:
-                    Alert.objects.filter(
-                        device=device,
-                        title__icontains='offline',
-                        status__in=['open', 'in-progress']
-                    ).update(status='resolved', resolved_at=timezone.now())
-
-            device.save()
-
+            poll_single_device.delay(device.id)
             return Response({
                 'success': True,
-                'message': f'Polling complete for {device.name}',
-                'is_online': device.is_online,
-                'cpu_load': device.cpu_load,
-                'memory_load': device.memory_load,
-                'uptime_days': device.uptime_days,
-            })
+                'message': f'Poll queued for {device.name}. Results will update via WebSocket.',
+            }, status=status.HTTP_202_ACCEPTED)
         except Exception as e:
-            logger.exception('Failed to poll device %s: %s', device.id, e)
+            logger.exception('Failed to queue poll for device %s: %s', device.id, e)
             return Response({
                 'success': False,
-                'error': f'Failed to poll device: {str(e)}'
+                'error': f'Failed to queue poll: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     @action(detail=True, methods=['get'])
     def trends(self, request, pk=None):
@@ -779,7 +603,7 @@ class DeviceViewSet(viewsets.ModelViewSet):
             for i in range(1, 8):
                 forecast_data.append({
                     'x': (last_m.timestamp.timestamp() * 1000) + (interval_ms * i),
-                    'y': max(0, last_val + (slope * i) + random.uniform(-2, 2)),
+                    'y': max(0, last_val + (slope * i)),
                     'confidence': max(50, 95 - (i * 5))
                 })
 
@@ -1099,28 +923,34 @@ class MetricViewSet(viewsets.ReadOnlyModelViewSet):
     
     @action(detail=False, methods=['get'])
     def latest(self, request):
-        """Get latest metrics for all devices"""
-        devices = Device.objects.filter(is_active=True)
-        latest_metrics = []
-        
-        for device in devices:
-            latest = Metric.objects.filter(device=device).order_by('-timestamp').first()
-            if latest:
-                latest_metrics.append({
-                    'device_id': device.id,
-                    'device': device.name,
-                    'cpu_usage': latest.cpu_usage,
-                    'memory_usage': latest.memory_usage,
-                    'network_in': latest.network_in,
-                    'network_out': latest.network_out,
-                    'temperature': latest.temperature,
-                    'timestamp': latest.timestamp
-                })
-        
+        """Get latest metrics for all active devices — single optimized query."""
+        devices = Device.objects.filter(is_active=True).only('id', 'name')
+        # Fetch all recent metrics in one query; group by device
+        from django.db.models import OuterRef, Subquery
+        latest_ts_subq = Metric.objects.filter(
+            device=OuterRef('device_id')
+        ).order_by('-timestamp').values('timestamp')[:1]
+        latest_metrics_qs = Metric.objects.filter(
+            timestamp=Subquery(latest_ts_subq)
+        ).select_related('device').order_by('device_id')
+
+        latest_metrics = [
+            {
+                'device_id':    m.device_id,
+                'device':       m.device.name,
+                'cpu_usage':    m.cpu_usage,
+                'memory_usage': m.memory_usage,
+                'network_in':   m.network_in,
+                'network_out':  m.network_out,
+                'temperature':  m.temperature,
+                'timestamp':    m.timestamp,
+            }
+            for m in latest_metrics_qs
+        ]
         return Response({
-            'latest_metrics': latest_metrics,
-            'total_devices': devices.count(),
-            'devices_with_metrics': len(latest_metrics)
+            'latest_metrics':       latest_metrics,
+            'total_devices':        devices.count(),
+            'devices_with_metrics': len(latest_metrics),
         })
 
 
@@ -1145,24 +975,53 @@ class ISPViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def probe(self, request, pk=None):
-        """Manually probe an ISP endpoint"""
+        """Queue an async ISP probe via Celery."""
         isp = self.get_object()
         try:
-            from devices.isp_service import probe_isp
-            res = probe_isp(isp.host)
-            isp.last_checked = timezone.now()
-            isp.latency_ms = res.get('latency_ms')
-            isp.packet_loss = res.get('packet_loss')
-            isp.upstream_mbps = res.get('upstream_mbps')
-            isp.downstream_mbps = res.get('downstream_mbps')
-            isp.save()
-            return Response({'success': True, 'result': res})
+            from .tasks import probe_single_isp
+            probe_single_isp.delay(isp.id)
+            return Response({
+                'success': True,
+                'message': f'Probe queued for {isp.name}. Results will update shortly.',
+            }, status=status.HTTP_202_ACCEPTED)
         except Exception as e:
-            logger.exception('ISP probe failed for %s: %s', isp.host, e)
+            logger.exception('ISP probe queue failed for %s: %s', isp.host, e)
             return Response({
                 'success': False,
                 'error': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['get'])
+    def trends(self, request, pk=None):
+        """Get historical trends for a specific ISP."""
+        isp = self.get_object()
+        hours = safe_int(request.GET.get('hours'), default=24, min_val=1, max_val=8760, param_name='hours')
+        time_threshold = timezone.now() - timedelta(hours=hours)
+        
+        metrics = Metric.objects.filter(
+            isp=isp,
+            timestamp__gte=time_threshold
+        ).order_by('timestamp')
+
+        # Format for Chart.js
+        historical_data = []
+        for m in metrics:
+            historical_data.append({
+                'x': m.timestamp.isoformat(),
+                'latency': m.network_in,
+                'loss': m.network_out,
+                'up': 0, # Placeholder for now as current probes are simple
+                'down': 0
+            })
+
+        return Response({
+            'isp': isp.name,
+            'historical': historical_data,
+            'summary': {
+                'avg_latency': metrics.aggregate(Avg('network_in'))['network_in__avg'],
+                'avg_loss': metrics.aggregate(Avg('network_out'))['network_out__avg']
+            }
+        })
 
 
 # ---------------------------------------------------------------------------
@@ -1197,13 +1056,12 @@ class PortViewSet(viewsets.ModelViewSet):
         return Response({'success': True, 'count': ports.count()})
 
     def list(self, request, *args, **kwargs):
-        # Auto-trigger update if data is stale (demo mode helper)
-        stale_cutoff = timezone.now() - (timedelta(seconds=30))
-        recent_port = Port.objects.filter(last_checked__gte=stale_cutoff).first()
-        if not recent_port:
-            # Trigger background-like update synchronously for demo visibility
-            self.trigger_update(request)
-            
+        # If ports are stale, queue background refresh (non-blocking)
+        stale_cutoff = timezone.now() - timedelta(seconds=30)
+        if not Port.objects.filter(last_checked__gte=stale_cutoff).exists():
+            from .tasks import update_port_metrics
+            for port_id in Port.objects.filter(is_active=True).values_list('id', flat=True):
+                update_port_metrics.delay(port_id)
         return super().list(request, *args, **kwargs)
 
 
@@ -1230,8 +1088,8 @@ class PortViewSet(viewsets.ModelViewSet):
             
             # Check for alerts
             if port.status == 'down' or port.utilization_in > 90 or port.utilization_out > 90:
-                device = Device.objects.filter(name=port.device_name).first()
-                if device:
+                if port.device:
+                    device = port.device
                     title = f"Port {port.name} Issue"
                     if port.status == 'down':
                         description = f"Port {port.name} is DOWN."
@@ -1279,55 +1137,22 @@ def update_global_settings(request):
         except ValueError:
             return Response({'error': 'Invalid polling interval'}, status=status.HTTP_400_BAD_REQUEST)
 
-    # --- Trigger an immediate poll of all devices and ports ---
+    # --- Trigger an immediate poll of all devices and ports via Celery ---
     polled_devices = 0
     polled_ports = 0
 
+    from .tasks import update_port_metrics
+
     for device in Device.objects.filter(is_active=True):
         try:
-            result = poll_device(
-                device.ip_address,
-                device.device_type,
-                device.snmp_community,
-                getattr(device, 'port', 161),
-                custom_oids=getattr(device, 'custom_oids', ''),
-            )
-            device.is_online = result.get('reachable', False)
-            if device.is_online:
-                device.last_seen = timezone.now()
-                device.sys_name = result.get('sys_name', device.sys_name)
-                device.uptime_days = result.get('uptime_days', device.uptime_days or 0)
-                device.cpu_load = result.get('cpu_usage', device.cpu_load)
-                device.memory_load = result.get('memory_usage', device.memory_load)
-                if result.get('temperature') is not None:
-                    device.temperature = result['temperature']
-                Metric.objects.create(
-                    device=device,
-                    cpu_usage=result.get('cpu_usage', 0),
-                    memory_usage=result.get('memory_usage', 0),
-                    network_in=result.get('network_in', 0),
-                    network_out=result.get('network_out', 0),
-                    temperature=result.get('temperature', None),
-                )
-            device.save()
+            poll_single_device.delay(device.id)
             polled_devices += 1
         except Exception as exc:
             logger.warning('Settings-triggered poll failed for device %s: %s', device.id, exc)
 
     for port in Port.objects.filter(is_active=True):
         try:
-            from devices.port_service import simulate_port_traffic
-            data = simulate_port_traffic(port.capacity_mbps)
-            port.bps_in = data['bps_in']
-            port.bps_out = data['bps_out']
-            port.utilization_in = data['utilization_in']
-            port.utilization_out = data['utilization_out']
-            port.latency_ms = data.get('latency_ms', 0.0) or 0.0
-            port.packet_drops = data.get('packet_drops', 0.0) or 0.0
-            port.is_flapping = data.get('is_flapping', False)
-            port.status = data['status']
-            port.last_checked = timezone.now()
-            port.save()
+            update_port_metrics.delay(port.id)
             polled_ports += 1
         except Exception as exc:
             logger.warning('Settings-triggered port refresh failed for port %s: %s', port.id, exc)

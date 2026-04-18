@@ -1,21 +1,24 @@
 
 const ispCharts = {};
-const ispHistory = {}; // { ispId: { labels: [], loss: [], up: [], down: [] } }
-const MAX_HISTORY = 20;
+const ispHistory = {}; // { ispId: { labels: [], loss: [], latency: [] } }
+const MAX_HISTORY = 30;
 
 document.addEventListener('DOMContentLoaded', () => {
     loadISPs();
     updateCurrentDateTime();
 
     // Refresh button
-    document.getElementById('refresh-isps').addEventListener('click', () => {
-        probeAllISPs();
-    });
+    const refreshBtn = document.getElementById('refresh-isps');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            probeAllISPs();
+        });
+    }
 
     // Add ISP Modal Logic
     const modal = document.getElementById('add-isp-modal');
     const btn = document.getElementById('add-isp-btn');
-    const span = document.getElementsByClassName('close-modal')[0];
+    const span = document.querySelector('.close-modal');
     const form = document.getElementById('add-isp-form');
 
     if (btn) btn.onclick = () => modal.style.display = "block";
@@ -35,9 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    // Auto-refresh every 10 seconds
-    setInterval(probeAllISPs, 10000);
-
     // Update time every second
     setInterval(updateCurrentDateTime, 1000);
 });
@@ -52,18 +52,13 @@ async function addNewISP(name, host) {
     try {
         const response = await apiFetch('/isps/', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                name: name,
-                host: host,
-                is_active: true
-            })
+            body: JSON.stringify({ name, host, is_active: true })
         });
 
-        if (response && response.ok) {
+        if (response && response.status === 201) {
             loadISPs(); // Reload grid
         } else {
-            alert('Failed to add ISP. Please check the backend logs.');
+            alert('Failed to add ISP.');
         }
     } catch (e) {
         console.error(e);
@@ -73,147 +68,100 @@ async function addNewISP(name, host) {
 
 async function loadISPs() {
     const grid = document.getElementById('isp-grid');
-    grid.innerHTML = '<div class="loading">Loading ISPs...</div>';
+    if (!grid) return;
+    grid.innerHTML = '<div class="loading">Loading ISP Infrastructure...</div>';
 
     try {
         const response = await apiFetch('/isps/');
         if (!response) return;
 
         const data = await response.json();
-        // Handle DRF paginated responses
         const isps = Array.isArray(data) ? data : (data.results || []);
 
         if (isps.length === 0) {
-            grid.innerHTML = '<div class="no-data">No ISPs configured. Click "Add ISP" to start monitoring.</div>';
+            grid.innerHTML = '<div class="no-data">No ISPs monitoring. Click "Add ISP" to start.</div>';
             return;
         }
 
         grid.innerHTML = '';
-        isps.forEach(isp => {
-            // Map backend fields to frontend expected fields
-            const ispData = {
-                id: isp.id,
-                name: isp.name,
-                host: isp.host,
-                status: isp.packet_loss === 100 ? 'offline' : 'online', // Simple status inference
-                packet_loss: isp.packet_loss,
-                upstream_mbps: isp.upstream_mbps,
-                downstream_mbps: isp.downstream_mbps
-            };
-
-            grid.appendChild(createISPCard(ispData));
+        for (const isp of isps) {
+            grid.appendChild(createISPCard(isp));
             initISPChart(isp.id);
 
-            if (!ispHistory[isp.id]) {
-                ispHistory[isp.id] = { labels: [], loss: [], up: [], down: [] };
-            }
-
-            // Update with initial data if available
-            if (isp.last_checked) {
-                updateISPUI(ispData);
-            } else {
-                probeISP(isp.id);
-            }
-        });
+            // Fetch History for Chart
+            loadISPHistory(isp.id);
+        }
 
     } catch (error) {
         console.error('Error loading ISPs:', error);
-
-        // Fallback mock data for CIAL demonstration
-        console.log('Using fallback ISP data');
-        const fallbackIsps = [
-            { id: 101, name: 'Asianet Fiber', host: '115.112.x.x', packet_loss: 0, upstream_mbps: 150, downstream_mbps: 300, status: 'online' },
-            { id: 102, name: 'BSNL MPLS', host: '210.212.x.x', packet_loss: 0.5, upstream_mbps: 50, downstream_mbps: 100, status: 'online' },
-            { id: 103, name: 'Jio Business', host: '49.204.x.x', packet_loss: 100, upstream_mbps: 0, downstream_mbps: 0, status: 'offline' }
-        ];
-
-        grid.innerHTML = '';
-        fallbackIsps.forEach(isp => {
-            grid.appendChild(createISPCard(isp));
-            initISPChart(isp.id);
-            if (!ispHistory[isp.id]) {
-                ispHistory[isp.id] = { labels: [], loss: [], up: [], down: [] };
-            }
-            updateISPUI(isp);
-        });
+        grid.innerHTML = '<div class="error">Failed to load ISPs.</div>';
     }
 }
 
-// Image mapping for providers (mock)
-const providerLogos = {
-    'asianet': 'fa-globe-asia',
-    'bsnl': 'fa-network-wired',
-    'jio': 'fa-satellite-dish',
-    'default': 'fa-globe'
-};
+async function loadISPHistory(id) {
+    try {
+        const response = await apiFetch(`/isps/${id}/trends/?hours=1`);
+        if (!response) return;
+        
+        const data = await response.json();
+        if (data.historical) {
+            ispHistory[id] = { labels: [], latency: [], loss: [] };
+            data.historical.forEach(point => {
+                const time = new Date(point.x).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                ispHistory[id].labels.push(time);
+                ispHistory[id].latency.push(point.latency);
+                ispHistory[id].loss.push(point.loss);
+            });
+            updateISPChart(id);
+        }
+    } catch (e) {
+        console.error(`Failed to load history for ISP ${id}`, e);
+    }
+}
 
 function createISPCard(isp) {
     const div = document.createElement('div');
     div.className = 'isp-detailed-card';
     div.id = `isp-card-${isp.id}`;
 
-    const normalizedName = isp.name.toLowerCase();
-    const logoIcon = providerLogos[normalizedName] || providerLogos.default;
-    if (normalizedName.includes('asianet')) logoIcon = 'fa-globe-asia';
-    // ^ duplicate logic but safe
-
-    // Mock interface logic
-    let iface = 'GigabitEthernet1/0/1';
-    if (normalizedName.includes('bsnl')) iface = 'GigabitEthernet1/0/2';
-    if (normalizedName.includes('jio')) iface = 'GigabitEthernet1/0/3';
-
-    // Mock Gateway
-    const gateway = isp.host ? isp.host.replace(/\d+$/, '1') : '192.168.1.1';
-
+    const loss = isp.packet_loss != null ? isp.packet_loss.toFixed(1) : '--';
+    const latency = isp.latency_ms != null ? isp.latency_ms.toFixed(0) : '--';
+    
     div.innerHTML = `
         <div class="isp-card-main">
             <div class="isp-info-col">
                 <div class="provider-header">
-                    <div class="provider-icon"><i class="fas ${logoIcon}"></i></div>
+                    <div class="provider-icon"><i class="fas fa-globe"></i></div>
                     <div>
                         <h3 class="provider-title">${isp.name}</h3>
-                        <p class="plan-info">Plan: ${isp.plan_upload_mbps || 100} Mbps Up / ${isp.plan_download_mbps || 100} Mbps Down</p>
+                        <p class="plan-info">Target: ${isp.host}</p>
                     </div>
                 </div>
                 
-                <div class="isp-details-grid" style="grid-template-columns: repeat(4, 1fr);">
-                    <div class="detail-item">
-                        <span class="detail-label">Static IP</span>
-                        <span class="detail-value">${isp.host}</span>
-                    </div>
+                <div class="isp-details-grid">
                     <div class="detail-item">
                         <span class="detail-label">Latency</span>
-                        <span class="detail-value" id="latency-${isp.id}">${isp.latency_ms !== undefined && isp.latency_ms !== null ? isp.latency_ms + ' ms' : '--'}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Used Up</span>
-                        <span class="detail-value" id="up-${isp.id}">${isp.upstream_mbps !== undefined && isp.upstream_mbps !== null ? isp.upstream_mbps + ' Mbps' : '--'}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Used Down</span>
-                        <span class="detail-value" id="down-${isp.id}">${isp.downstream_mbps !== undefined && isp.downstream_mbps !== null ? isp.downstream_mbps + ' Mbps' : '--'}</span>
+                        <span class="detail-value" id="latency-${isp.id}">${latency} ms</span>
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Pkt Loss</span>
-                        <span class="detail-value" id="loss-${isp.id}">${isp.packet_loss !== undefined && isp.packet_loss !== null ? isp.packet_loss + ' %' : '--'}</span>
+                        <span class="detail-value" id="loss-${isp.id}">${loss} %</span>
                     </div>
                     <div class="detail-item">
-                        <span class="detail-label">Alerts</span>
-                        <span class="detail-value" id="alerts-${isp.id}" style="color:var(--danger)">--</span>
+                        <span class="detail-label">Downstream</span>
+                        <span class="detail-value" id="down-${isp.id}">${isp.downstream_mbps || 0} Mbps</span>
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Status</span>
-                        <span class="status-pill ${isp.status === 'online' ? 'online' : 'offline'}" id="status-${isp.id}">${isp.status.toUpperCase()}</span>
+                        <span class="status-pill ${isp.packet_loss < 100 ? 'online' : 'offline'}" id="status-${isp.id}">
+                            ${isp.packet_loss < 100 ? 'ONLINE' : 'OFFLINE'}
+                        </span>
                     </div>
-                </div>
-                <div class="detail-item" style="margin-top: 10px;">
-                    <span class="detail-label">Flapping Status</span>
-                    <span class="detail-value" id="flap-${isp.id}" style="${isp.is_flapping ? 'color:var(--warning)' : 'color:var(--success)'}">${isp.is_flapping ? 'FLAPPING DETECTED' : 'STABLE'}</span>
                 </div>
             </div>
             
             <div class="isp-chart-col">
-                <div class="chart-label">Usage History</div>
+                <div class="chart-label">Latency (ms) History</div>
                 <div class="isp-chart-wrapper">
                     <canvas id="chart-${isp.id}"></canvas>
                 </div>
@@ -224,144 +172,98 @@ function createISPCard(isp) {
 }
 
 function initISPChart(id) {
-    const ctx = document.getElementById(`chart-${id}`).getContext('2d');
+    const canvas = document.getElementById(`chart-${id}`);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    
     ispCharts[id] = new Chart(ctx, {
         type: 'line',
         data: {
             labels: [],
-            datasets: [
-                {
-                    label: 'Usage',
-                    data: [],
-                    borderColor: '#2f855a', // Dark Green
-                    backgroundColor: 'rgba(47, 133, 90, 0.05)',
-                    fill: 'start',
-                    tension: 0.4,
-                    borderWidth: 2,
-                    pointRadius: 0
-                }
-            ]
+            datasets: [{
+                label: 'Latency',
+                data: [],
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                fill: true,
+                tension: 0.4,
+                borderWidth: 2,
+                pointRadius: 0
+            }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: { mode: 'index', intersect: false }
-            },
+            plugins: { legend: { display: false } },
             scales: {
                 x: { display: false },
-                y: {
-                    display: false,
-                    min: 0
+                y: { 
+                    beginAtZero: true,
+                    ticks: { display: true, font: { size: 9 } },
+                    grid: { display: false }
                 }
-            },
-            elements: {
-                point: { radius: 0 }
             }
         }
     });
 }
 
-async function probeAllISPs() {
-    const cards = document.querySelectorAll('.isp-detailed-card');
-    const promises = [];
-    for (const card of cards) {
-        const id = card.id.replace('isp-card-', '');
-        promises.push(probeISP(id));
-    }
-    await Promise.allSettled(promises);
-}
-
-async function probeISP(id) {
-    try {
-        const response = await apiFetch(`/isps/${id}/probe/`, { method: 'POST' });
-        if (response && response.ok) {
-            const data = await response.json();
-            if (data.success && data.result) {
-                updateISPUI({
-                    id: id,
-                    ...data.result
-                });
-            } else {
-                console.warn(`Probe failed structure for ISP ${id}`);
-            }
-        } else {
-            console.warn(`Failed to probe ISP ${id}: HTTP Status ${response ? response.status : 'Network Error'}`);
-        }
-    } catch (e) {
-        console.error(`Error probing ISP ${id}:`, e);
-    }
-}
-
-function updateISPUI(data) {
-    const id = data.id;
-
-    // Update text values
-    const loss = data.packet_loss !== null && data.packet_loss !== undefined ? `${Number(data.packet_loss).toFixed(1)} %` : '--';
-    const down = data.downstream_mbps !== null && data.downstream_mbps !== undefined ? `${Number(data.downstream_mbps).toFixed(1)} Mbps` : '--';
-    const up = data.upstream_mbps !== null && data.upstream_mbps !== undefined ? `${Number(data.upstream_mbps).toFixed(1)} Mbps` : '--';
-    const latency = data.latency_ms !== null && data.latency_ms !== undefined ? `${Number(data.latency_ms)} ms` : '--';
-    const flapping = data.is_flapping;
-    const alertCount = data.critical_alerts !== undefined ? data.critical_alerts : Math.floor(Math.random() * 2);
-
-    const elLoss = document.getElementById(`loss-${id}`);
-    const elDown = document.getElementById(`down-${id}`);
-    const elUp = document.getElementById(`up-${id}`);
-    const elLat = document.getElementById(`latency-${id}`);
-    const elAlerts = document.getElementById(`alerts-${id}`);
-    const elFlap = document.getElementById(`flap-${id}`);
-
-    if (elLoss) elLoss.textContent = loss;
-    if (elDown) elDown.textContent = down;
-    if (elUp) elUp.textContent = up;
-    
-    if (elLat) elLat.textContent = latency;
-    if (elAlerts) elAlerts.textContent = alertCount;
-    if (elFlap) {
-        if (flapping || (data.packet_loss > 10 && data.packet_loss < 100)) {
-            elFlap.textContent = 'FLAPPING DETECTED';
-            elFlap.style.color = 'var(--warning)';
-        } else {
-            elFlap.textContent = 'STABLE';
-            elFlap.style.color = 'var(--success)';
-        }
-    }
-
-    // Update Status Badge
-    const statusBadge = document.getElementById(`status-${id}`);
-    if (statusBadge) {
-        if (data.packet_loss < 100) {
-            statusBadge.className = 'status-badge status-online';
-            statusBadge.textContent = 'Online';
-        } else {
-            statusBadge.className = 'status-badge status-offline';
-            statusBadge.textContent = 'Offline';
-        }
-    }
-
-    // Update Chart
+function updateISPChart(id) {
     const chart = ispCharts[id];
     const history = ispHistory[id];
-
     if (chart && history) {
-        const now = new Date().toLocaleTimeString();
-
-        history.labels.push(now);
-        history.loss.push(data.packet_loss || 0);
-        history.up.push(data.upstream_mbps || 0);
-        history.down.push(data.downstream_mbps || 0);
-
-        if (history.labels.length > MAX_HISTORY) {
-            history.labels.shift();
-            history.loss.shift();
-            history.up.shift();
-            history.down.shift();
-        }
-
         chart.data.labels = history.labels;
-        chart.data.datasets[0].data = history.down;
-
+        chart.data.datasets[0].data = history.latency;
         chart.update('none');
     }
 }
+
+async function probeAllISPs() {
+    try {
+        await apiFetch('/isps/probe_all/', { method: 'POST' });
+        console.log('Global ISP probe triggered');
+    } catch (e) {
+        console.error('Failed to trigger global probe', e);
+    }
+}
+
+// Global update function called by WebSocket or Polling
+function updateISPUI(data) {
+    const id = data.isp_id || data.id;
+    const card = document.getElementById(`isp-card-${id}`);
+    if (!card) return;
+
+    // Update Elements
+    const elLat = document.getElementById(`latency-${id}`);
+    const elLoss = document.getElementById(`loss-${id}`);
+    const elDown = document.getElementById(`down-${id}`);
+    const elStatus = document.getElementById(`status-${id}`);
+
+    if (elLat) elLat.textContent = `${data.latency_ms?.toFixed(0) || 0} ms`;
+    if (elLoss) elLoss.textContent = `${data.packet_loss?.toFixed(1) || 0} %`;
+    if (elDown) elDown.textContent = `${data.downstream_mbps?.toFixed(1) || 0} Mbps`;
+
+    if (elStatus) {
+        const isOnline = data.packet_loss < 100;
+        elStatus.className = `status-pill ${isOnline ? 'online' : 'offline'}`;
+        elStatus.textContent = isOnline ? 'ONLINE' : 'OFFLINE';
+    }
+
+    // Update History & Chart
+    if (!ispHistory[id]) ispHistory[id] = { labels: [], latency: [], loss: [] };
+    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    ispHistory[id].labels.push(now);
+    ispHistory[id].latency.push(data.latency_ms || 0);
+    ispHistory[id].loss.push(data.packet_loss || 0);
+
+    if (ispHistory[id].labels.length > MAX_HISTORY) {
+        ispHistory[id].labels.shift();
+        ispHistory[id].latency.shift();
+        ispHistory[id].loss.shift();
+    }
+
+    updateISPChart(id);
+}
+
+// Expose for WebSocket
+window.updateISPUI = updateISPUI;

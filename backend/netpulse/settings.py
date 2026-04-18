@@ -49,7 +49,6 @@ INSTALLED_APPS = [
     # Local apps
     'api',
     'devices',
-    'alerts',
 ]
 
 # Tell Django to use our custom User model
@@ -89,19 +88,13 @@ TEMPLATES = [
     },
 ]
 
-# Database — use Supabase PostgreSQL via DATABASE_URL from .env
-_database_url = config('DATABASE_URL', default='')
-if _database_url:
-    DATABASES = {
-        'default': dj_database_url.parse(_database_url, conn_max_age=600)
+# Database — use local SQLite for offline desktop application
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+}
 
 # REST Framework configuration
 REST_FRAMEWORK = {
@@ -121,6 +114,7 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'anon': '100/hour',
         'user': '1000/hour',
+        'signup': '10/minute',
     },
 }
 
@@ -158,22 +152,22 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # WebSocket configuration
 ASGI_APPLICATION = 'netpulse.asgi.application'
+WSGI_APPLICATION = 'netpulse.wsgi.application'
 
-if os.environ.get('DEV_USE_INMEM', '0') == '1':
-    CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': 'channels.layers.InMemoryChannelLayer',
-        },
+# Offline desktop mode: use in-memory channel layer (no Redis needed)
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
+
+# Django Cache — Redis backend (shared between Django + Celery workers)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/2',
     }
-else:
-    CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': 'channels_redis.core.RedisChannelLayer',
-            'CONFIG': {
-                'hosts': [config('REDIS_URL', default='redis://127.0.0.1:6379')],
-            },
-        },
-    }
+}
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Logging Configuration — Structured, Rotating
@@ -272,27 +266,34 @@ LOGGING = {
 SIEM_WEBHOOK_URL = os.environ.get('SIEM_WEBHOOK_URL', '')
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Celery Configuration
+# Celery — Local Redis Broker (true async background tasks)
 # ──────────────────────────────────────────────────────────────────────────────
-CELERY_BROKER_URL = config('REDIS_URL', default='redis://localhost:6379/0')
-CELERY_RESULT_BACKEND = config('REDIS_URL', default='redis://localhost:6379/0')
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = TIME_ZONE
-CELERY_TASK_SOFT_TIME_LIMIT = 60   # seconds
-CELERY_TASK_TIME_LIMIT = 120       # hard limit
+CELERY_BROKER_URL          = 'redis://127.0.0.1:6379/0'
+CELERY_RESULT_BACKEND      = 'redis://127.0.0.1:6379/1'
+CELERY_TASK_ALWAYS_EAGER   = False  # TRUE async — tasks run in worker process
+CELERY_TASK_EAGER_PROPAGATES = False
+CELERY_ACCEPT_CONTENT      = ['json']
+CELERY_TASK_SERIALIZER     = 'json'
+CELERY_RESULT_SERIALIZER   = 'json'
+CELERY_TIMEZONE            = TIME_ZONE
+CELERY_WORKER_CONCURRENCY  = 4     # sensible default for desktop
+CELERY_TASK_ACKS_LATE      = True   # re-queue if worker crashes mid-task
 
-# Celery Beat Schedule
 from celery.schedules import crontab
 CELERY_BEAT_SCHEDULE = {
-    'poll-all-devices-every-30-seconds': {
-        'task': 'api.tasks.poll_all_devices',
-        'schedule': 30.0,
+    # Poll every active device & port every 10 seconds
+    'poll-all-devices': {
+        'task':     'api.tasks.poll_all_devices',
+        'schedule': 10.0,
     },
-    'cleanup-old-metrics-daily': {
-        'task': 'api.tasks.cleanup_old_metrics',
-        'schedule': crontab(hour=2, minute=0),  # 2 AM daily
-        'args': (30,),  # Keep 30 days
+    # Probe all ISPs every 60 seconds
+    'probe-all-isps': {
+        'task':     'api.tasks.probe_all_isps',
+        'schedule': 60.0,
+    },
+    # Clean up old metrics once a day at 03:00
+    'cleanup-old-metrics': {
+        'task':     'api.tasks.cleanup_old_metrics',
+        'schedule': crontab(hour=3, minute=0),
     },
 }

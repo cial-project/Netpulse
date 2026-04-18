@@ -23,19 +23,11 @@ def probe_isp(host, count=4, timeout=2):
         except Exception:
             pass
             
-    if success_count == 0:
-        try:
-            socket.gethostbyname(host)
-            success_count = count
-            latency_list = [random.uniform(10, 50) for _ in range(count)]
-        except Exception as e:
-            logger.warning("ISP probe failed completely for %s: %s", host, e)
-            
     if success_count > 0:
         packet_loss = ((count - success_count) / count) * 100.0
         latency = sum(latency_list) / len(latency_list) if latency_list else 0.0
-        upstream_mbps = round(random.uniform(10, 50), 2)
-        downstream_mbps = round(random.uniform(50, 200), 2)
+        upstream_mbps = 0.0
+        downstream_mbps = 0.0
     else:
         packet_loss = 100.0
         latency = None

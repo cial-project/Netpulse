@@ -4,23 +4,11 @@ const API_BASE = (() => {
         return override.replace(/\/$/, '');
     }
 
-    const { origin, protocol, hostname, port } = window.location || {};
-    const staticDevPorts = new Set(['5500', '5501', '5502', '3000', '3001']);
-
+    const { origin } = window.location || {};
     if (origin && origin !== 'null' && !origin.startsWith('file://')) {
-        if (port && staticDevPorts.has(String(port))) {
-            const backendPort = protocol === 'https:' ? '443' : '8000';
-            return `${protocol}//${hostname}:${backendPort}`.replace(/\/$/, '');
-        }
         return origin.replace(/\/$/, '');
     }
-    if (protocol && hostname) {
-        const defaultPort = protocol === 'https:' ? '443' : '80';
-        const hasExplicitPort = port && port !== defaultPort;
-        const backendPort = protocol === 'https:' ? '443' : '8000';
-        const finalPort = hasExplicitPort ? port : backendPort;
-        return `${protocol}//${hostname}:${finalPort}`.replace(/\/$/, '');
-    }
+    
     return 'http://127.0.0.1:8000';
 })();
 
@@ -224,8 +212,8 @@ function updateKPICards(data) {
             const ipEl = document.getElementById(`kpi-${key}-ip`);
             const statusEl = document.getElementById(`kpi-${key}-status`);
 
-            if (tempEl) tempEl.textContent = `${zone.temperature}°C`;
-            if (humEl) humEl.textContent = `${zone.humidity}% humidity`;
+            if (tempEl) tempEl.textContent = `${parseFloat(zone.temperature).toFixed(1)}°C`;
+            if (humEl) humEl.textContent = `${Math.round(zone.humidity)}% humidity`;
             if (ipEl) ipEl.textContent = zone.ip_address || 'NOT ASSIGNED';
 
             if (statusEl) {

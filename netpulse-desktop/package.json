@@ -1,0 +1,16 @@
+{
+  "name": "netpulse-desktop",
+  "version": "1.0.0",
+  "description": "Offline Enterprise Network Monitoring Tool",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-packager . Netpulse --platform=win32 --arch=x64 --out=dist/"
+  },
+  "author": "Netpulse",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-packager": "^17.1.2"
+  }
+}

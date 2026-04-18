@@ -21,72 +21,7 @@ except Exception:
 
 logger = logging.getLogger(__name__)
 
-# Store device states to maintain consistency
-_device_states = {}
-
-def get_device_status(ip: str, community: str = 'public') -> Dict:
-    """Enhanced demo mode - realistic device simulation"""
-    
-    # Initialize or get existing state for this IP
-    if ip not in _device_states:
-        # Determine initial state based on IP (consistent behavior)
-        ip_hash = hash(ip) % 100
-        _device_states[ip] = {
-            'is_online': ip == '192.168.29.155' or ip_hash < 85,  # Force user laptop online, else 85% chance
-            'last_change': datetime.now(),
-            'metrics_history': []
-        }
-    
-    state = _device_states[ip]
-    
-    # Occasionally change state (5% chance to flip status)
-    if random.random() < 0.05 and (datetime.now() - state['last_change']).seconds > 300:
-        state['is_online'] = not state['is_online']
-        state['last_change'] = datetime.now()
-    
-    if state['is_online']:
-        # Online device with realistic, slowly changing metrics
-        base_metrics = {
-            'sys_name': f"Device-{ip.replace('.', '-')}",
-            'uptime_days': max(1, random.randint(1, 180)),
-            'cpu_usage': max(5, min(95, random.gauss(25, 15))),
-            'memory_usage': max(15, min(90, random.gauss(45, 20))),
-            'network_in': random.randint(50, 800),
-            'network_out': random.randint(20, 400),
-        }
-        
-        # Add temperature for some devices (30% chance)
-        if random.random() < 0.3:
-            base_metrics['temperature'] = round(random.uniform(18, 32), 1)
-        
-        # Store metrics for trend simulation
-        state['metrics_history'].append({
-            'timestamp': datetime.now(),
-            'metrics': base_metrics
-        })
-        
-        # Keep only last 100 records
-        if len(state['metrics_history']) > 100:
-            state['metrics_history'].pop(0)
-        
-        return {
-            'status': 'up',
-            'reachable': True,
-            **base_metrics
-        }
-    else:
-        # Offline device
-        return {
-            'status': 'down', 
-            'reachable': False,
-            'error': 'Device not responding - SNMP timeout',
-            'sys_name': f"Device-{ip.replace('.', '-')}",
-            'uptime_days': 0,
-            'cpu_usage': 0,
-            'memory_usage': 0,
-            'network_in': 0,
-            'network_out': 0
-        }
+# State management removed
 
 def poll_device(ip: str, device_type: str, community: str = 'public', port: int = 161, custom_oids: str = '') -> Dict:
     """Complete device polling with enhanced demo data"""
@@ -123,27 +58,11 @@ def poll_device(ip: str, device_type: str, community: str = 'public', port: int 
                     'sys_name': snmp_result.get('sysName') or f"Device-{ip}",
                     'uptime_days': round(snmp_result.get('uptime_seconds', 0) / 86400.0, 2),
                     'cpu_usage': snmp_result.get('cpu_load', 0.0),
-                    'memory_usage': 0.0,
-                    'network_in': 0.0,
-                    'network_out': 0.0,
+                    'memory_usage': snmp_result.get('memory_usage', 0.0),
+                    'bytes_in': snmp_result.get('bytes_in', 0),
+                    'bytes_out': snmp_result.get('bytes_out', 0),
                     'temperature': snmp_result.get('temperature'),
                 }
-
-                # Persist a Metric if Device model available and device exists
-                try:
-                    if Device:
-                        dev = Device.objects.filter(ip_address=ip).first()
-                        if dev:
-                            Metric.objects.create(
-                                device=dev,
-                                cpu_usage=float(result.get('cpu_usage') or 0.0),
-                                memory_usage=float(result.get('memory_usage') or 0.0),
-                                network_in=float(result.get('network_in') or 0.0),
-                                network_out=float(result.get('network_out') or 0.0),
-                                temperature=result.get('temperature'),
-                            )
-                except Exception:
-                    logger.exception('Failed to save Metric for %s', ip)
 
                 # If pysnmp available and parsed_oids present, attempt to read them and include in result
                 if _HAS_PYSNMP and parsed_oids:
@@ -206,19 +125,18 @@ def poll_device(ip: str, device_type: str, community: str = 'public', port: int 
             'temperature': None,
         }
 
-    # All real polling failed — fall back to simulator for demo purposes
-    sim_data = get_device_status(ip, community)
+    # All real polling failed — fall back to down state (No simulator!)
     return {
-        'status': sim_data.get('status', 'down'),
-        'reachable': sim_data.get('reachable', False),
-        'sys_name': sim_data.get('sys_name', f"Device-{ip}"),
-        'uptime_days': sim_data.get('uptime_days', 0),
-        'cpu_usage': sim_data.get('cpu_usage', 0.0),
-        'memory_usage': sim_data.get('memory_usage', 0.0),
-        'network_in': sim_data.get('network_in', 0.0),
-        'network_out': sim_data.get('network_out', 0.0),
-        'temperature': sim_data.get('temperature'),
-        'simulator_fallback': True
+        'status': 'down',
+        'reachable': False,
+        'sys_name': f"Device-{ip}",
+        'uptime_days': 0,
+        'cpu_usage': 0.0,
+        'memory_usage': 0.0,
+        'network_in': 0.0,
+        'network_out': 0.0,
+        'temperature': None,
+        'simulator_fallback': False
     }
 
 
@@ -279,64 +197,73 @@ def _snmp_poll_basic(ip: str, community: str = 'public', port: int = 161, timeou
 
     result['reachable'] = True
 
-    # Try to get CPU load from HOST-RESOURCES-MIB (hrProcessorLoad) — take first entry if present
+    # Phase 2 OIDs for CPU and Memory
     try:
-        # walk hrProcessorLoad table
-        cpu_load = None
-        for (errorIndication, errorStatus, errorIndex, varBinds) in nextCmd(
-            SnmpEngine(),
-            community_data,
-            target,
-            ContextData(),
-            ObjectType(ObjectIdentity('1.3.6.1.2.1.25.3.3.1.2')),
-            lexicographicMode=False,
-        ):
-            if errorIndication or errorStatus:
-                break
-            for vb in varBinds:
+        cpu_oid = ObjectIdentity('1.3.6.1.4.1.2021.11.9.0')
+        mem_oid = ObjectIdentity('1.3.6.1.4.1.2021.4.6.0')
+        err1, err2, err3, vb_cm = next(
+            getCmd(SnmpEngine(), community_data, target, ContextData(), ObjectType(cpu_oid), ObjectType(mem_oid))
+        )
+        if not err1 and not err2:
+            for vb in vb_cm:
+                oid_str = str(vb[0])
                 try:
-                    cpu_load = float(vb[1])
-                    break
+                    if '2021.11.9.0' in oid_str:
+                        result['cpu_load'] = float(vb[1])
+                    elif '2021.4.6.0' in oid_str:
+                        result['memory_usage'] = float(vb[1]) / 1024.0 # KB -> MB
                 except Exception:
-                    continue
-            if cpu_load is not None:
-                break
-        if cpu_load is not None:
-            result['cpu_load'] = cpu_load
+                    pass
     except Exception:
-        logger.debug('Failed to read CPU load for %s', ip)
+        pass
 
-    # Temperature OID is vendor specific. Try a couple of common ones (UCD-SNMP-MIB::extOutput or similar) - skip if not found
-    # For simplicity, we won't try many vendor OIDs here.
+    # Phase 2 OIDs for Bandwidth Counters
+    bytes_in = 0
+    try:
+        for (err1, err2, err3, vb_in) in nextCmd(SnmpEngine(), community_data, target, ContextData(), ObjectType(ObjectIdentity('1.3.6.1.2.1.2.2.1.10')), lexicographicMode=False):
+            if not err1 and not err2:
+                for vb in vb_in:
+                    try: bytes_in += int(vb[1])
+                    except: pass
+    except Exception:
+        pass
+        
+    bytes_out = 0
+    try:
+        for (err1, err2, err3, vb_out) in nextCmd(SnmpEngine(), community_data, target, ContextData(), ObjectType(ObjectIdentity('1.3.6.1.2.1.2.2.1.16')), lexicographicMode=False):
+            if not err1 and not err2:
+                for vb in vb_out:
+                    try: bytes_out += int(vb[1])
+                    except: pass
+    except Exception:
+        pass
+        
+    result['bytes_in'] = bytes_in
+    result['bytes_out'] = bytes_out
 
     return result
 
 def get_device_metrics_trend(ip: str, hours: int = 24):
-    """Generate realistic metric trends for charts"""
-    if ip not in _device_states:
+    """Get realistic metric trends from database"""
+    try:
+        from api.models import Device, Metric
+        device = Device.objects.filter(ip_address=ip).first()
+        if not device:
+            return []
+            
+        now = datetime.now()
+        cutoff = now - timedelta(hours=hours)
+        metrics = Metric.objects.filter(device=device, timestamp__gte=cutoff).order_by('timestamp')
+        
+        trends = []
+        for m in metrics:
+            trends.append({
+                'timestamp': m.timestamp.isoformat(),
+                'cpu_usage': m.cpu_usage,
+                'network_in': m.network_in,
+                'network_out': m.network_out
+            })
+        return trends
+    except Exception as e:
+        logger.error(f"Error fetching trends: {e}")
         return []
-    
-    state = _device_states[ip]
-    now = datetime.now()
-    
-    # Generate trend data points
-    trends = []
-    for i in range(hours):
-        point_time = now - timedelta(hours=hours - i - 1)
-        
-        # Find closest metrics or generate synthetic ones
-        base_metric = state['metrics_history'][-1]['metrics'] if state['metrics_history'] else {
-            'cpu_usage': random.randint(10, 40),
-            'network_in': random.randint(100, 500),
-            'network_out': random.randint(50, 250)
-        }
-        
-        # Add some variation
-        trends.append({
-            'timestamp': point_time.isoformat(),
-            'cpu_usage': max(5, base_metric['cpu_usage'] + random.randint(-10, 10)),
-            'network_in': max(10, base_metric['network_in'] + random.randint(-50, 50)),
-            'network_out': max(5, base_metric['network_out'] + random.randint(-25, 25))
-        })
-    
-    return trends

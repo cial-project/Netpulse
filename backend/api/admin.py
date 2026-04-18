@@ -54,10 +54,11 @@ class ISPAdmin(admin.ModelAdmin):
 
 @admin.register(Port)
 class PortAdmin(admin.ModelAdmin):
-    list_display = ('name', 'device_name', 'status', 'utilization_in', 'utilization_out', 'is_active', 'last_checked')
-    list_filter = ('status', 'is_active', 'is_flapping')
-    search_fields = ('name', 'device_name')
+    list_display = ('name', 'device', 'status', 'utilization_in', 'utilization_out', 'is_active', 'last_checked')
+    list_filter = ('status', 'is_active', 'is_flapping', 'device')
+    search_fields = ('name', 'device__name')
     list_per_page = 25
+    raw_id_fields = ('device',)
 
 
 @admin.register(Audit)

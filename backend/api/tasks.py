@@ -1,28 +1,31 @@
 """
 Celery tasks for device polling, metrics storage, alert generation, and WebSocket broadcasting.
 
-Schedule: poll_all_devices runs every 30 seconds via Celery Beat.
-Each device is polled individually by poll_single_device workers.
+Beat Schedule (configured in settings.py):
+  - poll_all_devices    → every 10 seconds
+  - probe_all_isps      → every 60 seconds
+  - cleanup_old_metrics → daily
 """
 from celery import shared_task
 from django.utils import timezone
-from django.db.models import Q
-from .models import Device, Metric, Alert, AlertThreshold, Port
+from django.core.cache import cache
+from .models import Device, Metric, Alert, AlertThreshold, Port, ISP
 from devices.snmp_service import poll_device
-from .serializers import MetricSerializer, AlertSerializer, PortSerializer
+from .serializers import MetricSerializer, AlertSerializer
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 import logging
 
 logger = logging.getLogger('netpulse.poller')
 
+
 # ---------------------------------------------------------------------------
 # Default thresholds (used when AlertThreshold table is empty or unconfigured)
 # ---------------------------------------------------------------------------
 DEFAULT_THRESHOLDS = {
-    'cpu_usage': {'warning': 85, 'critical': 95},
-    'memory_usage': {'warning': 85, 'critical': 95},
-    'temperature': {'warning': 35, 'critical': 45},
+    'cpu_usage':    {'warning': 70, 'critical': 85},
+    'memory_usage': {'warning': 70, 'critical': 85},
+    'temperature':  {'warning': 35, 'critical': 45},
 }
 
 
@@ -37,7 +40,6 @@ def _get_thresholds():
     except Exception:
         logger.debug('AlertThreshold table not available, using defaults')
 
-    # Merge with defaults
     for metric, levels in DEFAULT_THRESHOLDS.items():
         if metric not in thresholds:
             thresholds[metric] = levels
@@ -49,51 +51,128 @@ def _get_thresholds():
 
 
 # ---------------------------------------------------------------------------
-# Scheduled entry-point (every 30 s via Celery Beat)
+# Scheduled entry-point (every 10 s via Celery Beat)
 # ---------------------------------------------------------------------------
+POLL_LOCK_KEY   = 'poll_all_devices_lock'
+POLL_LOCK_TTL   = 30  # seconds — longer than beat interval to prevent overlap
+
 @shared_task(name='api.tasks.poll_all_devices')
 def poll_all_devices():
-    """Scheduled task to poll all active devices and ports."""
-    devices = Device.objects.filter(is_active=True)
-    for device in devices:
-        poll_single_device.delay(device.id)
+    """Scheduled task to queue polling for all active devices.
     
-    ports = Port.objects.filter(is_active=True)
-    for port in ports:
-        update_port_metrics.delay(port.id)
+    Uses a cache lock to prevent overlapping poll cycles — if a previous
+    cycle is still running, this invocation is silently skipped.
+    """
+    # Acquire lock (atomic add returns True only for first caller)
+    if not cache.add(POLL_LOCK_KEY, 'locked', POLL_LOCK_TTL):
+        logger.info('poll_all_devices: previous cycle still running, skipping')
+        return 'Skipped — previous cycle still running'
+
+    try:
+        devices = Device.objects.filter(is_active=True).values_list('id', flat=True)
+        ports   = Port.objects.filter(is_active=True).values_list('id', flat=True)
+
+        for device_id in devices:
+            poll_single_device.delay(device_id)
+
+        for port_id in ports:
+            update_port_metrics.delay(port_id)
+
+        logger.info('Queued polling for %d devices and %d ports', len(devices), len(ports))
+        return f"Queued {len(devices)} devices and {len(ports)} ports"
+    finally:
+        cache.delete(POLL_LOCK_KEY)
+
+
+# ---------------------------------------------------------------------------
+# ISP Probe Tasks
+# ---------------------------------------------------------------------------
+@shared_task(name='api.tasks.probe_all_isps')
+def probe_all_isps():
+    """Scheduled task to probe all active ISPs."""
+    isp_ids = ISP.objects.filter(is_active=True).values_list('id', flat=True)
+    for isp_id in isp_ids:
+        probe_single_isp.delay(isp_id)
+    logger.info('Queued probe for %d ISPs', len(isp_ids))
+    return f"Queued {len(isp_ids)} ISPs"
+
+
+@shared_task(name='api.tasks.probe_single_isp', bind=True, max_retries=2, default_retry_delay=15)
+def probe_single_isp(self, isp_id):
+    """Worker: probe a single ISP and store results in DB."""
+    try:
+        isp = ISP.objects.get(id=isp_id)
+    except ISP.DoesNotExist:
+        logger.warning('probe_single_isp: ISP %s not found', isp_id)
+        return f"ISP {isp_id} not found"
+
+    try:
+        from devices.isp_service import probe_isp
+        res = probe_isp(isp.host)
+        isp.last_checked    = timezone.now()
+        isp.latency_ms      = res.get('latency_ms')
+        isp.packet_loss     = res.get('packet_loss', 0)
+        isp.upstream_mbps   = res.get('upstream_mbps', 0)
+        isp.downstream_mbps = res.get('downstream_mbps', 0)
+        isp.is_flapping     = isp.packet_loss is not None and isp.packet_loss > 5
+        isp.is_active       = True
+        isp.save()
         
-    logger.info('Queued polling for %d devices and %d ports', devices.count(), ports.count())
-    return f"Queued {devices.count()} devices and {ports.count()} ports"
+        # 2. Store History (Latency as network_in, Loss as network_out)
+        metric = Metric.objects.create(
+            isp=isp,
+            network_in=isp.latency_ms or 0.0,
+            network_out=isp.packet_loss or 0.0,
+            cpu_usage=0.0,
+            memory_usage=0.0
+        )
+
+        # 3. Broadcast real-time update
+        _broadcast_isp_update(isp)
+
+        logger.debug('Probed ISP %s: latency=%sms, loss=%s%%', isp.name, isp.latency_ms, isp.packet_loss)
+        return f"Probed {isp.name}"
+    except Exception as e:
+        logger.exception('ISP probe failed for %s: %s', isp_id, e)
+        try:
+            self.retry(exc=e)
+        except self.MaxRetriesExceededError:
+            pass
+        return f"Error probing ISP {isp_id}: {e}"
 
 
+# ---------------------------------------------------------------------------
+# Port Metrics Task
+# ---------------------------------------------------------------------------
 @shared_task(name='api.tasks.update_port_metrics')
 def update_port_metrics(port_id):
-    """Update port metrics focusing on real device if IP matches."""
+    """Worker: simulate/collect port traffic metrics and store them."""
     try:
         port = Port.objects.get(id=port_id)
+    except Port.DoesNotExist:
+        return f"Port {port_id} not found"
+
+    try:
         from devices.port_service import simulate_port_traffic
-        
-        # In a real environment, we'd use SNMP interface MIBs here
-        # For this demo, we use the simulation but ensure it's called
         data = simulate_port_traffic(port.capacity_mbps)
-        
-        port.bps_in = data['bps_in']
-        port.bps_out = data['bps_out']
-        port.utilization_in = data['utilization_in']
+
+        port.bps_in         = data['bps_in']
+        port.bps_out        = data['bps_out']
+        port.utilization_in  = data['utilization_in']
         port.utilization_out = data['utilization_out']
-        port.status = data['status']
-        port.last_checked = timezone.now()
+        port.status         = data['status']
+        port.last_checked   = timezone.now()
         port.save()
-        
-        # Broadcast to dashboard
-        broadcast_port_update(port)
+
+        _broadcast_port_update(port)
         return f"Updated port {port.name}"
     except Exception as e:
-        logger.error(f"Error updating port {port_id}: {e}")
+        logger.error('Error updating port %s: %s', port_id, e)
         return str(e)
 
-def broadcast_port_update(port):
-    """Send port update via WebSocket."""
+
+def _broadcast_port_update(port):
+    """Push port update via WebSocket."""
     try:
         channel_layer = get_channel_layer()
         if channel_layer:
@@ -104,16 +183,16 @@ def broadcast_port_update(port):
                     'data': {
                         'type': 'port_update',
                         'port_id': port.id,
-                        'utilization_in': port.utilization_in,
+                        'utilization_in':  port.utilization_in,
                         'utilization_out': port.utilization_out,
-                        'bps_in': port.bps_in,
-                        'bps_out': port.bps_out,
-                        'status': port.status
+                        'bps_in':          port.bps_in,
+                        'bps_out':         port.bps_out,
+                        'status':          port.status,
                     }
                 }
             )
     except Exception:
-        pass
+        pass  # Silent: WS layer may not be present in all environments
 
 
 # ---------------------------------------------------------------------------
@@ -122,7 +201,7 @@ def broadcast_port_update(port):
 @shared_task(name='api.tasks.poll_single_device', bind=True, max_retries=2,
              default_retry_delay=10)
 def poll_single_device(self, device_id):
-    """Worker task to poll a single device and broadcast results."""
+    """Worker task: poll a single device via SNMP, store metric, generate alerts."""
     try:
         device = Device.objects.get(id=device_id)
     except Device.DoesNotExist:
@@ -136,45 +215,58 @@ def poll_single_device(self, device_id):
             device.ip_address,
             device.device_type,
             device.snmp_community,
-            getattr(device, 'port', 161),
-            custom_oids=getattr(device, 'custom_oids', '')
+            getattr(device, 'snmp_port', 161),
+            custom_oids=getattr(device, 'custom_oids', ''),
         )
 
         device.is_online = result.get('reachable', False)
 
         if device.is_online:
-            device.last_seen = timezone.now()
-            device.sys_name = result.get('sys_name', device.sys_name)
+            device.last_seen   = timezone.now()
+            device.sys_name    = result.get('sys_name', device.sys_name)
             device.uptime_days = result.get('uptime_days', device.uptime_days or 0)
-            
-            # Update cached device-level metrics
-            device.cpu_load = result.get('cpu_usage', device.cpu_load)
+            device.cpu_load    = result.get('cpu_usage', device.cpu_load)
             device.memory_load = result.get('memory_usage', device.memory_load)
             if result.get('temperature') is not None:
                 device.temperature = result['temperature']
 
-            # Store metric
+            # Bandwidth delta calculation using cache
+            from django.core.cache import cache
+            cache_key     = f"device_{device.id}_network_bytes"
+            previous_data = cache.get(cache_key)
+
+            bytes_in  = result.get('bytes_in', 0)
+            bytes_out = result.get('bytes_out', 0)
+            now_ts    = timezone.now().timestamp()
+            network_in_mbps  = result.get('network_in', 0.0)
+            network_out_mbps = result.get('network_out', 0.0)
+
+            if bytes_in > 0 or bytes_out > 0:
+                if previous_data:
+                    delta_t = now_ts - previous_data.get('time', now_ts - 10)
+                    if delta_t > 0:
+                        network_in_mbps  = max(0.0, ((bytes_in  - previous_data.get('bytes_in',  0)) * 8) / (delta_t * 1_000_000))
+                        network_out_mbps = max(0.0, ((bytes_out - previous_data.get('bytes_out', 0)) * 8) / (delta_t * 1_000_000))
+                cache.set(cache_key, {'bytes_in': bytes_in, 'bytes_out': bytes_out, 'time': now_ts}, timeout=86400)
+                result['network_in']  = network_in_mbps
+                result['network_out'] = network_out_mbps
+
             metric_instance = Metric.objects.create(
                 device=device,
-                cpu_usage=result.get('cpu_usage', 0),
-                memory_usage=result.get('memory_usage', 0),
-                network_in=result.get('network_in', 0),
-                network_out=result.get('network_out', 0),
-                temperature=result.get('temperature', None),
+                cpu_usage    = result.get('cpu_usage', 0),
+                memory_usage = result.get('memory_usage', 0),
+                network_in   = network_in_mbps,
+                network_out  = network_out_mbps,
+                temperature  = result.get('temperature'),
             )
 
-            # Broadcast metric via WebSocket
-            broadcast_metric(metric_instance)
+            _broadcast_metric(metric_instance)
+            _check_threshold_alerts(device, result)
 
-            # Check thresholds and generate alerts
-            check_threshold_alerts(device, result)
-
-            # If device came back online, auto-resolve offline alerts
             if not was_online:
                 _auto_resolve_offline_alerts(device)
 
         else:
-            # Device is offline
             _create_offline_alert(device, was_online)
 
         device.save()
@@ -182,8 +274,7 @@ def poll_single_device(self, device_id):
         return f"Polled {device.name}: online={device.is_online}"
 
     except Exception as e:
-        logger.exception('Error polling device %s (%s): %s', device_id, device.name, e)
-        # Retry on transient failures
+        logger.exception('Error polling device %s: %s', device_id, e)
         try:
             self.retry(exc=e)
         except self.MaxRetriesExceededError:
@@ -194,77 +285,58 @@ def poll_single_device(self, device_id):
 # ---------------------------------------------------------------------------
 # Alert Generation Engine
 # ---------------------------------------------------------------------------
-def check_threshold_alerts(device, result):
-    """
-    Evaluate all configured thresholds against the poll result.
-    Creates alerts for:
-      - CPU > threshold
-      - Memory > threshold
-      - Temperature > threshold
-    """
+def _check_threshold_alerts(device, result):
+    """Evaluate poll results against thresholds and fire alerts if needed."""
     thresholds = _get_thresholds()
-
     checks = [
-        ('cpu_usage', result.get('cpu_usage', 0), 'High CPU usage'),
+        ('cpu_usage',    result.get('cpu_usage', 0),  'High CPU usage'),
         ('memory_usage', result.get('memory_usage', 0), 'High memory usage'),
-        ('temperature', result.get('temperature'), 'High temperature'),
+        ('temperature',  result.get('temperature'),   'High temperature'),
     ]
 
     for metric_name, value, label in checks:
         if value is None:
             continue
-
         metric_thresholds = thresholds.get(metric_name, {})
-        
-        # Check critical first, then warning
         for severity in ('critical', 'warning'):
             threshold = metric_thresholds.get(severity)
             if threshold is None:
                 continue
-
             if value > threshold:
                 title = f"{label} on {device.name}"
-                # Only create if there isn't already an open alert for same device + title
-                alert, created = Alert.objects.get_or_create(
-                    device=device,
-                    title=title,
-                    status='open',
-                    defaults={
-                        'description': (
+                if not Alert.objects.filter(device=device, title=title, status='open').exists():
+                    alert = Alert.objects.create(
+                        device=device,
+                        title=title,
+                        status='open',
+                        description=(
                             f"{metric_name.replace('_', ' ').title()} is at "
                             f"{value:.1f}{'%' if 'usage' in metric_name else '°C'} "
                             f"(threshold: {threshold}{'%' if 'usage' in metric_name else '°C'})"
                         ),
-                        'severity': severity,
-                    }
-                )
-                if created:
-                    logger.info(
-                        'ALERT [%s]: %s — %s = %.1f (threshold: %.1f)',
-                        severity.upper(), device.name, metric_name, value, threshold
+                        severity=severity,
                     )
-                    broadcast_alert(alert)
-                break  # Don't create both critical and warning for same metric
+                    logger.info('ALERT [%s]: %s — %s = %.1f', severity.upper(), device.name, metric_name, value)
+                    _broadcast_alert(alert)
+                break  # only fire one severity per metric
 
 
 def _create_offline_alert(device, was_online):
-    """Create an alert when a device goes offline."""
+    """Fire an alert when a device goes offline (once per outage)."""
     title = f"Device {device.name} is offline"
-    alert, created = Alert.objects.get_or_create(
-        device=device,
-        title=title,
-        status='open',
-        defaults={
-            'description': (
+    if not Alert.objects.filter(device=device, title=title, status='open').exists():
+        alert = Alert.objects.create(
+            device=device,
+            title=title,
+            status='open',
+            description=(
                 f"Device at {device.ip_address} is not responding. "
                 f"{'Was previously online.' if was_online else 'Not reachable on initial check.'}"
             ),
-            'severity': 'critical',
-        }
-    )
-    if created:
-        logger.warning('ALERT [CRITICAL]: Device %s (%s) went offline', device.name, device.ip_address)
-        broadcast_alert(alert)
+            severity='critical',
+        )
+        logger.warning('ALERT [CRITICAL]: %s (%s) went offline', device.name, device.ip_address)
+        _broadcast_alert(alert)
 
 
 def _auto_resolve_offline_alerts(device):
@@ -272,20 +344,16 @@ def _auto_resolve_offline_alerts(device):
     resolved_count = Alert.objects.filter(
         device=device,
         title__icontains='offline',
-        status__in=['open', 'in-progress']
-    ).update(
-        status='resolved',
-        resolved_at=timezone.now()
-    )
+        status__in=['open', 'in-progress'],
+    ).update(status='resolved', resolved_at=timezone.now())
     if resolved_count:
         logger.info('Auto-resolved %d offline alert(s) for %s', resolved_count, device.name)
 
 
 # ---------------------------------------------------------------------------
-# WebSocket Broadcasting
+# WebSocket Broadcasting (private helpers)
 # ---------------------------------------------------------------------------
-def broadcast_metric(metric):
-    """Broadcast a metric update to all connected WebSocket clients."""
+def _broadcast_metric(metric):
     try:
         channel_layer = get_channel_layer()
         if channel_layer is None:
@@ -295,10 +363,10 @@ def broadcast_metric(metric):
             {
                 'type': 'dashboard_update',
                 'data': {
-                    'type': 'metric_update',
-                    'device_id': metric.device_id,
+                    'type':        'metric_update',
+                    'device_id':   metric.device_id,
                     'device_name': metric.device.name,
-                    'metrics': MetricSerializer(metric).data,
+                    'metrics':     MetricSerializer(metric).data,
                 }
             }
         )
@@ -306,8 +374,7 @@ def broadcast_metric(metric):
         logger.exception('Failed to broadcast metric update')
 
 
-def broadcast_alert(alert):
-    """Broadcast a new alert to all connected WebSocket clients."""
+def _broadcast_alert(alert):
     try:
         channel_layer = get_channel_layer()
         if channel_layer is None:
@@ -317,7 +384,7 @@ def broadcast_alert(alert):
             {
                 'type': 'dashboard_update',
                 'data': {
-                    'type': 'alert_triggered',
+                    'type':  'alert_triggered',
                     'alert': AlertSerializer(alert).data,
                 }
             }
@@ -326,31 +393,38 @@ def broadcast_alert(alert):
         logger.exception('Failed to broadcast alert')
 
 
-def broadcast_device_status(device):
-    """Broadcast device status change."""
+def _broadcast_isp_update(isp):
+    """Push ISP update via WebSocket."""
     try:
         channel_layer = get_channel_layer()
-        if channel_layer is None:
-            return
-        async_to_sync(channel_layer.group_send)(
-            'dashboard_updates',
-            {
-                'type': 'dashboard_update',
-                'data': {
-                    'type': 'device_status',
-                    'device_id': device.id,
-                    'device_name': device.name,
-                    'is_online': device.is_online,
-                    'timestamp': timezone.now().isoformat(),
+        if channel_layer:
+            async_to_sync(channel_layer.group_send)(
+                'dashboard_updates',
+                {
+                    'type': 'dashboard_update',
+                    'data': {
+                        'type': 'isp_update',
+                        'isp_id': isp.id,
+                        'name': isp.name,
+                        'latency_ms': isp.latency_ms,
+                        'packet_loss': isp.packet_loss,
+                        'upstream_mbps': isp.upstream_mbps,
+                        'downstream_mbps': isp.downstream_mbps,
+                        'is_flapping': isp.is_flapping,
+                    }
                 }
-            }
-        )
+            )
     except Exception:
-        logger.exception('Failed to broadcast device status')
+        pass
+
+
+# Public aliases kept for any lingering references
+broadcast_metric = _broadcast_metric
+broadcast_alert  = _broadcast_alert
 
 
 # ---------------------------------------------------------------------------
-# Metric Cleanup (optional scheduled task)
+# Metric Cleanup (daily scheduled task)
 # ---------------------------------------------------------------------------
 @shared_task(name='api.tasks.cleanup_old_metrics')
 def cleanup_old_metrics(days=30):
